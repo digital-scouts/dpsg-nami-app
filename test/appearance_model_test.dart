@@ -6,14 +6,6 @@ import 'package:nami/domain/appearance/support_access.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/services/app_icon_service.dart';
 
-/// Nur freie und Supporter-Optionen sind nutzbar.
-class _SupporterOnlyAccess extends SupportAccess {
-  const _SupporterOnlyAccess();
-
-  @override
-  bool isTierUnlocked(SupportTier tier) => tier != SupportTier.foerderer;
-}
-
 void main() {
   late InMemoryAppearanceSettingsRepository repository;
   late FakeAppIconService iconService;
@@ -42,7 +34,7 @@ void main() {
     await model.setBackground(AppearanceBackgroundId.himmel);
     await model.setBadge(SupporterBadgeId.kompassPfadfinder);
     await model.setAppIcon(
-      const AppIconChoice(AppIconPackage.hajk, AppIconVariant.abend),
+      const AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.abend),
     );
 
     final reloaded = buildModel();
@@ -53,7 +45,7 @@ void main() {
     expect(reloaded.badge, SupporterBadgeId.kompassPfadfinder);
     expect(
       reloaded.appIcon,
-      const AppIconChoice(AppIconPackage.hajk, AppIconVariant.abend),
+      const AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.abend),
     );
     expect(reloaded.iconChangeSupported, isTrue);
   });
@@ -94,7 +86,9 @@ void main() {
         badge: SupporterBadgeId.foerdererPolarstern,
       ),
     );
-    final model = buildModel(access: const _SupporterOnlyAccess());
+    final model = buildModel(
+      access: const SchalterSupportAccess(SupporterTestZugang.lagerfeuer),
+    );
     await model.load();
 
     expect(model.palette, AppPaletteId.standard);
@@ -106,6 +100,38 @@ void main() {
     expect(model.palette, AppPaletteId.nachthimmel);
     expect(model.background, AppearanceBackgroundId.wald);
     expect(model.badge, SupporterBadgeId.foerdererPolarstern);
+  });
+
+  test('ein Paket schaltet sein Design und die Kompass-Badges frei', () async {
+    repository = InMemoryAppearanceSettingsRepository(
+      const AppearanceSettings(
+        palette: AppPaletteId.wald,
+        background: AppearanceBackgroundId.wald,
+        badge: SupporterBadgeId.kompassRover,
+        appIcon: AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.nacht),
+      ),
+    );
+    final model = buildModel(
+      access: const SchalterSupportAccess(SupporterTestZugang.wald),
+    );
+    await model.load();
+
+    expect(model.palette, AppPaletteId.wald);
+    expect(model.background, AppearanceBackgroundId.wald);
+    expect(model.badge, SupporterBadgeId.kompassRover);
+    expect(
+      model.appIcon,
+      const AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.nacht),
+    );
+
+    model.updateAccess(
+      const SchalterSupportAccess(SupporterTestZugang.nachthimmel),
+    );
+
+    expect(model.palette, AppPaletteId.standard);
+    expect(model.background, isNull);
+    expect(model.badge, SupporterBadgeId.kompassRover);
+    expect(model.appIcon, isNull);
   });
 
   test('reset stellt Standard und Standard-Icon wieder her', () async {

@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/data/appearance/in_memory_appearance_settings_repository.dart';
 import 'package:nami/demo/demo_services.dart';
-import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/appearance/support_access.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
@@ -68,7 +67,11 @@ void main() {
             value: AppearanceModel(
               repository: InMemoryAppearanceSettingsRepository(),
               appIconService: FakeAppIconService(),
-              access: SchalterSupportAccess(freigeschaltet: supporter),
+              access: SchalterSupportAccess(
+                supporter
+                    ? SupporterTestZugang.foerderer
+                    : SupporterTestZugang.keiner,
+              ),
             ),
           ),
         ],
@@ -107,7 +110,7 @@ void main() {
     expect(find.text('2/4', findRichText: true), findsWidgets);
   });
 
-  testWidgets('ohne Supporter-Zugang erscheint nur der Hinweis', (
+  testWidgets('ohne Foerderer-Abo erscheint nur der Hinweis', (
     tester,
   ) async {
     await pumpSeite(
@@ -119,7 +122,7 @@ void main() {
       supporter: false,
     );
 
-    expect(find.text('Teil des Supporter-Pakets'), findsOneWidget);
+    expect(find.text('Teil des Förderer-Abos'), findsOneWidget);
     expect(find.byKey(const Key('quali-zeile-efz')), findsNothing);
     expect(find.byKey(const Key('quali-auswahl-oeffnen')), findsNothing);
   });
@@ -204,12 +207,22 @@ void main() {
     expect(erinnerung.tageVorher, 91);
   });
 
-  test('Testschalter-Zugang: frei immer, Supporter nur mit Schalter', () {
-    const aus = SchalterSupportAccess(freigeschaltet: false);
-    const an = SchalterSupportAccess(freigeschaltet: true);
-
-    expect(aus.isTierUnlocked(SupportTier.free), isTrue);
-    expect(aus.isTierUnlocked(SupportTier.supporter), isFalse);
-    expect(an.isTierUnlocked(SupportTier.supporter), isTrue);
+  test('Qualifikationen gibt es nur mit dem Foerderer-Abo', () {
+    expect(
+      const SchalterSupportAccess(
+        SupporterTestZugang.keiner,
+      ).qualifikationenFrei,
+      isFalse,
+    );
+    expect(
+      const SchalterSupportAccess(SupporterTestZugang.wald).qualifikationenFrei,
+      isFalse,
+    );
+    expect(
+      const SchalterSupportAccess(
+        SupporterTestZugang.foerderer,
+      ).qualifikationenFrei,
+      isTrue,
+    );
   });
 }

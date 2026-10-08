@@ -259,9 +259,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ?.einstellungen;
                     final qualiGesperrt =
                         appearance != null &&
-                        !appearance.access.isTierUnlocked(
-                          SupportTier.supporter,
-                        );
+                        !appearance.access.qualifikationenFrei;
                     return Column(
                       children: [
                         _SettingsProfileHeader(

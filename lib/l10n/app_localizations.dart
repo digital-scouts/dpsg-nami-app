@@ -639,7 +639,6 @@ class AppLocalizations {
       'appearance_icon_package_nachtlager': 'Nachtlager',
       'appearance_icon_package_lagerfeuer': 'Lagerfeuer',
       'appearance_icon_package_kohteSee': 'Kohte am See',
-      'appearance_icon_package_hajk': 'Hajk',
       'appearance_icon_variant_morgen': 'Morgen',
       'appearance_icon_variant_abend': 'Abend',
       'appearance_icon_variant_nacht': 'Nacht',
@@ -1121,12 +1120,12 @@ class AppLocalizations {
           'Bitte versuche es nach dem nächsten Sync erneut.',
       'quali_leer_hinweis':
           'Im Arbeitskontext hat noch niemand eine Qualifikation aus Hitobito. Präventionsschulung und Erste Hilfe erscheinen, sobald sie jemand hat.',
-      'quali_supporter_titel': 'Teil des Supporter-Pakets',
+      'quali_supporter_titel': 'Teil des Förderer-Abos',
       'quali_supporter_text':
           'Mit der Übersicht siehst du für den ganzen Arbeitskontext, wer welche Qualifikation braucht und wann sie abläuft, und kannst dich erinnern lassen.',
       'quali_supporter_hinweis':
           'Deine eigenen Qualifikationen siehst du weiter in deinen Mitgliedsdetails, Erinnerungen dafür gibt es unter Benachrichtigungen.',
-      'quali_supporter_schild': 'Supporter',
+      'quali_supporter_schild': 'Förderer',
       'quali_erfuellt': '{erfuellt} von {benoetigt} erfüllt',
       'quali_quelle_hitobito': 'Gültigkeit aus Hitobito',
       'quali_benoetigt_von': 'Benötigt von: {kreis} · {n} Personen',
@@ -1228,9 +1227,14 @@ class AppLocalizations {
       'debug_supporter_section_title': 'Supporter (Test)',
       'debug_supporter_section_subtitle':
           'Übergangsweise, bis die Store-Anbindung steht.',
-      'debug_supporter_switch': 'Supporter-Zugang',
+      'debug_supporter_switch': 'Simulierter Kauf',
       'debug_supporter_switch_hint':
-          'Schaltet Supporter-Funktionen frei, etwa die Qualifikationen-Übersicht und Supporter-Paletten.',
+          'Ein Paket schaltet sein Design und die Kompass-Badges frei, Förderer alles inklusive Qualifikationen-Übersicht.',
+      'debug_supporter_zugang_keiner': 'Keiner',
+      'debug_supporter_zugang_wald': 'Paket Wald',
+      'debug_supporter_zugang_lagerfeuer': 'Paket Lagerfeuer',
+      'debug_supporter_zugang_nachthimmel': 'Paket Nachthimmel',
+      'debug_supporter_zugang_foerderer': 'Förderer',
       'member_detail_alter': '{n} Jahre',
       'member_detail_ausgetreten_jahr': 'ausgetreten {jahr}',
       'member_detail_ausgetreten_zum': 'Ausgetreten zum {datum}',
@@ -2156,7 +2160,6 @@ class AppLocalizations {
       'appearance_icon_package_nachtlager': 'Night camp',
       'appearance_icon_package_lagerfeuer': 'Campfire',
       'appearance_icon_package_kohteSee': 'Kohte by the lake',
-      'appearance_icon_package_hajk': 'Hike',
       'appearance_icon_variant_morgen': 'Morning',
       'appearance_icon_variant_abend': 'Evening',
       'appearance_icon_variant_nacht': 'Night',
@@ -2628,12 +2631,12 @@ class AppLocalizations {
       'quali_fehlgeschlagen_text': 'Please try again after the next sync.',
       'quali_leer_hinweis':
           'Nobody in this context holds a qualification from Hitobito yet. Prevention training and first aid appear once someone holds them.',
-      'quali_supporter_titel': 'Part of the supporter package',
+      'quali_supporter_titel': 'Part of the patron subscription',
       'quali_supporter_text':
           'The overview shows for the whole context who needs which qualification and when it expires, and can remind you.',
       'quali_supporter_hinweis':
           'You can still see your own qualifications in your member details; reminders for them are under notifications.',
-      'quali_supporter_schild': 'Supporter',
+      'quali_supporter_schild': 'Patron',
       'quali_erfuellt': '{erfuellt} of {benoetigt} fulfilled',
       'quali_quelle_hitobito': 'Validity from Hitobito',
       'quali_benoetigt_von': 'Required by: {kreis} · {n} people',
@@ -2733,9 +2736,14 @@ class AppLocalizations {
       'debug_supporter_section_title': 'Supporter (test)',
       'debug_supporter_section_subtitle':
           'Temporary, until the store integration is ready.',
-      'debug_supporter_switch': 'Supporter access',
+      'debug_supporter_switch': 'Simulated purchase',
       'debug_supporter_switch_hint':
-          'Unlocks supporter features such as the qualifications overview and supporter palettes.',
+          'A package unlocks its design and the compass badges, patron unlocks everything including the qualifications overview.',
+      'debug_supporter_zugang_keiner': 'None',
+      'debug_supporter_zugang_wald': 'Forest package',
+      'debug_supporter_zugang_lagerfeuer': 'Campfire package',
+      'debug_supporter_zugang_nachthimmel': 'Night sky package',
+      'debug_supporter_zugang_foerderer': 'Patron',
       'member_detail_alter': '{n} years',
       'member_detail_ausgetreten_jahr': 'left {jahr}',
       'member_detail_ausgetreten_zum': 'Left on {datum}',

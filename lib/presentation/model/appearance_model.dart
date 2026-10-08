@@ -34,8 +34,7 @@ class AppearanceModel extends ChangeNotifier {
   /// Ob das Geraet alternative App-Icons erlaubt (erst nach [load] gesetzt).
   bool get iconChangeSupported => _iconChangeSupported;
 
-  AppPaletteId get palette =>
-      _unlocked(AppearanceCatalog.paletteTiers[_settings.palette]!)
+  AppPaletteId get palette => _access.isPaletteUnlocked(_settings.palette)
       ? _settings.palette
       : AppPaletteId.standard;
 
@@ -44,7 +43,7 @@ class AppearanceModel extends ChangeNotifier {
     if (value == null) {
       return null;
     }
-    return _unlocked(AppearanceCatalog.backgroundTiers[value]!) ? value : null;
+    return _access.isBackgroundUnlocked(value) ? value : null;
   }
 
   SupporterBadgeId? get badge {
@@ -52,7 +51,9 @@ class AppearanceModel extends ChangeNotifier {
     if (value == null) {
       return null;
     }
-    return _unlocked(AppearanceCatalog.badge(value).tier) ? value : null;
+    return _access.isTierUnlocked(AppearanceCatalog.badge(value).tier)
+        ? value
+        : null;
   }
 
   AppIconChoice? get appIcon {
@@ -65,8 +66,6 @@ class AppearanceModel extends ChangeNotifier {
     }
     return value;
   }
-
-  bool _unlocked(SupportTier tier) => _access.isTierUnlocked(tier);
 
   Future<void> load() async {
     _settings = await _repository.load();

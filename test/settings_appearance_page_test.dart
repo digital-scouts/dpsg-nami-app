@@ -10,13 +10,6 @@ import 'package:nami/presentation/screens/settings_appearance_page.dart';
 import 'package:nami/services/app_icon_service.dart';
 import 'package:provider/provider.dart';
 
-class _FreeOnlyAccess extends SupportAccess {
-  const _FreeOnlyAccess();
-
-  @override
-  bool isTierUnlocked(SupportTier tier) => tier == SupportTier.free;
-}
-
 void main() {
   final t = AppLocalizations(const Locale('de'));
 
@@ -113,7 +106,10 @@ void main() {
   });
 
   testWidgets('gesperrte Optionen lassen sich nicht waehlen', (tester) async {
-    final model = await pumpPage(tester, access: const _FreeOnlyAccess());
+    final model = await pumpPage(
+      tester,
+      access: const SchalterSupportAccess(SupporterTestZugang.keiner),
+    );
 
     await tapKey(tester, 'appearance-palette-nachthimmel');
     expect(model.palette, AppPaletteId.standard);

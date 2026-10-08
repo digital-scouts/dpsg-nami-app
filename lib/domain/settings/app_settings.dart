@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../appearance/support_access.dart';
 import '../taetigkeit/stufe.dart';
 
 class AppSettings {
@@ -12,9 +13,9 @@ class AppSettings {
   final bool memberListSearchResultHighlightEnabled;
   final Set<Stufe> geburstagsbenachrichtigungStufen;
 
-  /// Testschalter in Debug & Tools: schaltet Supporter-Funktionen frei, bis
-  /// eine Store-Anbindung den Zugang liefert.
-  final bool supporterTestZugang;
+  /// Testschalter in Debug & Tools: simuliert einen Kauf, bis eine
+  /// Store-Anbindung den Zugang liefert.
+  final SupporterTestZugang supporterTestZugang;
 
   const AppSettings({
     required this.themeMode,
@@ -32,7 +33,7 @@ class AppSettings {
       Stufe.rover,
       Stufe.leitung,
     },
-    this.supporterTestZugang = false,
+    this.supporterTestZugang = SupporterTestZugang.keiner,
   });
 
   AppSettings copyWith({
@@ -44,7 +45,7 @@ class AppSettings {
     bool? noMobileDataEnabled,
     bool? memberListSearchResultHighlightEnabled,
     Set<Stufe>? geburstagsbenachrichtigungStufen,
-    bool? supporterTestZugang,
+    SupporterTestZugang? supporterTestZugang,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     languageCode: languageCode ?? this.languageCode,

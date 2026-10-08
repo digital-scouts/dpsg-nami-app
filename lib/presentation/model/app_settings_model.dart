@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/appearance/support_access.dart';
 import '../../domain/settings/app_settings.dart';
 import '../../domain/settings/app_settings_repository.dart';
 import '../../domain/taetigkeit/stufe.dart';
@@ -15,7 +16,7 @@ class AppSettingsModel extends ChangeNotifier {
   bool noMobileDataEnabled;
   bool memberListSearchResultHighlightEnabled;
   Set<Stufe> geburstagsbenachrichtigungStufen;
-  bool supporterTestZugang;
+  SupporterTestZugang supporterTestZugang;
 
   AppSettingsModel(AppSettings initial, this._repo)
     : themeMode = initial.themeMode,
@@ -91,10 +92,10 @@ class AppSettingsModel extends ChangeNotifier {
     await _repo.saveMemberListSearchResultHighlightEnabled(enabled);
   }
 
-  Future<void> setSupporterTestZugang(bool enabled) async {
-    supporterTestZugang = enabled;
+  Future<void> setSupporterTestZugang(SupporterTestZugang zugang) async {
+    supporterTestZugang = zugang;
     notifyListeners();
-    await _repo.saveSupporterTestZugang(enabled);
+    await _repo.saveSupporterTestZugang(zugang);
   }
 
   Future<void> setGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {

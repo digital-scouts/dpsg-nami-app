@@ -130,9 +130,7 @@ class _PalettePicker extends StatelessWidget {
           _Choice(
             key: ValueKey('appearance-palette-${id.name}'),
             selected: model.palette == id,
-            locked: !model.access.isTierUnlocked(
-              AppearanceCatalog.paletteTiers[id]!,
-            ),
+            locked: !model.access.isPaletteUnlocked(id),
             label: t.t('appearance_palette_${id.name}'),
             onTap: () => model.setPalette(id),
             child: _PaletteSwatch(colors: appPalettes[id]!.of(brightness)),
@@ -374,9 +372,7 @@ class _BackgroundPicker extends StatelessWidget {
               _Choice(
                 key: ValueKey('appearance-background-${id.name}'),
                 selected: model.background == id,
-                locked: !model.access.isTierUnlocked(
-                  AppearanceCatalog.backgroundTiers[id]!,
-                ),
+                locked: !model.access.isBackgroundUnlocked(id),
                 label: t.t('appearance_background_${id.name}'),
                 onTap: () => model.setBackground(id),
                 child: _BackgroundFrame(

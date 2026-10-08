@@ -24,7 +24,6 @@ final class AppIconChannel implements MethodChannel.MethodCallHandler {
     "NachtlagerMorgen", "NachtlagerAbend", "NachtlagerNacht",
     "LagerfeuerMorgen", "LagerfeuerAbend", "LagerfeuerNacht",
     "KohteSeeMorgen", "KohteSeeAbend", "KohteSeeNacht",
-    "HajkMorgen", "HajkAbend", "HajkNacht",
   };
 
   private final Context context;

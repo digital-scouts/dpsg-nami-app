@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
-import '../../../domain/appearance/appearance_catalog.dart';
 import '../../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../../domain/member/member_utils.dart';
 import '../../model/appearance_model.dart';
@@ -20,10 +19,7 @@ class QualifikationenKontext {
 
   /// Ohne AppearanceModel (Stories, Tests) ist alles frei.
   static bool supporterFrei(BuildContext context) =>
-      _maybeWatch<AppearanceModel>(
-        context,
-      )?.access.isTierUnlocked(SupportTier.supporter) ??
-      true;
+      _maybeWatch<AppearanceModel>(context)?.access.qualifikationenFrei ?? true;
 
   static int? eigenePersonId(BuildContext context) =>
       _maybeWatch<AuthSessionModel>(context)?.profile?.namiId;

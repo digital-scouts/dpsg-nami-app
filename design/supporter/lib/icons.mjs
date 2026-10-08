@@ -81,7 +81,6 @@ export const MOTIFS = [
   { id: 'nachtlager', label: 'Nachtlager' },
   { id: 'lagerfeuer', label: 'Lagerfeuer' },
   { id: 'kohte-see', label: 'Kohte am See' },
-  { id: 'hajk', label: 'Hajk am Wegweiser' },
 ];
 
 function defs(T, extra = '') {
@@ -194,57 +193,10 @@ function kohteSee(T, key) {
   );
 }
 
-function hajk(T, key) {
-  const pathColor = mix(T.near, T.light, key === 'nacht' ? 0.12 : 0.4);
-  const board = (y, dir, w) => {
-    const x0 = 640;
-    const tip = dir > 0 ? x0 + w + 30 : x0 - w - 30;
-    const back = dir > 0 ? x0 - 30 : x0 + 30;
-    const body = dir > 0 ? x0 + w : x0 - w;
-    return (
-      `<path d="M${back} ${y} L${body} ${y} L${tip} ${y + 26} L${body} ${y + 52} L${back} ${y + 52} Z" fill="${T.wood}"/>` +
-      `<rect x="${Math.min(back, body) + 18}" y="${y + 18}" width="${Math.abs(body - back) - 40}" height="6" rx="3" fill="${T.cloth}" opacity="0.35"/>` +
-      `<rect x="${Math.min(back, body) + 18}" y="${y + 30}" width="${(Math.abs(body - back) - 40) * 0.6}" height="5" rx="2.5" fill="${T.cloth}" opacity="0.25"/>`
-    );
-  };
-  const pack = `
-<g transform="translate(-20 80) rotate(-7 560 820)">
-<rect x="470" y="600" width="170" height="225" rx="38" fill="${T.pack}"/>
-<rect x="490" y="700" width="130" height="90" rx="20" fill="${mix(T.pack, '#000000', 0.2)}"/>
-<path d="M470 640 Q555 590 640 640 L640 680 Q555 650 470 680 Z" fill="${mix(T.pack, '#ffffff', 0.12)}"/>
-<rect x="455" y="560" width="200" height="56" rx="28" fill="${key === 'nacht' ? '#394234' : '#6f7f58'}"/>
-<ellipse cx="655" cy="588" rx="14" ry="28" fill="${key === 'nacht' ? '#2c3328' : '#586646'}"/>
-<rect x="520" y="560" width="10" height="120" fill="${mix(T.pack, '#000000', 0.35)}"/>
-<rect x="580" y="560" width="10" height="120" fill="${mix(T.pack, '#000000', 0.35)}"/>
-<rect x="470" y="780" width="170" height="10" fill="${mix(T.pack, '#000000', 0.3)}"/>
-</g>`;
-  return (
-    sky() +
-    skyObjects(T, 300, 260, 54, 29) +
-    ridge({ y: 520, amp: 45, seed: 61, fill: T.far }) +
-    ridge({ y: 610, amp: 30, seed: 62, fill: T.mid }) +
-    LAYER +
-    pineRow({ from: -20, to: 1060, y: 640, hMin: 50, hMax: 100, seed: 63, fill: T.mid }) +
-    ridge({ y: 700, amp: 20, seed: 64, fill: T.near }) +
-    `<path d="M300 1024 Q420 860 470 780 Q520 700 470 660 Q440 640 500 626 L516 626 Q490 650 530 690 Q600 780 760 1024 Z" fill="${pathColor}"/>` +
-    LAYER +
-    `<rect x="628" y="440" width="24" height="480" rx="6" fill="${mix(T.wood, '#000000', 0.25)}"/>` +
-    `<path d="M624 440 L640 418 L656 440 Z" fill="${mix(T.wood, '#000000', 0.25)}"/>` +
-    board(470, 1, 190) +
-    board(540, -1, 170) +
-    board(610, 1, 140) +
-    pack +
-    `<path d="M-40 1024 L-40 900 Q180 880 320 1024 Z" fill="${T.ground}"/><path d="M1064 1024 L1064 880 Q860 900 780 1024 Z" fill="${T.ground}"/>` +
-    pine(60, 1000, 460, T.ground) +
-    pine(990, 1010, 420, T.ground)
-  );
-}
-
 const SCENES = {
   nachtlager,
   lagerfeuer,
   'kohte-see': kohteSee,
-  hajk,
 };
 
 const svg = (title, body) =>

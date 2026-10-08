@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/data/maps/shared_prefs_address_map_location_repository.dart';
+import 'package:nami/domain/appearance/support_access.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -1035,13 +1036,40 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                     icon: Icons.workspace_premium_outlined,
                     title: t.t('debug_supporter_section_title'),
                     subtitle: t.t('debug_supporter_section_subtitle'),
-                    child: SwitchListTile(
+                    child: Column(
                       key: const Key('debug-supporter-test-zugang'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(t.t('debug_supporter_switch')),
-                      subtitle: Text(t.t('debug_supporter_switch_hint')),
-                      value: appSettings.supporterTestZugang,
-                      onChanged: appSettings.setSupporterTestZugang,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t.t('debug_supporter_switch'),
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          t.t('debug_supporter_switch_hint'),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final zugang in SupporterTestZugang.values)
+                              ChoiceChip(
+                                key: Key(
+                                  'debug-supporter-zugang-${zugang.name}',
+                                ),
+                                label: Text(
+                                  t.t('debug_supporter_zugang_${zugang.name}'),
+                                ),
+                                selected:
+                                    appSettings.supporterTestZugang == zugang,
+                                onSelected: (_) =>
+                                    appSettings.setSupporterTestZugang(zugang),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],

@@ -1,17 +1,22 @@
-/// Katalog aller Erscheinungsbild-Optionen. Die Stufe (`SupportTier`) legt
-/// fest, welche Optionen hinter einem Supporter- oder Foerderer-Kauf liegen.
-/// Bis zur Store-Anbindung schaltet sie der Testschalter frei
+/// Katalog aller Erscheinungsbild-Optionen. Paletten, Hintergruende und
+/// App-Icons gehoeren zu je einem [SupporterPaket] (Einmalkauf); das
+/// Foerderer-Abo schaltet alle Pakete frei. Badges haengen an einer Stufe
+/// (`SupportTier`). Bis zur Store-Anbindung schaltet der Testschalter frei
 /// (siehe [SchalterSupportAccess]), im Demo-Modus [UnlockedSupportAccess].
 library;
 
+/// `supporter` gilt mit mindestens einem Paket, `foerderer` nur mit dem Abo.
 enum SupportTier { free, supporter, foerderer }
+
+/// Ein Design-Paket buendelt Palette, Hintergrund und App-Icons eines Themas.
+enum SupporterPaket { wald, lagerfeuer, nachthimmel }
 
 enum AppPaletteId { standard, wald, lagerfeuer, nachthimmel, hochkontrast }
 
 enum AppearanceBackgroundId { lagerfeuer, himmel, wald }
 
 /// Ein App-Icon-Paket enthaelt immer alle drei Tageszeiten.
-enum AppIconPackage { nachtlager, lagerfeuer, kohteSee, hajk }
+enum AppIconPackage { nachtlager, lagerfeuer, kohteSee }
 
 /// `automatisch` folgt dem Hell/Dunkel-Modus des Systems und gibt es nur
 /// unter iOS.
@@ -76,22 +81,24 @@ class SupporterBadgeInfo {
 }
 
 abstract final class AppearanceCatalog {
-  static const Map<AppPaletteId, SupportTier> paletteTiers = {
-    AppPaletteId.standard: SupportTier.free,
-    AppPaletteId.hochkontrast: SupportTier.free,
-    AppPaletteId.wald: SupportTier.foerderer,
-    AppPaletteId.lagerfeuer: SupportTier.foerderer,
-    AppPaletteId.nachthimmel: SupportTier.foerderer,
+  /// Paletten ohne Eintrag sind frei.
+  static const Map<AppPaletteId, SupporterPaket> palettePakete = {
+    AppPaletteId.wald: SupporterPaket.wald,
+    AppPaletteId.lagerfeuer: SupporterPaket.lagerfeuer,
+    AppPaletteId.nachthimmel: SupporterPaket.nachthimmel,
   };
 
-  static const Map<AppearanceBackgroundId, SupportTier> backgroundTiers = {
-    AppearanceBackgroundId.lagerfeuer: SupportTier.foerderer,
-    AppearanceBackgroundId.himmel: SupportTier.foerderer,
-    AppearanceBackgroundId.wald: SupportTier.foerderer,
+  static const Map<AppearanceBackgroundId, SupporterPaket> backgroundPakete = {
+    AppearanceBackgroundId.wald: SupporterPaket.wald,
+    AppearanceBackgroundId.lagerfeuer: SupporterPaket.lagerfeuer,
+    AppearanceBackgroundId.himmel: SupporterPaket.nachthimmel,
   };
 
-  /// Jedes Icon-Paket ist ein eigener Supporter-Kauf.
-  static const SupportTier iconPackageTier = SupportTier.supporter;
+  static const Map<AppIconPackage, SupporterPaket> iconPakete = {
+    AppIconPackage.kohteSee: SupporterPaket.wald,
+    AppIconPackage.lagerfeuer: SupporterPaket.lagerfeuer,
+    AppIconPackage.nachtlager: SupporterPaket.nachthimmel,
+  };
 
   static const List<SupporterBadgeInfo> badges = [
     SupporterBadgeInfo(

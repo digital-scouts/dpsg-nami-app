@@ -23,7 +23,7 @@ In den Mitgliedsdetails zeigt der Tab <span class="ui">Qualifikationen</span> f�
 
 ## Übersicht für den Stamm
 
-Die Übersicht ist Teil des [Supporter-Pakets](../supporter/). Du öffnest sie in den Einstellungen über die Kachel <span class="ui">Qualifikationen</span> oben.
+Die Übersicht gehört zum [Förderer-Abo](../supporter/). Du öffnest sie in den Einstellungen über die Kachel <span class="ui">Qualifikationen</span> oben.
 
 1. Die Übersicht zeigt je Art, wie viele sie erfüllen und wie viele fehlen <i class="ref">1</i>.
 2. Eine Art antippen: Die Liste zeigt, wer sie braucht, wem sie fehlt und bei wem sie bald abläuft <i class="ref">2</i>.
