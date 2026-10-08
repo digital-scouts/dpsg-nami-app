@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +21,7 @@ import '../model/member_edit_model.dart';
 import '../model/member_filters_model.dart';
 import '../navigation/app_router.dart';
 import '../notifications/app_snackbar.dart';
+import '../widgets/neuanmeldung_sheet.dart';
 import '../widgets/member_filter_sort_sheet.dart';
 import '../widgets/member_list_directory.dart';
 import 'member_detail_page.dart';
@@ -194,14 +197,24 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       }
       authModel.markRemoteAccessIssueNoticeShown();
 
-      final snackbarKey = authModel.requiresInteractiveLogin
-          ? 'members_sync_issue_relogin'
-          : 'members_sync_issue_cached';
+      final reloginNoetig = authModel.requiresInteractiveLogin;
       AppSnackbar.show(
         context,
-        message: t.t(snackbarKey),
+        message: t.t(
+          reloginNoetig
+              ? 'members_sync_issue_relogin'
+              : 'members_sync_issue_cached',
+        ),
         type: AppSnackbarType.warning,
         replaceCurrent: true,
+        action: reloginNoetig
+            ? AppSnackbarAction(
+                label: t.t('auth_neuanmeldung_action'),
+                onPressed: () => unawaited(
+                  authModel.neuAnmelden(trigger: 'member_list_notice'),
+                ),
+              )
+            : null,
       );
     });
   }
@@ -400,6 +413,19 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         allowMobileDataOverride: allowMobileDataOverride || !hasValidLocalData,
       ),
     );
+    if (!context.mounted ||
+        authModel.lastSyncAttemptResult != SyncAttemptResult.loginRequired) {
+      return;
+    }
+    // Die Rueckfrage ersetzt den einmaligen Hinweis.
+    authModel.markRemoteAccessIssueNoticeShown();
+    final angemeldet = await frageNachNeuanmeldung(
+      context,
+      trigger: 'member_list_pull_refresh',
+    );
+    if (angemeldet && context.mounted) {
+      await _refreshMembers(context);
+    }
   }
 
   Future<void> _openFilterOptions(

@@ -58,7 +58,8 @@ class _SettingsMessagesPageState extends State<SettingsMessagesPage> {
     if (notification.id == 'hitobito-issue') {
       final authModel = context.read<AuthSessionModel>();
       if (authModel.requiresInteractiveLogin) {
-        await authModel.signIn();
+        // Das Tippen auf den Hinweis ist die Zustimmung zur Anmeldung.
+        await authModel.neuAnmelden(trigger: 'messages_hint');
       }
       return;
     }

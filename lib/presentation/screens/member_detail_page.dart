@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -104,6 +106,22 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       ),
     );
     if (!mounted || result == null) {
+      return;
+    }
+
+    final authModel = context.read<AuthSessionModel?>();
+    if (result.wasQueued && (authModel?.requiresInteractiveLogin ?? false)) {
+      final t = AppLocalizations.of(context);
+      AppSnackbar.show(
+        context,
+        message: t.t('member_detail_queued_relogin'),
+        type: AppSnackbarType.warning,
+        action: AppSnackbarAction(
+          label: t.t('auth_neuanmeldung_action'),
+          onPressed: () =>
+              unawaited(authModel!.neuAnmelden(trigger: 'member_save')),
+        ),
+      );
       return;
     }
 

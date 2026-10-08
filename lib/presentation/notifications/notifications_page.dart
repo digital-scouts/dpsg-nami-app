@@ -83,7 +83,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     final authModel = context.read<AuthSessionModel>();
     if (authModel.requiresInteractiveLogin) {
-      await authModel.signIn();
+      // Das Tippen auf den Hinweis ist die Zustimmung zur Anmeldung.
+      await authModel.neuAnmelden(trigger: 'notifications_hint');
     }
   }
 
