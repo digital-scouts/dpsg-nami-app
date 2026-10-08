@@ -1,8 +1,36 @@
 ---
-layout: page
-title: Konfliktdialog und Problemlösungsfall
-permalink: /konfliktdialog/
+title: Zusammenführung
+parent: Technik
+nav_order: 4
+permalink: /technik/zusammenfuehrung/
+redirect_from:
+  - /konfliktdialog/
 ---
+
+# Zusammenführung von Änderungen
+{: .no_toc }
+
+Wie die App Personenänderungen sendet, parallele Änderungen zusammenführt und Problemlösungsfälle bildet. Die Bedienung steht im [Handbuch](../../handbuch/aenderungen/).
+{: .lead }
+
+1. TOC
+{:toc}
+
+```mermaid
+flowchart TD
+  A[Änderung speichern] --> B{Hitobito erreichbar?}
+  B -- nein --> Q[Vormerken, später erneut senden]
+  Q --> B
+  B -- ja --> C[Basis, lokal und Server je Änderungseinheit vergleichen]
+  C --> D{Dieselbe Einheit<br>unterschiedlich geändert?}
+  D -- nein --> E[Automatisch zusammenführen und senden]
+  D -- ja --> F[Problemlösungsfall für das Mitglied]
+  F --> G[Lokal behalten oder Serverwert verwenden]
+  G --> E
+  E --> H{Validierungsfehler beim Retry?}
+  H -- ja --> F
+  H -- nein --> I[Fertig]
+```
 
 ## Überblick
 

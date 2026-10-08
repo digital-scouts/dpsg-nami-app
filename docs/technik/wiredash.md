@@ -1,8 +1,14 @@
 ---
-layout: page
 title: Wiredash und Tracking
-permalink: /wiredash/
+parent: Technik
+nav_order: 5
+permalink: /technik/wiredash/
+redirect_from:
+  - /wiredash/
 ---
+
+# Wiredash und Tracking
+{: .no_toc }
 
 ## Überblick
 
