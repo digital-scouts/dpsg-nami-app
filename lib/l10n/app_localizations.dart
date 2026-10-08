@@ -880,6 +880,11 @@ class AppLocalizations {
           'Sieht den Bezirk Silbertal und wechselt zwischen zwei Stämmen.',
       'demo_zugang_bezirksvorstand_hint':
           'Du siehst die App als Bezirksvorstand des erfundenen Bezirks Silbertal. Im Profil wechselst du über „Layer wechseln“ in die Stämme.',
+      'demo_zugang_supporter_title': 'Supporter-Extras',
+      'demo_zugang_supporter_body':
+          'Wie Stammesvorstand, aber Design-Pakete und Förderer-Abo starten gesperrt. Käufe laufen echt über deinen Store-Account.',
+      'demo_zugang_supporter_hint':
+          'Du siehst die App als Stammesvorstand des erfundenen Stamms Silberfels. Supporter-Extras sind gesperrt, Käufe laufen echt über deinen Store-Account.',
       'auth_relogin_title': 'Erneute Anmeldung erforderlich',
       'auth_relogin_body':
           'Die lokal gespeicherten Daten sind abgelaufen. Bitte melde dich erneut an, um den Datenbestand zu entsperren.',
@@ -2501,6 +2506,11 @@ class AppLocalizations {
           'Sees the district Bezirk Silbertal and switches between two groups.',
       'demo_zugang_bezirksvorstand_hint':
           'You are viewing the app as board member of the fictional district Bezirk Silbertal. Use “Switch layer” in your profile to open its groups.',
+      'demo_zugang_supporter_title': 'Supporter extras',
+      'demo_zugang_supporter_body':
+          'Like group board, but design packages and the patron subscription start locked. Purchases are real and use your store account.',
+      'demo_zugang_supporter_hint':
+          'You are viewing the app as board member of the fictional group Stamm Silberfels. Supporter extras are locked, purchases are real and use your store account.',
       'auth_relogin_title': 'Sign-in required again',
       'auth_relogin_body':
           'The locally stored data has expired. Please sign in again to unlock the data set.',

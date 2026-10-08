@@ -15,3 +15,7 @@ Store-Grafiken und -Texte für Google Play und den App Store. Alles ist bewusst 
 ## Neue Szene ergänzen
 
 Story in `lib/stories/store/store_scenes_story.dart` anlegen und in `storeSceneStories()` eintragen, Rohscreens neu erzeugen und in `content.js` als Slide mit `scene: '<name>'` aufnehmen. Die Beispieldaten stehen in `lib/stories/store/store_showcase_data.dart`.
+
+## Prüfinformationen für In-App-Käufe
+
+`tool/store_screenshots/run_store_screenshots.sh --set review --device <iPhone-Pro-Max-UDID>` erzeugt aus den Szenen `Review/...` (`lib/stories/store/review_scenes_story.dart`) je Produkt einen englischen Screenshot nach `review/`: Kaufseite für das Förderer-Abo, Paket-Sheet für jedes Design-Paket. `abo-polarstern-1024.png` ist das Abo-Bild (1024 × 1024, ohne Transparenz). Prüfer erreichen die Käufe ohne Login über die Demo im Zugang „Supporter extras“, der nur mit `SUPPORTER_STORE_ENABLED=true` erscheint.

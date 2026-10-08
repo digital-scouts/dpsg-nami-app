@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../services/app_mode_controller.dart';
+import '../../services/supporter/supporter_env.dart';
 
 extension DemoZugangTexte on DemoZugang {
   String get titelKey => 'demo_zugang_${name}_title';
@@ -15,19 +16,24 @@ extension DemoZugangTexte on DemoZugang {
     DemoZugang.stammesvorstand => Icons.groups_outlined,
     DemoZugang.leitung => Icons.hiking,
     DemoZugang.bezirksvorstand => Icons.account_tree_outlined,
+    DemoZugang.supporter => Icons.workspace_premium_outlined,
   };
 }
 
 /// Auswahl des Demo-Zugangs nach „Demo ansehen“. Gibt den gewählten
-/// [DemoZugang] per `Navigator.pop` zurück.
+/// [DemoZugang] per `Navigator.pop` zurück. „Supporter-Extras“ erscheint nur
+/// mit Store-Anbindung ([zeigeSupporter]).
 class DemoZugangSheet extends StatelessWidget {
-  const DemoZugangSheet({super.key});
+  const DemoZugangSheet({super.key, this.zeigeSupporter = false});
+
+  final bool zeigeSupporter;
 
   static Future<DemoZugang?> show(BuildContext context) {
     return showModalBottomSheet<DemoZugang>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const DemoZugangSheet(),
+      builder: (_) =>
+          DemoZugangSheet(zeigeSupporter: SupporterEnv.storeEnabled),
     );
   }
 
@@ -35,6 +41,10 @@ class DemoZugangSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final zugaenge = [
+      for (final zugang in DemoZugang.values)
+        if (zugang != DemoZugang.supporter || zeigeSupporter) zugang,
+    ];
 
     return SafeArea(
       child: Padding(
@@ -55,7 +65,7 @@ class DemoZugangSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            for (final (index, zugang) in DemoZugang.values.indexed) ...[
+            for (final (index, zugang) in zugaenge.indexed) ...[
               if (index > 0) const Divider(height: 1),
               ListTile(
                 key: Key('demo-zugang-${zugang.name}'),

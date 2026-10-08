@@ -5,10 +5,14 @@
 #   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name iphone
 #   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name ipad
 #   tool/store_screenshots/run_store_screenshots.sh --set docs --device <simulator-udid>
+#   tool/store_screenshots/run_store_screenshots.sh --set review --device <simulator-udid>
 #
 # --set store (Standard): Szenen "Store/..." nach assets/workfiles/store/raw/<name>/.
 # --set docs: Szenen "Store/..." und "Docs/..." fuer das Nutzerhandbuch, auf
 # 600 px Breite verkleinert als JPEG nach docs/assets/img/screens/.
+# --set review: Szenen "Review/..." (Kaufseite und Paket-Sheets auf Englisch)
+# fuer die Pruefinformationen der In-App-Kaeufe nach
+# assets/workfiles/store/review/.
 #
 # Empfohlene Simulatoren: iPhone Pro Max (6,9", 1320x2868) und
 # iPad Pro 13-inch (2064x2752); fuer docs immer ein iPhone. Die App wird dabei
@@ -28,14 +32,16 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unbekanntes Argument: $1" >&2; exit 2 ;;
   esac
 done
-if [[ -z "$DEVICE" || ( "$SET" == "store" && -z "$NAME" ) || ( "$SET" != "store" && "$SET" != "docs" ) ]]; then
-  echo "Nutzung: $0 [--set store|docs] --device <simulator-udid> [--name <zielordner>]" >&2
+if [[ -z "$DEVICE" || ( "$SET" == "store" && -z "$NAME" ) || ( "$SET" != "store" && "$SET" != "docs" && "$SET" != "review" ) ]]; then
+  echo "Nutzung: $0 [--set store|docs|review] --device <simulator-udid> [--name <zielordner>]" >&2
   exit 2
 fi
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 if [[ "$SET" == "docs" ]]; then
   OUT_DIR="$ROOT/build/docs_screenshots"
+elif [[ "$SET" == "review" ]]; then
+  OUT_DIR="$ROOT/assets/workfiles/store/review"
 else
   OUT_DIR="$ROOT/assets/workfiles/store/raw/$NAME"
 fi

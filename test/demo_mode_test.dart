@@ -26,6 +26,7 @@ import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
+import 'package:nami/presentation/widgets/demo_zugang_sheet.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
 import 'package:nami/services/achievement_service.dart';
 import 'package:nami/services/app_mode_controller.dart';
@@ -188,6 +189,45 @@ void main() {
       },
     );
 
+    test('Supporter-Extras zeigt die Daten des Stammesvorstands', () {
+      final supporter = DemoData(DemoZugang.supporter, now: () => _heute);
+      final vorstand = DemoData(DemoZugang.stammesvorstand, now: () => _heute);
+
+      expect(supporter.profile.namiId, vorstand.profile.namiId);
+      expect(supporter.profile.primaryGroupId, vorstand.profile.primaryGroupId);
+      expect(
+        supporter.profile.roles.single.permissions,
+        vorstand.profile.roles.single.permissions,
+      );
+      expect(supporter.session().principal, 'demo-supporter');
+    });
+
+    test(
+      'schaltet Supporter-Extras nur im Pruef-Zugang mit Store nicht frei',
+      () {
+        for (final zugang in DemoZugang.values) {
+          for (final storeEnabled in [false, true]) {
+            expect(
+              demoAllesFrei(
+                isDemo: false,
+                zugang: zugang,
+                storeEnabled: storeEnabled,
+              ),
+              isFalse,
+            );
+            expect(
+              demoAllesFrei(
+                isDemo: true,
+                zugang: zugang,
+                storeEnabled: storeEnabled,
+              ),
+              !(zugang == DemoZugang.supporter && storeEnabled),
+            );
+          }
+        }
+      },
+    );
+
     test('baut jeden Layer fuer jeden Zugang', () {
       for (final zugang in DemoZugang.values) {
         final data = DemoData(zugang, now: () => _heute);
@@ -331,6 +371,14 @@ void main() {
       expect(prefs.containsKey(AppModeStore.demoZugangKey), isFalse);
     });
 
+    test('merkt sich den Zugang Supporter-Extras', () async {
+      SharedPreferences.setMockInitialValues({});
+      final store = AppModeStore();
+
+      await store.save(AppMode.demo, demoZugang: DemoZugang.supporter);
+      expect(await store.loadDemoZugang(), DemoZugang.supporter);
+    });
+
     test(
       'startet eine Demo ohne gespeicherten Zugang als Stammesvorstand',
       () async {
@@ -369,12 +417,48 @@ void main() {
 
       expect(switches, isEmpty);
       for (final zugang in DemoZugang.values) {
-        expect(find.byKey(Key('demo-zugang-${zugang.name}')), findsOneWidget);
+        expect(
+          find.byKey(Key('demo-zugang-${zugang.name}')),
+          zugang == DemoZugang.supporter ? findsNothing : findsOneWidget,
+        );
       }
       await tester.tap(find.byKey(const Key('demo-zugang-leitung')));
       await tester.pumpAndSettle();
 
       expect(switches, <_Wechsel>[(AppMode.demo, DemoZugang.leitung)]);
+    });
+
+    testWidgets('zeigt Supporter-Extras nur mit Store-Anbindung', (
+      tester,
+    ) async {
+      Future<void> zeige({required bool zeigeSupporter}) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('de'),
+            supportedLocales: const [Locale('de'), Locale('en')],
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: DemoZugangSheet(zeigeSupporter: zeigeSupporter),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await zeige(zeigeSupporter: false);
+      expect(find.byKey(const Key('demo-zugang-supporter')), findsNothing);
+      expect(find.byKey(const Key('demo-zugang-leitung')), findsOneWidget);
+
+      await zeige(zeigeSupporter: true);
+      expect(find.byKey(const Key('demo-zugang-supporter')), findsOneWidget);
+      expect(find.text('Supporter-Extras'), findsOneWidget);
     });
 
     testWidgets('Schliessen der Auswahl startet keine Demo', (tester) async {

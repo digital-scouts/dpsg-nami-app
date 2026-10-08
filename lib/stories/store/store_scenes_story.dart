@@ -163,10 +163,16 @@ class _ErscheinungsbildScene extends StatelessWidget {
 }
 
 class StoreSceneApp extends StatelessWidget {
-  const StoreSceneApp({super.key, required this.home, this.dark = false});
+  const StoreSceneApp({
+    super.key,
+    required this.home,
+    this.dark = false,
+    this.locale = const Locale('de'),
+  });
 
   final Widget home;
   final bool dark;
+  final Locale locale;
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +189,7 @@ class StoreSceneApp extends StatelessWidget {
         AppLocalizations.delegate,
       ],
       supportedLocales: const [Locale('de'), Locale('en')],
-      locale: const Locale('de'),
+      locale: locale,
       home: home,
     );
   }

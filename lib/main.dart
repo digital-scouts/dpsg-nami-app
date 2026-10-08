@@ -252,10 +252,16 @@ Future<void> _startApp({
     persist: (code) => settingsRepo.saveLanguageCode(code),
   )..setLocale(Locale(initial.languageCode), persist: false);
   final appSettingsModel = AppSettingsModel(initial, settingsRepo);
-  // Supporter-Zugang: Die Demo zeigt alles. Sonst liefert der Store den
-  // Kaufstand, sofern SUPPORTER_STORE_ENABLED gesetzt ist. Der Testschalter
-  // wirkt nur in Debug- und Profile-Builds (A-94) und geht dort dem Store vor.
-  final supporterKaufModel = !isDemo && SupporterEnv.storeEnabled
+  // Supporter-Zugang: Die Demo zeigt alles, ausser im Zugang „Supporter-Extras“
+  // fuer die Kaufpruefung. Sonst liefert der Store den Kaufstand, sofern
+  // SUPPORTER_STORE_ENABLED gesetzt ist. Der Testschalter wirkt nur in Debug-
+  // und Profile-Builds (A-94) und geht dort dem Store vor.
+  final allesFrei = demoAllesFrei(
+    isDemo: isDemo,
+    zugang: demoZugang,
+    storeEnabled: SupporterEnv.storeEnabled,
+  );
+  final supporterKaufModel = !allesFrei && SupporterEnv.storeEnabled
       ? SupporterKaufModel(
           client: InAppPurchaseStoreClient(),
           repository: SharedPrefsSupporterKaufRepository(),
@@ -263,7 +269,7 @@ Future<void> _startApp({
         )
       : null;
   SupportAccess aktuellerSupportAccess() {
-    if (isDemo) {
+    if (allesFrei) {
       return const UnlockedSupportAccess();
     }
     final zugang = kReleaseMode

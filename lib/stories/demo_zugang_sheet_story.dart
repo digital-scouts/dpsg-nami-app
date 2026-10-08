@@ -18,6 +18,10 @@ Story demoZugangSheetStory() => Story(
       ],
     );
     final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
+    final zeigeSupporter = context.knobs.boolean(
+      label: 'Mit Supporter-Zugang',
+      initial: false,
+    );
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -38,9 +42,9 @@ Story demoZugangSheetStory() => Story(
           child: Material(
             elevation: 2,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            child: const Padding(
-              padding: EdgeInsets.only(top: 12),
-              child: DemoZugangSheet(),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: DemoZugangSheet(zeigeSupporter: zeigeSupporter),
             ),
           ),
         ),
