@@ -176,7 +176,7 @@ void main() {
       );
       await appearance.setBackground(AppearanceBackgroundId.lagerfeuer);
       await appearance.setAppIcon(
-        const AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.abend),
+        const AppIconChoice(AppIconPackage.waldsee, AppIconVariant.abend),
       );
       final model = await _gesperrtesModell();
       tester.view.physicalSize = const Size(390, 844);
@@ -199,7 +199,7 @@ void main() {
       );
       expect(
         (bild.image as AssetImage).assetName,
-        'assets/supporter/icons/KohteSeeAbend.png',
+        'assets/supporter/icons/WaldseeAbend.png',
       );
     });
   });

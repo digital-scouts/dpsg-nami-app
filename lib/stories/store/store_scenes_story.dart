@@ -48,7 +48,7 @@ List<Story> storeSceneStories() => <Story>[
 /// Erscheinungsbild der Mitgliederliste: animierter Hintergrund und eigenes
 /// Supporter-Badge.
 const AppearanceSettings storeShowcaseAppearance = AppearanceSettings(
-  background: AppearanceBackgroundId.wald,
+  background: AppearanceBackgroundId.waldsee,
   badge: SupporterBadgeId.kompassPfadfinder,
 );
 

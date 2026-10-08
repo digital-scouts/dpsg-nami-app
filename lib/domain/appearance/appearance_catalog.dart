@@ -9,14 +9,14 @@ library;
 enum SupportTier { free, supporter, foerderer }
 
 /// Ein Design-Paket buendelt Palette, Hintergrund und App-Icons eines Themas.
-enum SupporterPaket { wald, lagerfeuer, nachthimmel }
+enum SupporterPaket { waldsee, lagerfeuer, nachthimmel }
 
-enum AppPaletteId { standard, wald, lagerfeuer, nachthimmel, hochkontrast }
+enum AppPaletteId { standard, waldsee, lagerfeuer, nachthimmel, hochkontrast }
 
-enum AppearanceBackgroundId { lagerfeuer, himmel, wald }
+enum AppearanceBackgroundId { lagerfeuer, nachthimmel, waldsee }
 
 /// Ein App-Icon-Paket enthaelt immer alle drei Tageszeiten.
-enum AppIconPackage { nachtlager, lagerfeuer, kohteSee }
+enum AppIconPackage { nachthimmel, lagerfeuer, waldsee }
 
 /// `automatisch` folgt dem Hell/Dunkel-Modus des Systems und gibt es nur
 /// unter iOS.
@@ -39,7 +39,7 @@ class AppIconChoice {
   final AppIconVariant variant;
 
   /// Stabiler Schluessel fuer Persistenz und Plattform-Icon-Namen,
-  /// z. B. `NachtlagerMorgen`.
+  /// z. B. `NachthimmelMorgen`.
   String get key => '${_pascal(package.name)}${_pascal(variant.name)}';
 
   static AppIconChoice? fromKey(String? key) {
@@ -83,21 +83,21 @@ class SupporterBadgeInfo {
 abstract final class AppearanceCatalog {
   /// Paletten ohne Eintrag sind frei.
   static const Map<AppPaletteId, SupporterPaket> palettePakete = {
-    AppPaletteId.wald: SupporterPaket.wald,
+    AppPaletteId.waldsee: SupporterPaket.waldsee,
     AppPaletteId.lagerfeuer: SupporterPaket.lagerfeuer,
     AppPaletteId.nachthimmel: SupporterPaket.nachthimmel,
   };
 
   static const Map<AppearanceBackgroundId, SupporterPaket> backgroundPakete = {
-    AppearanceBackgroundId.wald: SupporterPaket.wald,
+    AppearanceBackgroundId.waldsee: SupporterPaket.waldsee,
     AppearanceBackgroundId.lagerfeuer: SupporterPaket.lagerfeuer,
-    AppearanceBackgroundId.himmel: SupporterPaket.nachthimmel,
+    AppearanceBackgroundId.nachthimmel: SupporterPaket.nachthimmel,
   };
 
   static const Map<AppIconPackage, SupporterPaket> iconPakete = {
-    AppIconPackage.kohteSee: SupporterPaket.wald,
+    AppIconPackage.waldsee: SupporterPaket.waldsee,
     AppIconPackage.lagerfeuer: SupporterPaket.lagerfeuer,
-    AppIconPackage.nachtlager: SupporterPaket.nachthimmel,
+    AppIconPackage.nachthimmel: SupporterPaket.nachthimmel,
   };
 
   static const List<SupporterBadgeInfo> badges = [

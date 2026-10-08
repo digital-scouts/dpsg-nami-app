@@ -13,7 +13,7 @@ import io.flutter.plugin.common.MethodChannel;
 /**
  * Wechselt das Launcher-Icon, indem genau ein activity-alias aus dem Manifest
  * aktiviert wird. Namen entsprechen AppIconChoice.key auf der Dart-Seite,
- * z. B. "NachtlagerMorgen" -> ".IconNachtlagerMorgen"; null -> ".IconDefault".
+ * z. B. "NachthimmelMorgen" -> ".IconNachthimmelMorgen"; null -> ".IconDefault".
  */
 final class AppIconChannel implements MethodChannel.MethodCallHandler {
   static final String CHANNEL = "com.namiapp/app_icon";
@@ -21,9 +21,9 @@ final class AppIconChannel implements MethodChannel.MethodCallHandler {
   private static final String DEFAULT_ALIAS = "Default";
   private static final String[] ALIASES = {
     DEFAULT_ALIAS,
-    "NachtlagerMorgen", "NachtlagerAbend", "NachtlagerNacht",
+    "NachthimmelMorgen", "NachthimmelAbend", "NachthimmelNacht",
     "LagerfeuerMorgen", "LagerfeuerAbend", "LagerfeuerNacht",
-    "KohteSeeMorgen", "KohteSeeAbend", "KohteSeeNacht",
+    "WaldseeMorgen", "WaldseeAbend", "WaldseeNacht",
   };
 
   private final Context context;

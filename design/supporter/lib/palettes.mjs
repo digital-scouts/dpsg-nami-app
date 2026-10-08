@@ -9,8 +9,8 @@ export const PALETTES = [
     dark: { primary: '#5a9ad8', onPrimary: '#0e0e12', secondary: '#810a1a', bg: '#0e0e12', surface: '#1a1a22', fg: '#f0f0f5', muted: '#8a8a9a', border: '#2e2e3a', primaryLite: '#1a253a', error: '#ff5050', success: '#22c65a' },
   },
   {
-    id: 'wald',
-    label: 'Wald',
+    id: 'waldsee',
+    label: 'Waldsee',
     light: { primary: '#2f5d46', onPrimary: '#ffffff', secondary: '#8a5a2b', bg: '#f1f4ef', surface: '#ffffff', fg: '#1b2420', muted: '#6f7c74', border: '#dce3db', primaryLite: '#e2ebe4', error: '#b3261e', success: '#2e7d4f' },
     dark: { primary: '#86c3a0', onPrimary: '#0d1510', secondary: '#c8955b', bg: '#0e1511', surface: '#17211b', fg: '#e8efea', muted: '#8a9a90', border: '#26332b', primaryLite: '#1b2b22', error: '#f2786e', success: '#5ccb86' },
   },

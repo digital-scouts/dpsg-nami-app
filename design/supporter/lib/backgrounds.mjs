@@ -5,8 +5,8 @@ import { r1, pineRow } from './util.mjs';
 
 export const BACKGROUNDS = [
   { id: 'lagerfeuer', label: 'Lagerfeuer', day: 'Ausgebranntes Feuer im Sitzkreis, Rauch', night: 'Feuerstelle mit Sitzkreis, Funken' },
-  { id: 'sternenhimmel', label: 'Himmel', day: 'Tiefe Sonne, Wolken und Lager in der Weite', night: 'Milchstraße mit Lager' },
-  { id: 'wald', label: 'Wald', day: 'Waldsee mit Libellen', night: 'Mondlicht am See' },
+  { id: 'nachthimmel', label: 'Nachthimmel', day: 'Tiefe Sonne, Wolken und Lager in der Weite', night: 'Milchstraße mit Lager' },
+  { id: 'waldsee', label: 'Waldsee', day: 'Waldsee mit Libellen', night: 'Mondlicht am See' },
 ];
 
 const W = 1200;
@@ -17,11 +17,11 @@ const P = {
     light: { top: '#e6edf0', bottom: '#f3e6d6', hill: '#d8c7ae', trees: '#b9b08f', smoke: '#8f877f', log: '#8a6a52', ember: '#e98a4a', bird: '#56606a' },
     dark: { top: '#1d1512', bottom: '#3a241b', hill: '#2c1c16', trees: '#24170f', glow: '#e07a3c', spark: '#ffb56b' },
   },
-  sternenhimmel: {
+  nachthimmel: {
     light: { top: '#b7d0e6', bottom: '#eef2ee', hill: '#bccbc2', trees: '#9fb3a6', cloud: '#ffffff', bird: '#4d5a66' },
     dark: { top: '#0b1428', bottom: '#1d2f50', hill: '#15223b', trees: '#0f1a2e', star: '#e6ecf7' },
   },
-  wald: {
+  waldsee: {
     light: { top: '#e3ebe2', bottom: '#cfdccd', far: '#b9cbb8', mid: '#9fb69f', near: '#85a086', fog: '#f4f7f2', ray: '#fff6d6', fly: '#4e6660' },
     dark: { top: '#0d1612', bottom: '#16241d', far: '#1b2c23', mid: '#16251d', near: '#101c16', fog: '#6d8a7a', bug: '#f4e79a' },
   },

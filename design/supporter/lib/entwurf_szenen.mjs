@@ -1,7 +1,7 @@
 // Entwuerfe: Varianten fuer die uebrigen Hintergrund-Szenen (Feedback-Runde).
 // Je Szene der aktuelle Stand plus zwei Varianten, gleiche Verankerung wie in
 // der App (Szene unten buendig, unterer Teil liegt hinter Suche und Filter).
-import { rng, r1, mix, ridge, pineRow, kohte } from './util.mjs';
+import { rng, r1, mix, ridge, pineRow, kohte, farCamp } from './util.mjs';
 import { P, W, H, style, sky, BIRD_CSS, birds, DRAGONFLY_CSS, dragonfly, FOREST_CSS, forest, SHOOTING } from './backgrounds.mjs';
 import { FIRE_CSS, NIGHT_FIRE, animatedFire } from './entwurf_lagerfeuer_nacht.mjs';
 
@@ -185,7 +185,7 @@ function lagerfeuerTagAusgebrannt() {
 // ---------------------------------------------------------------- Himmel Tag
 
 function himmelTagSonne() {
-  const c = { ...P.sternenhimmel.light, top: '#b3cde6', bottom: '#f7e6cf' };
+  const c = { ...P.nachthimmel.light, top: '#b3cde6', bottom: '#f7e6cf' };
   const rays = Array.from({ length: 8 }, (_, i) => {
     const a = (i / 8) * 360;
     return `<path d="M-6 -70 L6 -70 L40 -260 L-40 -260 Z" fill="#fff4dc" opacity="0.14" transform="rotate(${a})"/>`;
@@ -207,7 +207,7 @@ function himmelTagSonne() {
 }
 
 function himmelTagWeite() {
-  const c = P.sternenhimmel.light;
+  const c = P.nachthimmel.light;
   const camp = [420, 520, 640]
     .map((x, i) => kohte(x, 262 + (i % 2) * 4, 38 - i * 4, { cloth: '#6f7c84', light: '#e8c9a0', lit: false, seams: false }))
     .join('');
@@ -236,7 +236,7 @@ function himmelTagWeite() {
 // -------------------------------------------------------------- Himmel Nacht
 
 function himmelNachtMond() {
-  const c = P.sternenhimmel.dark;
+  const c = P.nachthimmel.dark;
   return (
     style(`${TWINKLE_CSS}${BREATHE_CSS}`) +
     sky(c) +
@@ -250,7 +250,7 @@ function himmelNachtMond() {
 }
 
 function himmelNachtMilchstrasse() {
-  const c = P.sternenhimmel.dark;
+  const c = P.nachthimmel.dark;
   const band = { x0: 60, y0: 20, x1: 1140, y1: 260, width: 70 };
   const len = Math.hypot(band.x1 - band.x0, band.y1 - band.y0);
   band.nx = (band.x1 - band.x0) / len;
@@ -274,7 +274,7 @@ function himmelNachtMilchstrasse() {
 // ------------------------------------------------------------------ Wald Tag
 
 function waldTagSee() {
-  const c = P.wald.light;
+  const c = P.waldsee.light;
   const rand = rng(5);
   let shine = '';
   for (let i = 0; i < 10; i++) {
@@ -307,7 +307,7 @@ function waldTagSee() {
 }
 
 function waldTagBlaetter() {
-  const c = P.wald.light;
+  const c = P.waldsee.light;
   const rand = rng(9);
   let leaves = '';
   const colors = ['#c9a14a', '#b9793a', '#9fb66a'];
@@ -348,7 +348,7 @@ function fireflies(count, seed, color, peak = 0.7) {
 }
 
 function waldNachtMond() {
-  const c = P.wald.dark;
+  const c = P.waldsee.dark;
   const beams = [
     [760, 200],
     [880, 150],
@@ -369,7 +369,7 @@ function waldNachtMond() {
 }
 
 function waldNachtKohte() {
-  const c = P.wald.dark;
+  const c = P.waldsee.dark;
   return (
     style(FOREST_CSS) +
     sky(c) +
@@ -402,7 +402,7 @@ export const SZENEN = [
     id: 'himmel-tag',
     label: 'Himmel, Tag',
     dark: false,
-    current: 'backgrounds/sternenhimmel-light.svg',
+    current: 'backgrounds/nachthimmel-light.svg',
     variants: [
       { id: 'b', label: 'B: Tiefe Sonne', hint: 'Warme Sonne mit langsam drehenden Strahlen, Wolken und Vogelschwarm.', build: himmelTagSonne },
       { id: 'c', label: 'C: Lager in der Weite', hint: 'Kleine Kohten auf einem fernen Hügel mit dünnem Rauch, Wolken und Vögel.', build: himmelTagWeite },
@@ -412,7 +412,7 @@ export const SZENEN = [
     id: 'himmel-nacht',
     label: 'Himmel, Nacht',
     dark: true,
-    current: 'backgrounds/sternenhimmel-dark.svg',
+    current: 'backgrounds/nachthimmel-dark.svg',
     variants: [
       { id: 'b', label: 'B: Mondnacht', hint: 'Mond mit atmendem Lichthof, Sterne und Sternschnuppen.', build: himmelNachtMond },
       { id: 'c', label: 'C: Milchstraße', hint: 'Dichtes Sternenband mit sanftem Schimmer quer über den Himmel, dazu Sternschnuppen.', build: himmelNachtMilchstrasse },
@@ -422,7 +422,7 @@ export const SZENEN = [
     id: 'wald-tag',
     label: 'Wald, Tag',
     dark: false,
-    current: 'backgrounds/wald-light.svg',
+    current: 'backgrounds/waldsee-light.svg',
     variants: [
       { id: 'b', label: 'B: Waldsee', hint: 'Libellen über einem See mit Schilf und glitzernder Oberfläche.', build: waldTagSee },
       { id: 'c', label: 'C: Blätter im Wind', hint: 'Einzelne Blätter segeln herab, dazu ein paar Vögel über den Wipfeln.', build: waldTagBlaetter },
@@ -432,7 +432,7 @@ export const SZENEN = [
     id: 'wald-nacht',
     label: 'Wald, Nacht',
     dark: true,
-    current: 'backgrounds/wald-dark.svg',
+    current: 'backgrounds/waldsee-dark.svg',
     variants: [
       { id: 'b', label: 'B: Mondlicht', hint: 'Mond über den Wipfeln, schwache Lichtbahnen, Nebel und nur wenige Glühwürmchen.', build: waldNachtMond },
       { id: 'c', label: 'C: Kohte im Wald', hint: 'Eine leuchtende Kohte auf einer Lichtung, Nebel und Glühwürmchen.', build: waldNachtKohte },
@@ -445,7 +445,7 @@ export function buildSzenenEntwurf(szene, variant) {
 }
 
 // Vorschauseite: ganze Szene, Handy-Kopf ohne UI und mit Suche und Filter.
-const PAGE_CSS = `body { margin:0; background:#121814; color:#e4eae3; font:17px/1.5 system-ui, sans-serif; }
+export const PAGE_CSS = `body { margin:0; background:#121814; color:#e4eae3; font:17px/1.5 system-ui, sans-serif; }
 main { max-width:1100px; margin:0 auto; padding:32px 24px 64px; }
 h1 { font-size:2.2rem; margin:0 0 .4rem; }
 h2 { font-size:1.6rem; margin:0 0 .6rem; }
@@ -484,7 +484,7 @@ ${withUi ? '<span class="load">Mitglieder laden</span><span class="search">Suche
 </div>
 <figcaption>${withUi ? 'Im Header mit Lade-Info, Suche und Gruppenfilter' : 'Nur die Animation'}</figcaption>
 </figure>`;
-const row = (label, hint, src, dark, tag) => `<div class="row">
+export const row = (label, hint, src, dark, tag) => `<div class="row">
 <h3>${label}${tag ? ` <span class="tag">${tag}</span>` : ''}</h3>
 <p>${hint}</p>
 <img class="wide" src="${src}" alt="${label}">
@@ -530,20 +530,8 @@ ${sections.replace(/<section>\n<h2>([^<]+)<\/h2>/g, (m, label) => {
 
 // ------------------------------------------------------------- Runde 3
 
-// Kleines Lager auf fernem Huegel, Kohten dicht beisammen.
-function farCamp(cx, y, { cloth, lit = false, light = '#ffb45c' }) {
-  const tents = [
-    [-34, 0, 40],
-    [0, -3, 46],
-    [32, 1, 36],
-  ];
-  return tents
-    .map(([dx, dy, h], i) => kohte(cx + dx, y + dy, h, { cloth, light, lit: lit && i === 1, seams: false }))
-    .join('');
-}
-
 function himmelTagSonneLager() {
-  const c = { ...P.sternenhimmel.light, top: '#b3cde6', bottom: '#f7e6cf' };
+  const c = { ...P.nachthimmel.light, top: '#b3cde6', bottom: '#f7e6cf' };
   const rays = Array.from({ length: 8 }, (_, i) => {
     const a = (i / 8) * 360;
     return `<path d="M-6 -70 L6 -70 L40 -260 L-40 -260 Z" fill="#fff4dc" opacity="0.14" transform="rotate(${a})"/>`;
@@ -569,7 +557,7 @@ function himmelTagSonneLager() {
 }
 
 function himmelNachtMilchstrasseLager() {
-  const c = P.sternenhimmel.dark;
+  const c = P.nachthimmel.dark;
   const band = { x0: 60, y0: 20, x1: 1140, y1: 260, width: 70 };
   const len = Math.hypot(band.x1 - band.x0, band.y1 - band.y0);
   band.nx = (band.x1 - band.x0) / len;
@@ -638,8 +626,31 @@ const SHIMMER_CSS = `
 .sh { animation-name: shimmer; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; opacity: .5; transform-box: fill-box; transform-origin: center; }
 @keyframes shimmer { from { opacity: .55; transform: scaleX(1); } to { opacity: .15; transform: scaleX(.6); } }`;
 
-function waldTagSeePlaetschern() {
-  const c = P.wald.light;
+// Kohte am Waldsee (Entwurf Waldsee): fern zwischen den Kiefern am anderen
+// Ufer, links oder rechts auf einer Uferzunge. Liefert die Teile hinter dem
+// Wasser (`far`) und davor (`near`).
+const SEE_KOHTE = {
+  fern: { x: 560, by: 333, h: 58 },
+  links: { x: 380, by: 352, h: 105, tongue: 'M-60 362 Q220 332 490 350 Q510 352 520 358 Q260 356 -60 390 Z' },
+  rechts: { x: 760, by: 354, h: 100, tongue: 'M1260 362 Q980 332 660 352 Q640 354 632 360 Q940 356 1260 390 Z' },
+};
+
+function seeKohte(pos, dark, shore) {
+  if (!pos) return { far: '', near: '' };
+  const k = SEE_KOHTE[pos];
+  const fern = pos === 'fern';
+  const cloth = dark ? (fern ? '#0a100c' : '#070a08') : fern ? '#7d8a80' : '#4a4943';
+  const tent = (seams = !fern) => kohte(k.x, k.by, k.h, { cloth, light: '#ffb45c', lit: dark, seams });
+  const glow = dark ? halo(`seeKohte${pos}`, k.x, k.by - k.h * 0.2, k.h * 0.95, '#ffb45c', 0.35) : '';
+  const mirrorY = fern ? 2 * k.by : 2 * (k.by + 6);
+  const mirror = `<g transform="translate(0 ${mirrorY}) scale(1 -1)" opacity="${dark ? 0.28 : 0.18}">${tent(false)}</g>`;
+  if (fern) return { far: glow + tent(), near: mirror };
+  return { far: '', near: mirror + `<path d="${k.tongue}" fill="${shore}"/>` + glow + tent() };
+}
+
+function waldTagSeePlaetschern({ kohtePos = null } = {}) {
+  const c = P.waldsee.light;
+  const k = seeKohte(kohtePos, false, c.near);
   const l = lake({ top: 330, color: '#c9dcd6', shineColor: '#ffffff', reedColor: c.near });
   const flies = [
     dragonfly({ y: 300, dir: 1, dur: 30, delay: -4, color: c.fly }),
@@ -649,10 +660,12 @@ function waldTagSeePlaetschern() {
     style(`${FOREST_CSS}${DRAGONFLY_CSS}${SHIMMER_CSS}${RIPPLE_CSS}`) +
     sky(c) +
     `<g class="l1">${pineRow({ from: -60, to: 1260, y: 330, hMin: 120, hMax: 200, seed: 1, fill: c.far, gap: 0.42 })}</g>` +
+    k.far +
     l.water +
     l.shine +
     ripples(5, 61, 338, 380, '#ffffff', 20) +
     l.reeds +
+    k.near +
     flies +
     `<g class="l3">${pineRow({ from: -80, to: 180, y: 420, hMin: 300, hMax: 380, seed: 3, fill: c.near })}${pineRow({ from: 1030, to: 1290, y: 420, hMin: 300, hMax: 380, seed: 4, fill: c.near })}</g>`
   );
@@ -674,8 +687,9 @@ function moonReflection(x, top, color) {
   return out;
 }
 
-function waldNachtMondSee() {
-  const c = P.wald.dark;
+function waldNachtMondSee({ kohtePos = null } = {}) {
+  const c = P.waldsee.dark;
+  const k = seeKohte(kohtePos, true, c.near);
   const l = lake({ top: 330, color: '#0e1a1f', shineColor: '#c9d6ea', reedColor: '#0a120e', shineX: 820 });
   // Mondlicht: zwei weiche Keile, die am Mond beginnen und nach unten
   // auslaufen (Verlauf plus Unschaerfe, kein harter Rand).
@@ -703,11 +717,13 @@ function waldNachtMondSee() {
     `<circle cx="820" cy="80" r="26" fill="#e9eef5"/>` +
     beams +
     `<g class="l1">${pineRow({ from: -60, to: 1260, y: 330, hMin: 120, hMax: 200, seed: 1, fill: c.far, gap: 0.42 })}</g>` +
+    k.far +
     `<rect class="fog" x="-250" y="280" width="1700" height="60" rx="30" fill="${c.fog}" opacity="0.3" filter="url(#fogBlur)"/>` +
     l.water +
     moonReflection(820, 330, '#c9d6ea') +
     ripples(3, 81, 340, 380, '#9fb3cf', 21) +
     l.reeds +
+    k.near +
     `<g class="l3">${pineRow({ from: -80, to: 180, y: 420, hMin: 300, hMax: 380, seed: 3, fill: c.near })}${pineRow({ from: 1030, to: 1290, y: 420, hMin: 300, hMax: 380, seed: 4, fill: c.near })}</g>` +
     fireflies(10, 71, c.bug, 0.6)
   );
@@ -724,6 +740,12 @@ export const RUNDE3 = [
 
 export function buildRunde3Entwurf(entry) {
   return svg(`${entry.id} runde3`, entry.build());
+}
+
+// Entwurf Waldsee mit Kohte: dark = Nachtszene, pos = fern | links | rechts.
+export function buildWaldseeKohte(dark, pos) {
+  const build = dark ? waldNachtMondSee : waldTagSeePlaetschern;
+  return svg(`waldsee ${dark ? 'nacht' : 'tag'} ${pos}`, build({ kohtePos: pos }));
 }
 
 export function buildRunde3Page() {

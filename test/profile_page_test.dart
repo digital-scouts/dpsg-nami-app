@@ -194,7 +194,7 @@ void main() {
     expect(find.text('Supporter werden ›'), findsOneWidget);
 
     await zeige(
-      GekaufterSupportAccess.ausProdukten({SupporterProdukt.paketWald}),
+      GekaufterSupportAccess.ausProdukten({SupporterProdukt.paketWaldsee}),
     );
     expect(find.text('Supporter · Förderer werden ›'), findsOneWidget);
 

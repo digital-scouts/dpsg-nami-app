@@ -35,7 +35,7 @@ abstract class SupportAccess {
 }
 
 /// Auswahl des Testschalters in Debug & Tools.
-enum SupporterTestZugang { keiner, wald, lagerfeuer, nachthimmel, foerderer }
+enum SupporterTestZugang { keiner, waldsee, lagerfeuer, nachthimmel, foerderer }
 
 /// Zugang ueber den Testschalter in Debug & Tools: simuliert genau ein
 /// gekauftes Paket oder das Foerderer-Abo.
@@ -49,7 +49,7 @@ class SchalterSupportAccess extends SupportAccess {
 
   @override
   Set<SupporterPaket> get pakete => switch (zugang) {
-    SupporterTestZugang.wald => const {SupporterPaket.wald},
+    SupporterTestZugang.waldsee => const {SupporterPaket.waldsee},
     SupporterTestZugang.lagerfeuer => const {SupporterPaket.lagerfeuer},
     SupporterTestZugang.nachthimmel => const {SupporterPaket.nachthimmel},
     SupporterTestZugang.keiner || SupporterTestZugang.foerderer => const {},
