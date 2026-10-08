@@ -800,7 +800,7 @@ void main() {
   );
 
   test(
-    'executeRemoteAccess versucht nach 401 und fehlgeschlagenem Refresh einen interaktiven Re-Login und macht erfolgreich weiter',
+    'executeRemoteAccess oeffnet nach 401 und abgelehntem Refresh keinen Login, neuAnmelden setzt die Sitzung fort',
     () async {
       final oauthService =
           FakeOauthService(
@@ -850,11 +850,11 @@ void main() {
       final usedTokens = <String>[];
 
       await model.initialize();
-      final result = await model.executeRemoteAccess<String>(
+      Future<String?> zugriff() => model.executeRemoteAccess<String>(
         trigger: 'members_load',
         action: (session) async {
           usedTokens.add(session.accessToken);
-          if (usedTokens.length == 1) {
+          if (session.accessToken == 'stale-token') {
             throw const HitobitoPeopleException(
               'People-Anfrage fehlgeschlagen (401).',
               statusCode: 401,
@@ -864,7 +864,13 @@ void main() {
         },
       );
 
-      expect(result, 'ok');
+      expect(await zugriff(), isNull);
+      expect(oauthService.authenticateInteractiveCallCount, 0);
+      expect(model.requiresInteractiveLogin, isTrue);
+
+      expect(await model.neuAnmelden(), isTrue);
+      expect(await zugriff(), 'ok');
+
       expect(usedTokens, <String>['stale-token', 'interactive-token']);
       expect(oauthService.refreshCallCount, 1);
       expect(oauthService.authenticateInteractiveCallCount, 1);
@@ -936,7 +942,19 @@ void main() {
       await model.syncHitobitoData(
         force: true,
         trigger: 'member_list_pull_refresh',
-        interactiveLoginOnRequired: true,
+        syncMembers: (accessToken) async {
+          memberSyncTokens.add(accessToken);
+        },
+      );
+
+      // Der Sync oeffnet selbst keinen Login, sondern meldet die Pflicht.
+      expect(oauthService.authenticateInteractiveCallCount, 0);
+      expect(model.lastSyncAttemptResult, SyncAttemptResult.loginRequired);
+
+      expect(await model.neuAnmelden(trigger: 'pull_refresh'), isTrue);
+      await model.syncHitobitoData(
+        force: true,
+        trigger: 'member_list_pull_refresh',
         syncMembers: (accessToken) async {
           memberSyncTokens.add(accessToken);
         },
@@ -947,20 +965,12 @@ void main() {
       expect(observedStates, isNot(contains(AuthState.authenticating)));
       expect(model.requiresInteractiveLogin, isFalse);
       expect(model.lastSensitiveSyncAt, DateTime(2026, 3, 28, 12));
-      expect(
-        logger.entries.any(
-          (entry) => entry.message.contains(
-            'Hitobito-Sync startet interaktiven Login trigger=member_list_pull_refresh',
-          ),
-        ),
-        isTrue,
-      );
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
 
   test(
-    'bleibt nach abgebrochenem interaktivem Relogin bei vorhandener Session und lokalem Profil signedIn',
+    'bleibt nach abgebrochener Neuanmeldung bei vorhandener Session und lokalem Profil signedIn',
     () async {
       final oauthService =
           FakeOauthService(
@@ -1026,8 +1036,10 @@ void main() {
           );
         },
       );
+      final angemeldet = await model.neuAnmelden();
 
       expect(result, isNull);
+      expect(angemeldet, isFalse);
       expect(model.state, AuthState.signedIn);
       expect(model.profile, cachedProfile);
       expect(model.hasRemoteAccessIssue, isTrue);
@@ -1039,7 +1051,7 @@ void main() {
   );
 
   test(
-    'interaktiver relogin mit Benutzerwechsel verwirft altes Profil, alten Sync-Stand und die urspruengliche Aktion',
+    'Neuanmeldung mit Benutzerwechsel verwirft altes Profil und alten Sync-Stand',
     () async {
       final oauthService =
           FakeOauthService(
@@ -1100,25 +1112,24 @@ void main() {
         trigger: 'members_load',
         action: (session) async {
           aufgerufeneTokens.add(session.accessToken);
-          if (session.accessToken == 'stale-token') {
-            throw const HitobitoPeopleException(
-              'People-Anfrage fehlgeschlagen (401).',
-              statusCode: 401,
-            );
-          }
-          return 'ok';
+          throw const HitobitoPeopleException(
+            'People-Anfrage fehlgeschlagen (401).',
+            statusCode: 401,
+          );
         },
       );
-
-      // Die Aktion gehoert zum alten Konto und darf nicht mit der Session
-      // des neuen Kontos weiterlaufen.
       expect(result, isNull);
+      expect(model.requiresInteractiveLogin, isTrue);
+
+      expect(await model.neuAnmelden(), isTrue);
+
       expect(aufgerufeneTokens, <String>['stale-token']);
       expect(model.sessionGeneration, isNot(generationVorher));
       expect(model.session?.principal, 'principal-new');
       expect(model.profile?.namiId, 222);
       expect(model.lastSensitiveSyncAt, isNull);
       expect(model.lastSensitiveSyncAttemptAt, isNull);
+      expect(model.requiresInteractiveLogin, isFalse);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -1547,11 +1558,9 @@ void main() {
         );
         await model.initialize();
 
-        final result = await model.runWithoutInteractiveRelogin(
-          () => model.executeRemoteAccess<String>(
-            trigger: 'pending_retry_timer',
-            action: (_) async => throw unauthorized,
-          ),
+        final result = await model.executeRemoteAccess<String>(
+          trigger: 'pending_retry_timer',
+          action: (_) async => throw unauthorized,
         );
 
         expect(result, isNull);
@@ -1570,14 +1579,12 @@ void main() {
         await model.initialize();
         final usedTokens = <String>[];
 
-        final result = await model.runWithoutInteractiveRelogin(
-          () => model.executeRemoteAccess<String>(
-            trigger: 'pending_retry_timer',
-            action: (session) async {
-              usedTokens.add(session.accessToken);
-              throw unauthorized;
-            },
-          ),
+        final result = await model.executeRemoteAccess<String>(
+          trigger: 'pending_retry_timer',
+          action: (session) async {
+            usedTokens.add(session.accessToken);
+            throw unauthorized;
+          },
         );
 
         expect(result, isNull);
@@ -1626,14 +1633,12 @@ void main() {
           );
         final usedTokens = <String>[];
 
-        final result = await model.runWithoutInteractiveRelogin(
-          () => model.executeRemoteAccess<String>(
-            trigger: 'pending_retry_timer',
-            action: (session) async {
-              usedTokens.add(session.accessToken);
-              return 'ok';
-            },
-          ),
+        final result = await model.executeRemoteAccess<String>(
+          trigger: 'pending_retry_timer',
+          action: (session) async {
+            usedTokens.add(session.accessToken);
+            return 'ok';
+          },
         );
 
         expect(result, isNull);
@@ -1683,14 +1688,12 @@ void main() {
         final usedTokens = <String>[];
 
         await expectLater(
-          model.runWithoutInteractiveRelogin(
-            () => model.executeRemoteAccess<String>(
-              trigger: 'pending_retry_timer',
-              action: (session) async {
-                usedTokens.add(session.accessToken);
-                throw unauthorized;
-              },
-            ),
+          model.executeRemoteAccess<String>(
+            trigger: 'pending_retry_timer',
+            action: (session) async {
+              usedTokens.add(session.accessToken);
+              throw unauthorized;
+            },
           ),
           throwsA(isA<TimeoutException>()),
         );
@@ -1756,6 +1759,30 @@ void main() {
         expect(result, 'ok');
         expect(usedTokens, <String>['stale-token', 'refreshed-token']);
         expect(oauthService.refreshCallCount, 1);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'Profil-Laden wie bei Start, Entsperren oder Profilseite oeffnet keinen Login',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        oauthService
+          ..refreshIfNeededErneuert = true
+          ..refreshError = const HitobitoAuthException(
+            'Token-Anfrage fehlgeschlagen (400, invalid_grant).',
+            statusCode: 400,
+            art: HitobitoAuthFehlerArt.sitzungBeendet,
+          );
+
+        await model.ensureProfileLoaded(force: true);
+
+        expect(oauthService.authenticateInteractiveCallCount, 0);
+        expect(oauthService.fetchProfileCallCount, 0);
+        expect(model.requiresInteractiveLogin, isTrue);
+        expect(model.state, AuthState.signedIn);
+        expect(model.isLoadingProfile, isFalse);
       },
       timeout: const Timeout(Duration(seconds: 3)),
     );
@@ -1834,7 +1861,7 @@ void main() {
     );
 
     test(
-      'syncHitobitoData durch Nutzeraktion darf bei 401 weiterhin einen Login oeffnen',
+      'syncHitobitoData oeffnet auch bei Nutzeraktion keinen Login',
       () async {
         final (:model, :oauthService) = buildModel();
         oauthService.fetchProfileError = const HitobitoAuthException(
@@ -1848,7 +1875,9 @@ void main() {
           syncMembers: (_) async {},
         );
 
-        expect(oauthService.authenticateInteractiveCallCount, 1);
+        expect(oauthService.authenticateInteractiveCallCount, 0);
+        expect(model.requiresInteractiveLogin, isTrue);
+        expect(model.lastSyncAttemptResult, SyncAttemptResult.loginRequired);
       },
       timeout: const Timeout(Duration(seconds: 3)),
     );
@@ -2125,17 +2154,15 @@ void main() {
         t.oauth.refreshError = abgelaufenerLogin;
 
         final antwort = Completer<void>();
-        final zugriff = t.model.runWithoutInteractiveRelogin(
-          () => t.model.executeRemoteAccess<String>(
-            trigger: 'members_load',
-            action: (_) async {
-              await antwort.future;
-              throw const HitobitoPeopleException(
-                'People-Anfrage fehlgeschlagen (401).',
-                statusCode: 401,
-              );
-            },
-          ),
+        final zugriff = t.model.executeRemoteAccess<String>(
+          trigger: 'members_load',
+          action: (_) async {
+            await antwort.future;
+            throw const HitobitoPeopleException(
+              'People-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            );
+          },
         );
         await Future<void>.delayed(Duration.zero);
 

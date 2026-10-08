@@ -394,7 +394,6 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       force: true,
       trigger: 'member_list_pull_refresh',
       allowMobileDataOverride: allowMobileDataOverride || !hasValidLocalData,
-      interactiveLoginOnRequired: true,
       syncMembers: (accessToken) => arbeitskontextModel.syncVollstaendig(
         session: authModel.session,
         profile: authModel.profile,

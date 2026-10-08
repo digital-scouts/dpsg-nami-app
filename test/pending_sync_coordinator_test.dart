@@ -454,7 +454,6 @@ class _StubAuthSessionModel extends AuthSessionModel {
     String trigger = 'manual',
     bool userInitiated = true,
     bool allowMobileDataOverride = false,
-    bool interactiveLoginOnRequired = false,
   }) async {
     expect(userInitiated, isFalse);
     syncTriggers.add(trigger);

@@ -200,12 +200,10 @@ class PendingSyncCoordinator {
       return;
     }
 
-    await _authModel.runWithoutInteractiveRelogin(
-      () => _memberEditModel.retryPending(
-        accessToken: accessToken,
-        trigger: trigger,
-        automatic: true,
-      ),
+    await _memberEditModel.retryPending(
+      accessToken: accessToken,
+      trigger: trigger,
+      automatic: true,
     );
   }
 }
