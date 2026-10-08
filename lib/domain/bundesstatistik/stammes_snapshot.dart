@@ -459,7 +459,7 @@ class StammesSnapshot {
     this.bezirkId,
   });
 
-  static const String schemaVersion = '2026-10-01';
+  static const String schemaVersion = '2026-10-08';
 
   final String stammId;
   final String? dvId;
@@ -467,6 +467,9 @@ class StammesSnapshot {
 
   /// Installations-ID, keine Personen-ID.
   final String senderId;
+
+  /// Zeitpunkt des Sendens, nur lokal zur Anzeige. Der Server bestimmt die
+  /// Aktualitaet selbst und bekommt ihn nicht.
   final DateTime sentAt;
   final DateTime sourceDataAsOf;
   final StammesKennzahlen kennzahlen;
@@ -477,23 +480,29 @@ class StammesSnapshot {
     'dv_id': dvId,
     'bezirk_id': bezirkId,
     'sender_id': senderId,
-    'sent_at': _isoMillis(sentAt),
     'source_data_as_of': _isoMillis(sourceDataAsOf),
     'abdeckung': kennzahlen.abdeckung.istStamm ? 'stamm' : 'gruppen',
     'gruppen': [for (final gruppe in kennzahlen.gruppen) gruppe.toJson()],
     'metrics': kennzahlen.abdeckung.istStamm ? kennzahlen.toJson() : null,
   };
 
-  factory StammesSnapshot.fromJson(Map<String, dynamic> json) =>
-      StammesSnapshot(
-        stammId: json['stamm_id']?.toString() ?? '',
-        dvId: json['dv_id']?.toString(),
-        bezirkId: json['bezirk_id']?.toString(),
-        senderId: json['sender_id']?.toString() ?? '',
-        sentAt: DateTime.parse(json['sent_at'].toString()),
-        sourceDataAsOf: DateTime.parse(json['source_data_as_of'].toString()),
-        kennzahlen: _kennzahlenAusJson(json),
-      );
+  /// [sentAt] kommt aus dem lokalen Sendestand, weil der Payload ihn nicht
+  /// enthaelt; ohne Angabe gilt der Datenstand.
+  factory StammesSnapshot.fromJson(
+    Map<String, dynamic> json, {
+    DateTime? sentAt,
+  }) {
+    final sourceDataAsOf = DateTime.parse(json['source_data_as_of'].toString());
+    return StammesSnapshot(
+      stammId: json['stamm_id']?.toString() ?? '',
+      dvId: json['dv_id']?.toString(),
+      bezirkId: json['bezirk_id']?.toString(),
+      senderId: json['sender_id']?.toString() ?? '',
+      sentAt: sentAt ?? sourceDataAsOf,
+      sourceDataAsOf: sourceDataAsOf,
+      kennzahlen: _kennzahlenAusJson(json),
+    );
+  }
 
   static StammesKennzahlen _kennzahlenAusJson(Map<String, dynamic> json) {
     final gruppen = <GruppenKennzahl>[

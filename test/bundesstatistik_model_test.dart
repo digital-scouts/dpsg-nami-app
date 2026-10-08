@@ -93,11 +93,11 @@ Bundesaggregat _aggregat({
   BundesaggregatStatus status = BundesaggregatStatus.ok,
 }) => Bundesaggregat(
   status: status,
-  teilnehmendeStaemme: 8,
+  teilnehmendeStaemmeUeber: 5,
   mindestAnzahlStaemme: 5,
   hinweis: 'Annäherung',
   kennzahlen: const {
-    'woelflinge.gesamt': KennzahlAggregat(summe: 80, stammAnzahl: 8, median: 9),
+    'woelflinge.gesamt': KennzahlAggregat(durchschnitt: 10, median: 9),
   },
 );
 
@@ -222,7 +222,7 @@ void main() {
       expect(snapshot.kennzahlen.woelflinge.gesamt, 1);
       expect(snapshot.sourceDataAsOf, now.subtract(const Duration(hours: 1)));
       expect(model.status, BundesstatistikStatus.bereit);
-      expect(model.aggregat?.teilnehmendeStaemme, 8);
+      expect(model.aggregat?.teilnehmendeStaemmeUeber, 5);
       expect(model.zuletztGesendeterSnapshot?.stammId, '11');
       expect(
         jsonDecode(
@@ -557,4 +557,31 @@ void main() {
 
     expect(repository.sendungen.single.$1.sourceDataAsOf, now);
   });
+
+  test(
+    'sendet nur mit einem hoechstens sieben Tage alten Datenstand',
+    () async {
+      Future<BundesstatistikModel> mitDatenstand(DateTime? datenstand) async {
+        final model = buildModel();
+        await model.aktualisiereKontext(
+          personId: '42',
+          readModel: _readModel(),
+          datenstand: datenstand,
+          abdeckung: const StatistikAbdeckung.stamm(),
+        );
+        await model.setzeEinwilligung(true);
+        return model;
+      }
+
+      await mitDatenstand(null);
+      await mitDatenstand(now.subtract(const Duration(days: 7, seconds: 1)));
+      expect(repository.sendungen, isEmpty);
+
+      await mitDatenstand(now.subtract(const Duration(days: 7)));
+      expect(
+        repository.sendungen.single.$1.sourceDataAsOf,
+        now.subtract(const Duration(days: 7)),
+      );
+    },
+  );
 }

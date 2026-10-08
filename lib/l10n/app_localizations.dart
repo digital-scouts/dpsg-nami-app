@@ -125,7 +125,7 @@ class AppLocalizations {
       'bund_join_button': 'Jetzt teilnehmen',
       'bund_status_title': 'Status',
       'bund_status_too_few':
-          'Bisher teilen {count} Stämme ihre Zahlen. Bundeswerte werden ab {min} Stämmen angezeigt, damit einzelne Stämme nicht erkennbar sind.',
+          'Bisher teilen weniger als {min} Stämme ihre Zahlen. Bundeswerte werden ab {min} Stämmen angezeigt, damit einzelne Stämme nicht erkennbar sind.',
       'bund_status_no_stamm':
           'Der bundesweite Vergleich ist nur verfügbar, wenn ein Stamm als Arbeitskontext ausgewählt ist.',
       'bund_status_no_figures':
@@ -158,7 +158,7 @@ class AppLocalizations {
       'bund_stage_pfadfinder': 'Pfadfinder',
       'bund_stage_rover': 'Rover',
       'bund_basis_title': 'Grundlage',
-      'bund_basis_participants': '{count} teilnehmende Stämme',
+      'bund_basis_participants': 'Über {count} teilnehmende Stämme',
       'bund_basis_as_of': 'Datenstand {from} bis {to}',
       'bund_basis_suppressed':
           'Werte, zu denen weniger als {min} Stämme beitragen, werden nicht angezeigt.',
@@ -317,8 +317,6 @@ class AppLocalizations {
       'bund_leaders': 'Leitende',
       'bund_group_fallback': 'Gruppe {id}',
       'bund_group_compare_title': '{group} im Vergleich',
-      'bund_group_compare_basis':
-          'Mit {groups} Gruppen der Stufe {stage} aus {stamms} Stämmen',
       'bund_group_gender_title': 'Geschlecht in {group}',
       'bund_groups_per_stamm_title': 'Gruppen je Stamm',
       'bund_groups_per_stamm_text':
@@ -1742,7 +1740,7 @@ class AppLocalizations {
       'bund_join_button': 'Join now',
       'bund_status_title': 'Status',
       'bund_status_too_few':
-          'So far {count} Stämme share their figures. Nationwide values are shown from {min} Stämme on, so that individual Stämme cannot be identified.',
+          'So far fewer than {min} Stämme share their figures. Nationwide values are shown from {min} Stämme on, so that individual Stämme cannot be identified.',
       'bund_status_no_stamm':
           'The nationwide comparison is only available when a Stamm is selected as working context.',
       'bund_status_no_figures':
@@ -1775,7 +1773,7 @@ class AppLocalizations {
       'bund_stage_pfadfinder': 'Pfadfinder',
       'bund_stage_rover': 'Rover',
       'bund_basis_title': 'Basis',
-      'bund_basis_participants': '{count} participating Stämme',
+      'bund_basis_participants': 'More than {count} participating Stämme',
       'bund_basis_as_of': 'Data as of {from} to {to}',
       'bund_basis_suppressed':
           'Values contributed by fewer than {min} Stämme are not shown.',
@@ -1932,8 +1930,6 @@ class AppLocalizations {
       'bund_leaders': 'Leaders',
       'bund_group_fallback': 'Group {id}',
       'bund_group_compare_title': '{group} compared',
-      'bund_group_compare_basis':
-          'With {groups} groups of the {stage} section from {stamms} Stämme',
       'bund_group_gender_title': 'Gender in {group}',
       'bund_groups_per_stamm_title': 'Groups per Stamm',
       'bund_groups_per_stamm_text':
