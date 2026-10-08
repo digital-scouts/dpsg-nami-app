@@ -114,6 +114,8 @@ class AuthSessionModel extends ChangeNotifier {
   // verwerfen ihr Ergebnis, wenn die Sitzung inzwischen gewechselt hat.
   int _sessionGeneration = 0;
   Object? _activeSyncToken;
+  _LaufenderRefresh? _laufenderRefresh;
+  Future<AuthSession>? _laufendeBrowserAnmeldung;
   AuthSession? _session;
   AuthProfile? _profile;
   DateTime? _lastSensitiveSyncAt;
@@ -250,6 +252,10 @@ class AuthSessionModel extends ChangeNotifier {
   }
 
   Future<void> signIn() async {
+    if (_laufendeBrowserAnmeldung != null) {
+      // Ein zweiter Tipp oeffnet keinen zweiten Login.
+      return;
+    }
     await _logger.logInfo(
       'auth_flow',
       'login started method=interactive_oauth',
@@ -265,8 +271,7 @@ class AuthSessionModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final authenticatedSession = await _oauthService
-          .authenticateInteractive();
+      final authenticatedSession = await _anmeldenImBrowser();
       await _completeSuccessfulSignIn(authenticatedSession);
       await _logger.logInfo(
         'auth_flow',
@@ -476,6 +481,7 @@ class AuthSessionModel extends ChangeNotifier {
     _isLoadingProfile = false;
     _isSyncingHitobitoData = false;
     _activeSyncToken = null;
+    _laufenderRefresh = null;
     _isUserInitiatedSyncInProgress = false;
     _lastSyncAttemptResult = null;
     _lastSensitiveSyncAt = null;
@@ -631,14 +637,15 @@ class AuthSessionModel extends ChangeNotifier {
     return preparation.session;
   }
 
-  /// [altesTokenAbgelehnt]: Hitobito hat das aktuelle Access-Token bereits
-  /// mit 401 abgelehnt. Scheitert der Refresh dann voruebergehend, wird der
-  /// Fehler durchgereicht, statt das abgelehnte Token erneut zu senden.
+  /// [abgelehntesAccessToken]: Hitobito hat dieses Access-Token bereits mit
+  /// 401 abgelehnt. Hat ein paralleler Zugriff es inzwischen erneuert, gilt
+  /// die neue Session. Scheitert der Refresh voruebergehend, wird der Fehler
+  /// durchgereicht, statt das abgelehnte Token erneut zu senden.
   Future<_PreparedRemoteAccess> _prepareSessionForRemoteAccess({
     required String trigger,
     bool forceRefresh = false,
     bool allowMobileDataOverride = false,
-    bool altesTokenAbgelehnt = false,
+    String? abgelehntesAccessToken,
   }) async {
     final generation = _sessionGeneration;
     if (_session == null || _state == AuthState.reloginRequired) {
@@ -691,16 +698,21 @@ class AuthSessionModel extends ChangeNotifier {
 
     final currentSession = _session!;
     try {
-      final refreshedSession = forceRefresh && currentSession.canRefresh
-          ? await _oauthService.refresh(currentSession)
-          : await _oauthService.refreshIfNeeded(currentSession);
+      final bereitsErneuert =
+          abgelehntesAccessToken != null &&
+          currentSession.accessToken != abgelehntesAccessToken;
+      final refreshedSession = bereitsErneuert
+          ? currentSession
+          : await _erneuereGemeinsam(currentSession, erzwingen: forceRefresh);
       if (generation != _sessionGeneration) {
         // Nach einem Logout darf die alte Session nicht zurueckkehren.
         return const _PreparedRemoteAccess(session: null);
       }
-      if (refreshedSession.accessToken != currentSession.accessToken ||
-          refreshedSession.refreshToken != currentSession.refreshToken ||
-          refreshedSession.expiresAt != currentSession.expiresAt) {
+      final bisher = _session;
+      if (bisher == null ||
+          refreshedSession.accessToken != bisher.accessToken ||
+          refreshedSession.refreshToken != bisher.refreshToken ||
+          refreshedSession.expiresAt != bisher.expiresAt) {
         await _logger.log('auth_flow', 'Session durch $trigger aktualisiert');
         _session = refreshedSession;
         await _repository.save(refreshedSession);
@@ -750,12 +762,58 @@ class AuthSessionModel extends ChangeNotifier {
       // Hitobito lehnt das alte Token ab. Ein Zugriff damit scheitert mit
       // 401 und wuerde eine Stoerung am Token-Endpunkt (Ueberlast,
       // Zeitlimit) faelschlich als abgelaufene Anmeldung werten.
-      if (altesTokenAbgelehnt || _istAbgelaufen(currentSession)) {
+      if (abgelehntesAccessToken != null || _istAbgelaufen(currentSession)) {
         rethrow;
       }
     }
 
     return _PreparedRemoteAccess(session: _session);
+  }
+
+  /// Erneuert die Session hoechstens einmal gleichzeitig. Hitobito rotiert
+  /// den Refresh-Token bei jeder Nutzung; ein zweiter paralleler Refresh mit
+  /// demselben Token wuerde abgelehnt und die Sitzung faelschlich beenden.
+  Future<AuthSession> _erneuereGemeinsam(
+    AuthSession session, {
+    required bool erzwingen,
+  }) async {
+    final laufend = _laufenderRefresh;
+    if (laufend != null) {
+      if (laufend.quelle == session.refreshToken &&
+          (laufend.erzwungen || !erzwingen)) {
+        return laufend.ergebnis;
+      }
+      try {
+        await laufend.ergebnis;
+      } on Object {
+        // Den Fehler behandelt der Aufrufer des laufenden Refreshs.
+      }
+      return _erneuereGemeinsam(_session ?? session, erzwingen: erzwingen);
+    }
+
+    final ergebnis = erzwingen && session.canRefresh
+        ? _oauthService.refresh(session)
+        : _oauthService.refreshIfNeeded(session);
+    final eintrag = _LaufenderRefresh(
+      quelle: session.refreshToken,
+      erzwungen: erzwingen,
+      ergebnis: ergebnis,
+    );
+    _laufenderRefresh = eintrag;
+    try {
+      return await ergebnis;
+    } finally {
+      if (identical(_laufenderRefresh, eintrag)) {
+        _laufenderRefresh = null;
+      }
+    }
+  }
+
+  /// Oeffnet hoechstens eine Hitobito-Anmeldung im Browser gleichzeitig.
+  Future<AuthSession> _anmeldenImBrowser() {
+    return _laufendeBrowserAnmeldung ??= _oauthService
+        .authenticateInteractive()
+        .whenComplete(() => _laufendeBrowserAnmeldung = null);
   }
 
   /// Fuehrt [body] so aus, dass Remote-Zugriffe darin keinen interaktiven
@@ -817,7 +875,7 @@ class AuthSessionModel extends ChangeNotifier {
         trigger: '${trigger}_retry',
         forceRefresh: true,
         allowMobileDataOverride: allowMobileDataOverride,
-        altesTokenAbgelehnt: true,
+        abgelehntesAccessToken: activeSession.accessToken,
       );
       final refreshedSession = retryPreparation.session;
       if (refreshedSession == null || generation != _sessionGeneration) {
@@ -901,8 +959,7 @@ class AuthSessionModel extends ChangeNotifier {
     );
 
     try {
-      final authenticatedSession = await _oauthService
-          .authenticateInteractive();
+      final authenticatedSession = await _anmeldenImBrowser();
       await _persistAuthenticatedSession(authenticatedSession);
       try {
         await _loadProfileFromRemote(authenticatedSession);
@@ -1529,4 +1586,17 @@ class _PreparedRemoteAccess {
 
   final AuthSession? session;
   final bool interactiveReloginAttempted;
+}
+
+class _LaufenderRefresh {
+  const _LaufenderRefresh({
+    required this.quelle,
+    required this.erzwungen,
+    required this.ergebnis,
+  });
+
+  /// Refresh-Token, mit dem der Refresh gestartet wurde.
+  final String? quelle;
+  final bool erzwungen;
+  final Future<AuthSession> ergebnis;
 }

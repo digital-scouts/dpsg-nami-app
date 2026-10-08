@@ -83,6 +83,10 @@ class FakeOauthService extends HitobitoOauthService {
 
   /// Ob `refreshIfNeeded` wie bei abgelaufenem Access-Token erneuert.
   bool refreshIfNeededErneuert = false;
+
+  /// Haelt Refresh bzw. Browser-Login an, bis der Test sie freigibt.
+  Completer<void>? refreshSperre;
+  Completer<void>? anmeldungSperre;
   int authenticateInteractiveCallCount = 0;
   int refreshCallCount = 0;
   int fetchProfileCallCount = 0;
@@ -92,6 +96,7 @@ class FakeOauthService extends HitobitoOauthService {
   @override
   Future<AuthSession> authenticateInteractive() async {
     authenticateInteractiveCallCount += 1;
+    await anmeldungSperre?.future;
     final error = authenticateError;
     if (error != null) {
       throw error;
@@ -102,6 +107,7 @@ class FakeOauthService extends HitobitoOauthService {
   @override
   Future<AuthSession> refresh(AuthSession session) async {
     refreshCallCount += 1;
+    await refreshSperre?.future;
     final error = refreshError;
     if (error != null) {
       throw error;

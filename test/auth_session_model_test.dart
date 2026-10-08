@@ -101,6 +101,45 @@ void main() {
   );
 
   test(
+    'doppeltes Tippen auf Anmelden oeffnet nur einen Login',
+    () async {
+      final sperre = Completer<void>();
+      final oauthService = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(namiId: 34, language: 'de'),
+      )..anmeldungSperre = sperre;
+      final model = AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 27, 12),
+        ),
+        logger: _createLogger(),
+      );
+      await model.initialize();
+
+      final erster = model.signIn();
+      await pumpEventQueue();
+      final zweiter = model.signIn();
+      sperre.complete();
+      await Future.wait(<Future<void>>[erster, zweiter]);
+
+      expect(oauthService.authenticateInteractiveCallCount, 1);
+      expect(model.state, AuthState.signedIn);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
     'setzt unbekannte Profilsprache nach Login auf deutsch zurueck',
     () async {
       final oauthService = FakeOauthService(
@@ -1659,6 +1698,64 @@ void main() {
         expect(usedTokens, <String>['stale-token']);
         expect(oauthService.refreshCallCount, 1);
         expect(model.requiresInteractiveLogin, isFalse);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'parallele Zugriffe erneuern das Token nur einmal',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        final sperre = Completer<void>();
+        oauthService
+          ..refreshIfNeededErneuert = true
+          ..refreshSperre = sperre;
+
+        final erster = model.executeRemoteAccess<String>(
+          trigger: 'profile_load',
+          action: (session) async => session.accessToken,
+        );
+        final zweiter = model.executeRemoteAccess<String>(
+          trigger: 'roles_preload',
+          action: (session) async => session.accessToken,
+        );
+        await pumpEventQueue();
+        sperre.complete();
+
+        expect(await erster, 'refreshed-token');
+        expect(await zweiter, 'refreshed-token');
+        expect(oauthService.refreshCallCount, 1);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      '401 nach paralleler Erneuerung nutzt das neue Token ohne zweiten Refresh',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        final usedTokens = <String>[];
+
+        final result = await model.executeRemoteAccess<String>(
+          trigger: 'members',
+          action: (session) async {
+            usedTokens.add(session.accessToken);
+            if (session.accessToken == 'stale-token') {
+              // Waehrenddessen erneuert ein anderer Zugriff das Token.
+              await model.prepareSessionForRemoteAccess(
+                trigger: 'profile_force',
+                forceRefresh: true,
+              );
+              throw unauthorized;
+            }
+            return 'ok';
+          },
+        );
+
+        expect(result, 'ok');
+        expect(usedTokens, <String>['stale-token', 'refreshed-token']);
+        expect(oauthService.refreshCallCount, 1);
       },
       timeout: const Timeout(Duration(seconds: 3)),
     );
