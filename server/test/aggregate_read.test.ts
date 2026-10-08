@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
 import { createStatisticsMemoryStore } from '../src/infra/memory/statisticsMemoryStore.js';
+import { publishFullAggregate } from '../src/modules/aggregation/refresh.js';
 import {
     authHeader,
     buildMemoryTestServer,
@@ -16,7 +17,7 @@ import {
 describe('bund aggregate read route', () => {
     const store = createStatisticsMemoryStore();
     const time = createMutableClock('2026-06-10T12:00:00Z');
-    const { server } = buildMemoryTestServer({
+    const { server, dependencies } = buildMemoryTestServer({
         store,
         clock: time.clock,
         config: buildTestConfig({ MIN_STAMM_COUNT_FOR_READ: '3' }),
@@ -37,8 +38,10 @@ describe('bund aggregate read route', () => {
         expect(response.statusCode).toBe(204);
     };
 
-    const readAggregate = (senderId: string | undefined, secret: string | null = TEST_SECRET) =>
-        server.inject({
+    // Liest nach einem Wochenlauf zum aktuellen Zeitpunkt.
+    const readAggregate = async (senderId: string | undefined, secret: string | null = TEST_SECRET) => {
+        await publishFullAggregate(dependencies, time.now);
+        return server.inject({
             method: 'GET',
             url: '/aggregates/bund/latest',
             headers: {
@@ -46,6 +49,7 @@ describe('bund aggregate read route', () => {
                 ...(secret == null ? {} : authHeader(secret)),
             },
         });
+    };
 
     beforeAll(async () => {
         await server.ready();
@@ -84,9 +88,11 @@ describe('bund aggregate read route', () => {
         expect(response.json().error.code).toBe('invalid_sender_credentials');
     });
 
-    test('denies senders whose last successful send is older than 14 days', async () => {
+    test('denies senders whose last successful send is older than 30 days', async () => {
         await shareSnapshot('stamm-1', 'install-1', 5);
-        time.now = new Date('2026-06-24T12:00:01Z');
+        time.now = new Date('2026-07-10T12:00:00Z');
+        expect((await readAggregate('install-1')).statusCode).toBe(200);
+        time.now = new Date('2026-07-10T12:00:01Z');
 
         const response = await readAggregate('install-1');
 

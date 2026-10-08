@@ -43,7 +43,12 @@ export type GruppenJeStufe = Record<Stufe, StufenGruppenAggregat>;
 export type WeeklyAggregateDocument = {
     aggregation_week: string;
     aggregation_type: typeof BUND_AGGREGATION_TYPE;
+    // Letzte Aenderung des ausgelieferten Inhalts (Wochenlauf oder neue Staemme im Nachtlauf).
     generated_at: Date;
+    // Letzter Wochenlauf: Bis zum naechsten bleiben die Werte bestehender Staemme eingefroren.
+    full_refresh_at: Date;
+    // Letzte Pruefung im Nachtlauf, auch wenn keine neuen Staemme dazukamen.
+    checked_at: Date;
     participating_stamm_count: number;
     oldest_data_as_of: Date | null;
     newest_data_as_of: Date | null;
@@ -153,8 +158,15 @@ export const deriveAllStammStates = (states: EffectiveStateDocument[], now: Date
 export const computeBundAggregate = (
     states: EffectiveStateDocument[],
     now: Date,
+): WeeklyAggregateDocument => computeBundAggregateFromDerived(deriveAllStammStates(states, now), now, now);
+
+// Aggregat aus bereits abgeleiteten Staenden, z. B. eingefrorenen Staenden des letzten
+// Wochenlaufs plus neuen Staemmen aus dem Nachtlauf.
+export const computeBundAggregateFromDerived = (
+    derived: DerivedStammState[],
+    now: Date,
+    fullRefreshAt: Date,
 ): WeeklyAggregateDocument => {
-    const derived = deriveAllStammStates(states, now);
     const metricNodes = derived.map((stamm) => stamm.metrics as unknown as Record<string, unknown>);
     const template = metricNodes[0];
 
@@ -162,6 +174,8 @@ export const computeBundAggregate = (
         aggregation_week: toIsoWeek(now),
         aggregation_type: BUND_AGGREGATION_TYPE,
         generated_at: now,
+        full_refresh_at: fullRefreshAt,
+        checked_at: now,
         participating_stamm_count: derived.length,
         oldest_data_as_of: derived.length > 0
             ? new Date(Math.min(...derived.map((stamm) => stamm.oldest.getTime())))

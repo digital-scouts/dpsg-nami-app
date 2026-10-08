@@ -9,7 +9,7 @@
 - Erfolgsantwort: `200 OK`
 - Fehlerantworten:
   - `401` mit `missing_sender_credentials` oder `invalid_sender_credentials`
-  - `403` mit `not_participating`, wenn die Installation noch nie oder seit mehr als 14 Tagen keinen Snapshot erfolgreich gesendet hat. Eine Teilnahme ohne Werte zählt dabei als Snapshot.
+  - `403` mit `not_participating`, wenn die Installation noch nie oder seit mehr als 30 Tagen keinen Snapshot erfolgreich gesendet hat. Eine Teilnahme ohne Werte zählt dabei als Snapshot.
   - `429` mit `rate_limited`
 
 ## Antwort
@@ -63,8 +63,13 @@
 
 ## Fachliche Regeln
 
-- Grundlage ist pro Stamm genau ein effektiver Stand, zusammengeführt aus allen Snapshots der letzten zwei Monate (siehe `stammes_snapshot.md`, Abschnitt Effektiver Stand), unabhängig davon, welche Installation sie gesendet hat.
+- Grundlage ist pro Stamm genau ein effektiver Stand, zusammengeführt aus allen Snapshots, die in den letzten zwei Monaten eingegangen sind (siehe `stammes_snapshot.md`, Abschnitt Effektiver Stand mit Haltefrist).
 - `participating_stamm_count` zählt alle Stämme mit effektivem Stand, auch solche, die nur Gruppenwerte geliefert haben.
 - Teilnahme gilt unabhängig von der Abdeckung: Auch wer nur Gruppenwerte sendet, darf lesen.
-- Das Aggregat wird nach jedem neu gespeicherten Snapshot und beim Serverstart für die aktuelle ISO-Woche materialisiert. Die Read-API rechnet nicht live auf Rohsnapshots.
+- Das Aggregat wird nicht nach jedem Snapshot neu berechnet, sonst ergäbe die Differenz zweier Abrufe den Beitrag eines einzelnen Stammes. Stattdessen gibt es zwei feste Läufe:
+  - **Wochenlauf** (Montag 03:00 UTC): Alle Stämme werden aus den Rohsnapshots neu zusammengeführt. Ihre Stände werden bis zum nächsten Wochenlauf eingefroren (`effective_states`).
+  - **Nachtlauf** (täglich 03:00 UTC): Nur Stämme, die noch nicht veröffentlicht sind, kommen dazu. Bestehende Stämme bleiben auf dem Stand des Wochenlaufs, auch beim Zwei-Monats-Fenster. Ohne neue Stämme ändert sich nichts.
+  - Der Server prüft stündlich und beim Start, ob ein Lauf fällig ist, und holt verpasste Läufe nach. Ein Neustart ohne fälligen Lauf rechnet nicht neu. Eine Löschung auf Anfrage veröffentlicht sofort neu, damit die Daten nicht bis zum Wochenlauf sichtbar bleiben.
+  - Hinweis: Kommt in einer Nacht genau ein neuer Stamm dazu, zeigt die Differenz seine vergröberten Werte. Zuordnen kann sie nur, wer weiß, welcher Stamm neu ist. Dieses Restrisiko ist bewusst akzeptiert.
+- Die Read-API rechnet nicht live auf Rohsnapshots, sondern liefert das zuletzt veröffentlichte Aggregat.
 - Ein Widerruf in der App stoppt nur weitere Sendungen. Bereits gesendete Daten fallen nach zwei Monaten ohne neuen Snapshot aus dem Aggregat. Gelöscht werden sie nach Ablauf der Speicherfrist (14 Monate, siehe `stammes_snapshot.md`) oder vorher auf Anfrage per Mail mit der Installations-ID (`deploy/README.md`, Abschnitt Anfragen Betroffener).

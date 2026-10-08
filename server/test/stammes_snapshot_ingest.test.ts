@@ -63,15 +63,16 @@ describe('stammes snapshot ingest route', () => {
         expect(JSON.stringify(stored)).not.toContain('g-biber');
     });
 
-    test('registers the sender on first contact and derives effective state and aggregate', async () => {
+    test('registers the sender on first contact without publishing the aggregate', async () => {
         await postSnapshot(createValidPayload());
 
         const [sender] = [...store.senders.values()];
         expect(sender?.secret_hash).toMatch(/^[a-f0-9]{64}$/);
         expect(JSON.stringify(sender)).not.toContain('a'.repeat(64));
         expect(sender?.last_successful_send_at).toEqual(new Date('2026-04-10T08:00:00Z'));
-        expect(store.effectiveStates.size).toBe(1);
-        expect(store.weeklyAggregates.size).toBe(1);
+        // Ins Aggregat kommt der Snapshot erst mit dem naechsten Nacht- oder Wochenlauf.
+        expect(store.effectiveStates.size).toBe(0);
+        expect(store.weeklyAggregates.size).toBe(0);
     });
 
     test('normalizes timestamps with offsets to UTC dates and ignores a client send time', async () => {

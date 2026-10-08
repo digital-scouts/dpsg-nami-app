@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { buildServer } from '../src/app/buildServer.js';
 import { buildMemoryDependencies, createStatisticsMemoryStore } from '../src/infra/memory/statisticsMemoryStore.js';
+import { publishFullAggregate } from '../src/modules/aggregation/refresh.js';
 import { auskunftFuerInstallation, loescheInstallation } from '../src/modules/betroffenenanfrage/installation.js';
 import { snapshotWindowStart } from '../src/modules/effectiveState/effectiveState.js';
 import { monthStart, previousMonth, REPORT_BACKFILL_MONTHS, toMonth } from '../src/modules/report/report.js';
@@ -176,6 +177,7 @@ describe('Auskunft und Löschung auf Anfrage (S-04)', () => {
         expect((await teile('install-a', undefined, 4)).statusCode).toBe(204);
         time.now = new Date('2026-04-11T08:00:00Z');
         expect((await teile('install-b', OTHER_SECRET, 7)).statusCode).toBe(204);
+        await publishFullAggregate(dependencies, time.now);
 
         return { time, store, dependencies, server };
     };

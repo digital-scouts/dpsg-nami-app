@@ -1,5 +1,5 @@
 import type { ServerDependencies } from '../../app/dependencies.js';
-import { rebuildEffectiveStatesAndAggregate } from '../aggregation/refresh.js';
+import { publishFullAggregate } from '../aggregation/refresh.js';
 import { buildRawSnapshotDocument } from '../stammesSnapshot/persistence.js';
 import { pseudonymizeStammesSnapshot } from '../stammesSnapshot/pseudonymize.js';
 import {
@@ -200,10 +200,6 @@ export const seedMockSnapshots = async (
         await dependencies.rawSnapshotsRepository.insert(buildRawSnapshotDocument(pseudonymized, now, firstSeenAt));
     }
 
-    await rebuildEffectiveStatesAndAggregate(
-        dependencies.rawSnapshotsRepository,
-        dependencies.effectiveStatesRepository,
-        dependencies.weeklyAggregatesRepository,
-        now,
-    );
+    // Synthetische Daten: sofort veroeffentlichen statt auf den naechsten Lauf zu warten.
+    await publishFullAggregate(dependencies, now);
 };

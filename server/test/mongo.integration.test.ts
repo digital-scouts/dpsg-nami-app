@@ -8,7 +8,7 @@ import {
     initializeStatisticsPersistence,
     statisticsCollectionNames,
 } from '../src/infra/mongodb/statisticsPersistence.js';
-import { rebuildEffectiveStatesAndAggregate } from '../src/modules/aggregation/refresh.js';
+import { publishFullAggregate } from '../src/modules/aggregation/refresh.js';
 import { auskunftFuerInstallation, loescheInstallation } from '../src/modules/betroffenenanfrage/installation.js';
 import { computeReportFigures } from '../src/modules/report/report.js';
 import {
@@ -90,6 +90,8 @@ describe('statistics server with MongoDB', () => {
 
         const rawSnapshots = await db.collection(statisticsCollectionNames.rawSnapshots).find().toArray();
         expect(rawSnapshots).toHaveLength(2);
+        expect(await db.collection(statisticsCollectionNames.weeklyAggregates).countDocuments()).toBe(0);
+        await publishFullAggregate(buildMongoDependencies(db, time.clock), time.now);
         expect(rawSnapshots[0]?.first_seen_at).toBeInstanceOf(Date);
         expect(rawSnapshots[0]).not.toHaveProperty('sent_at');
         expect(JSON.stringify(rawSnapshots)).not.toContain('stamm-a');
@@ -129,6 +131,7 @@ describe('statistics server with MongoDB', () => {
             new Date('2026-06-10T12:00:00Z'),
         ]);
 
+        await publishFullAggregate(buildMongoDependencies(db, time.clock), time.now);
         const states = await db.collection(statisticsCollectionNames.effectiveStates).find().toArray();
         expect(states).toHaveLength(1);
         expect(states[0]?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(2);
@@ -175,12 +178,7 @@ describe('statistics server with MongoDB', () => {
         await db.collection(statisticsCollectionNames.weeklyAggregates).deleteMany({});
 
         const dependencies = buildMongoDependencies(db, time.clock);
-        await rebuildEffectiveStatesAndAggregate(
-            dependencies.rawSnapshotsRepository,
-            dependencies.effectiveStatesRepository,
-            dependencies.weeklyAggregatesRepository,
-            time.now,
-        );
+        await publishFullAggregate(dependencies, time.now);
 
         const states = await dependencies.effectiveStatesRepository.findAll();
         expect(states).toHaveLength(2);

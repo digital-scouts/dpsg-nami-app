@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
 import { createStatisticsMemoryStore } from '../src/infra/memory/statisticsMemoryStore.js';
+import { runAggregatePublicationIfDue } from '../src/modules/aggregation/refresh.js';
 import {
     buildMockSnapshotPayloads,
     MOCK_GRUPPEN_SENDER_EVERY,
@@ -93,7 +94,8 @@ describe('mock seed', () => {
 
         expect(response.statusCode).toBe(200);
         expect(body.status).toBe('ok');
-        expect(body.participating_stamm_count).toBe(SEED_COUNT + 1);
+        // Der eigene Stamm kommt erst mit dem naechsten Nachtlauf dazu.
+        expect(body.participating_stamm_count).toBe(SEED_COUNT);
         expect(body.metrics.woelflinge.gesamt.sum).toBeGreaterThan(0);
         expect(body.gruppen_je_stufe.woelflinge.gruppen_count).toBeGreaterThan(SEED_COUNT);
         expect(body.gruppen_je_stufe.woelflinge.mitglieder.gesamt.median).toBeGreaterThan(0);
@@ -115,6 +117,15 @@ describe('mock seed', () => {
 
         expect(body.status).toBe('ok');
         expect(body.aggregation_week).toBe('2026-W37');
-        expect(body.participating_stamm_count).toBe(SEED_COUNT + 1);
+        expect(body.participating_stamm_count).toBe(SEED_COUNT);
+
+        time.now = new Date('2026-09-11T03:00:00Z');
+        expect(await runAggregatePublicationIfDue(dependencies, time.now)).toBe('nacht');
+        const read = await server.inject({
+            method: 'GET',
+            url: '/aggregates/bund/latest',
+            headers: { 'x-sender-id': 'simulator-install', ...authHeader() },
+        });
+        expect(read.json().participating_stamm_count).toBe(SEED_COUNT + 1);
     });
 });
