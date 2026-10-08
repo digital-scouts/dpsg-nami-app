@@ -71,13 +71,13 @@ class _FakeRepo extends AppSettingsRepository {
 
   @override
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) {
-    // TODO: implement saveGeburstagsbenachrichtigungStufen
+    // TODO(#207): implement saveGeburstagsbenachrichtigungStufen
     throw UnimplementedError();
   }
 
   @override
   Future<void> saveNotificationsEnabled(bool enabled) {
-    // TODO: implement saveNotificationsEnabled
+    // TODO(#207): implement saveNotificationsEnabled
     throw UnimplementedError();
   }
 }
