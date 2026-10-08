@@ -150,7 +150,9 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 
 **Spätere Versionen oder ganz streichen**
 
-- Rechnungen für den Kassenwart (Rolle `finance`) und Abo-Listen anzeigen/beitreten, ohne Kanalverwaltung (#218). Dazu die Platzhalter-Kacheln in `lib/presentation/screens/settings_page.dart` bis zur Umsetzung ausblenden.
+- Rechnungen für den Kassenwart, Rolle `finance` (#218).
+- Abo-Listen anzeigen und beitreten, ohne Kanalverwaltung (#219).
+- Die Platzhalter-Kacheln in `lib/presentation/screens/settings_page.dart` bis zur Umsetzung ausblenden.
 - Events-Verwaltungssicht.
 
 **Vor dem Livegang (Q1/2027, Version bleibt 1.0.0)**
