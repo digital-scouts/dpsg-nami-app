@@ -10,6 +10,7 @@ Store-Grafiken und -Texte für Google Play und den App Store. Alles ist bewusst 
 2. `preview.html` im Browser öffnen: Stil wählen, Slides und Texte prüfen.
 3. Texte, Headlines und Reihenfolge in `content.js` anpassen.
 4. Exportieren: `./render.sh navy|hell|stufen` (benötigt Google Chrome). Ergebnis in `out/`.
+5. Für die README verkleinerte Kopien ablegen: `for i in 1 2 3 5; do sips -s format jpeg -s formatOptions 85 --resampleWidth 440 out/iphone/$i.png --out ../../../docs/assets/img/store/iphone-$i.jpg; done` (`out/` ist nicht versioniert).
 
 ## Neue Szene ergänzen
 

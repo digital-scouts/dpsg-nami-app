@@ -21,7 +21,7 @@ window.STORE = {
     {
       scene: 'bundesvergleich',
       headline: 'Vergleich mit Stämmen bundesweit',
-      subline: 'Freiwillig und nur mit zusammengefassten Zahlen – keine Namen, keine Einzeldaten.',
+      subline: 'Freiwillig und nur mit zusammengefassten Zahlen.',
       accent: '#00823c',
     },
     {

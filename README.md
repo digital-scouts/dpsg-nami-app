@@ -15,10 +15,10 @@ Vorabversion für iOS über [TestFlight](https://testflight.apple.com/join/YGeEL
 
 <table>
   <tr>
-    <td><img src="assets/workfiles/store/out/iphone/1.png" alt="Mitglieder" width="200"></td>
-    <td><img src="assets/workfiles/store/out/iphone/2.png" alt="Statistik" width="200"></td>
-    <td><img src="assets/workfiles/store/out/iphone/3.png" alt="Bundesvergleich" width="200"></td>
-    <td><img src="assets/workfiles/store/out/iphone/5.png" alt="Stufenwechsel" width="200"></td>
+    <td><img src="docs/assets/img/store/iphone-1.jpg" alt="Mitglieder" width="200"></td>
+    <td><img src="docs/assets/img/store/iphone-2.jpg" alt="Statistik" width="200"></td>
+    <td><img src="docs/assets/img/store/iphone-3.jpg" alt="Bundesvergleich" width="200"></td>
+    <td><img src="docs/assets/img/store/iphone-5.jpg" alt="Stufenwechsel" width="200"></td>
   </tr>
 </table>
 
