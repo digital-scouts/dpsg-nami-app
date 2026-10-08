@@ -130,7 +130,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 **Monetarisierung** (#212)
 
 - Drei Design-Pakete als Einmalkauf (Wald, Lagerfeuer, Nachthimmel: je Palette, Hintergrund und App-Icons, dazu die Kompass-Badges) und ein Förderer-Jahresabo, das alles freischaltet, inklusive Polarstern-Badge, Qualifikationen-Übersicht und künftiger Extras wie Events und NaMi AI. Umgesetzt im Katalog (`SupporterPaket`, `SupportAccess`).
-- Preise: Pakete 2,99 € einmalig, Förderer 5,99 €/Jahr. In den ersten zwei Monaten nach Veröffentlichung 30 % günstiger (1,97 € bzw. 3,95 €/Jahr), beim Abo dauerhaft bis zur Kündigung. Läuft über Preisänderungen in den Store-Konsolen, Bestandsabos behalten ihren Preis. Apple-Preispunkte prüfen, sonst 1,99 € und 3,99 €.
+- Preise: Pakete 2,99 € einmalig, in den ersten zwei Monaten nach Veröffentlichung 30 % günstiger (Preisänderung in den Store-Konsolen). Förderer 5,99 €/Jahr ohne Rabatt, dafür eine Woche kostenlos (Einführungsangebot). Apple-Preise sind angelegt.
 - Store-Anbindung mit `in_app_purchase` hinter dem Env-Schalter `SUPPORTER_STORE_ENABLED` (Standard aus) ersetzt `SchalterSupportAccess` außerhalb des Demo-Modus.
 - Kaufseite „Supporter werden“ mit Wiederherstellen und Abo-Pflichtangaben, vorher als HTML-Entwurf abstimmen.
 - Den Erfolg „Unterstützung“ einblenden.

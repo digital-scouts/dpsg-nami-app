@@ -1,0 +1,119 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "6F1C2D0A",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "6F1C2D01",
+      "localizations" : [
+        {
+          "description" : "Farbpalette, Hintergrund und App-Icons Wald",
+          "displayName" : "Paket Wald",
+          "locale" : "de"
+        }
+      ],
+      "productID" : "supporter_paket_wald",
+      "referenceName" : "Paket Wald",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "6F1C2D02",
+      "localizations" : [
+        {
+          "description" : "Farbpalette, Hintergrund und App-Icons Lagerfeuer",
+          "displayName" : "Paket Lagerfeuer",
+          "locale" : "de"
+        }
+      ],
+      "productID" : "supporter_paket_lagerfeuer",
+      "referenceName" : "Paket Lagerfeuer",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "6F1C2D03",
+      "localizations" : [
+        {
+          "description" : "Farbpalette, Hintergrund und App-Icons Nachthimmel",
+          "displayName" : "Paket Nachthimmel",
+          "locale" : "de"
+        }
+      ],
+      "productID" : "supporter_paket_nachthimmel",
+      "referenceName" : "Paket Nachthimmel",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "de",
+    "_storefront" : "DEU",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "6F1C2D10",
+      "localizations" : [
+
+      ],
+      "name" : "Förderer",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "5.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6F1C2D11",
+          "introductoryOffer" : {
+            "internalID" : "6F1C2D12",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Alle Design-Pakete, Qualifikationen-Übersicht und künftige Extras",
+              "displayName" : "Förderer",
+              "locale" : "de"
+            }
+          ],
+          "productID" : "foerderer_jahr",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Förderer jährlich",
+          "subscriptionGroupID" : "6F1C2D10",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
