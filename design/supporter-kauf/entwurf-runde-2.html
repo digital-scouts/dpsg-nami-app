@@ -1,0 +1,258 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Supporter werden, Runde 2</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="../mitglied/mitglied.css">
+<link rel="stylesheet" href="../rechtliches/rechtliches.css">
+<link rel="stylesheet" href="kauf.css">
+<script src="../mitglied/daten.js"></script>
+<script src="../mitglied/lilie.js"></script>
+<script src="../rechtliches/bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <nav><a href="#seite">Kaufseite</a><a href="#einstiege">Einstiege E2/E3</a><a href="#profil">Förderer im Profil</a><a href="#rueckmeldung">Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Supporter werden: Entwürfe, Runde 2</h1>
+  <p>Umsetzung der Rückmeldung aus Runde 1 und Ideen, wie der Förderer im Profil sichtbar wird. Alle Daten sind synthetisch.</p>
+  <div class="r-hinweisbox" style="background:#eef5ec;border-color:#c9dcc4;color:#24391f"><b>Festgelegt nach Runde 1</b>
+    <ul>
+      <li><b>Layout A</b>, alles auf einer Seite. Seitenname „Supporter werden“.</li>
+      <li><b>Förderer-Karte</b> und <b>Zustände</b> passen.</li>
+      <li><b>E1</b> (Kachel in den Einstellungen) entfällt.</li>
+    </ul></div>
+  <div class="r-hinweisbox"><b>Einführungspreis:</b> Apple und Google liefern für Einmalkäufe keinen „Vorher-Preis“. Die App kennt deshalb den Normalpreis 2,99 € und das Aktionsende 31.3.2027 selbst und streicht nur durch, solange der Store-Preis in Euro darunter liegt. In anderen Währungen steht nur der Store-Preis. Ab 1.4. muss der Preis in beiden Stores auf 2,99 € stehen.</div>
+
+  <section class="part" id="seite">
+    <h2>Kaufseite</h2>
+    <p>Paket-Karten mit durchgestrichenem Normalpreis und „bis 31.3.“. Nach dem Kauf heißt der Link „Erscheinungsbild anpassen“ und öffnet die bestehende Seite.</p>
+    <div id="slot-seite"></div>
+  </section>
+
+  <section class="part" id="einstiege">
+    <h2>Einstiege</h2>
+    <p><b>E2</b> mit zusätzlichem Link „Alle Pakete ansehen“ zur Kaufseite. <b>E3</b> zeigt die ganze Förderer-Karte statt nur eines Knopfs.</p>
+    <div id="slot-einstiege"></div>
+  </section>
+
+  <section class="part" id="profil">
+    <h2>Förderer im Profil</h2>
+    <p>Drei Ideen auf der Profilseite, jeweils ohne Kauf, mit gekauftem Paket und als Förderer. Kombinierbar, zum Beispiel P1 mit P2.</p>
+    <div id="slot-profil"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const B = window.RBAU;
+  const { ico, esc } = B;
+  B.farbenEinfuegen();
+
+  const ctx = { hell: { modus: 'hell', plattform: 'ios' }, dunkel: { modus: 'dunkel', plattform: 'ios' } };
+  const S = '../supporter/';
+  const PAKETE = [
+    { id: 'wald', name: 'Paket Wald', text: 'Farbpalette und Hintergrund Wald, App-Icons Kohte am See', icons: 'kohte-see',
+      bild: { hell: 'backgrounds/entwurf3-wald-tag.svg', dunkel: 'backgrounds/entwurf3-wald-nacht.svg' },
+      farben: { hell: ['#2f5d46', '#8a5a2b', '#e2ebe4'], dunkel: ['#86c3a0', '#c8955b', '#1b2b22'] } },
+    { id: 'lagerfeuer', name: 'Paket Lagerfeuer', text: 'Farbpalette, Hintergrund und App-Icons Lagerfeuer', icons: 'lagerfeuer',
+      bild: { hell: 'backgrounds/lagerfeuer-light.svg', dunkel: 'backgrounds/lagerfeuer-dark.svg' },
+      farben: { hell: ['#9c421b', '#3e5a6b', '#f5e3d7'], dunkel: ['#f0985e', '#8fb3c4', '#3a2419'] } },
+    { id: 'nachthimmel', name: 'Paket Nachthimmel', text: 'Farbpalette Nachthimmel, Hintergrund Himmel, App-Icons Nachtlager', icons: 'nachtlager',
+      bild: { hell: 'backgrounds/entwurf3-himmel-tag.svg', dunkel: 'backgrounds/entwurf3-himmel-nacht.svg' },
+      farben: { hell: ['#2e3f7a', '#9a6f1f', '#e4e7f4'], dunkel: ['#9fb2f2', '#e3b45a', '#1b2446'] } },
+  ];
+  const KOMPASS = ['kompass-biber', 'kompass-woe', 'kompass-jufi', 'kompass-pfadi', 'kompass-rover'];
+
+  const kopf = B.kopf('Supporter werden');
+  const tel = (m, shot, cap, inhalt, opts = {}) => B.telefon(ctx[m], opts.kopf ?? kopf, inhalt, { shot, beschriftung: cap, lang: opts.lang ?? true, falz: opts.falz ?? true, tabbar: false, overlay: opts.overlay || '' });
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3>${desc ? `<p class="desc">${desc}</p>` : ''}<div class="phones">${inhalt}</div></div>`;
+
+  // ------------------------------------------------------------ Bausteine
+  function foerderer(zustand = 'neu') {
+    const punkte = ['Alle drei Design-Pakete mit Farben, Hintergründen und App-Icons', 'Qualifikationen-Übersicht mit Erinnerungen für alle Leitenden', 'Polarstern-Badge im Profil', 'Künftige Extras ohne Aufpreis'];
+    let fuss;
+    if (zustand === 'aktiv') {
+      fuss = `<div class="k-aktiv">${ico('check', 18)}<span><b>Du bist Förderer.</b> Kostenlos bis 15.10., danach 5,99 € pro Jahr.</span></div>`;
+    } else if (zustand === 'laeuft') {
+      fuss = `<span class="k-cta gold"><i class="k-spin"></i>Kauf läuft …</span>`;
+    } else if (zustand === 'offline') {
+      fuss = `<span class="k-cta leise">Preis nicht verfügbar</span>`;
+    } else {
+      fuss = `<span class="k-cta gold">1 Woche kostenlos testen</span><div class="k-preis">Danach 5,99 € pro Jahr. Verlängert sich automatisch, jederzeit im App Store kündbar.</div>`;
+    }
+    return `<div class="k-foe"><div class="k-foe-k"><img src="${S}badges/foerderer-polarstern.svg" alt=""><div><b>Förderer</b><small>Alles freischalten und die App tragen</small></div></div>
+      <ul>${punkte.map((p) => `<li>${ico('check', 17)}<span>${p}</span></li>`).join('')}</ul>${fuss}</div>`;
+  }
+  function paket(p, m, zustand = 'neu') {
+    const [a, b, c] = p.farben[m];
+    const tz = m === 'dunkel' ? ['abend', 'nacht', 'morgen'] : ['morgen', 'abend', 'nacht'];
+    let knopf;
+    const aktion = '<span class="k-p"><s>2,99 €</s>1,99 €<small>einmalig</small><span class="k-bis">Einführungspreis bis 31.3.</span></span>';
+    if (zustand === 'gekauft') knopf = `<span class="k-kauf ok">${ico('check', 16)}Gekauft</span>`;
+    else if (zustand === 'foerderer') knopf = `<span class="k-kauf ok">${ico('check', 16)}Enthalten</span>`;
+    else if (zustand === 'laeuft') knopf = `<span class="k-kauf"><i class="k-spin"></i>Kauf läuft</span>`;
+    else if (zustand === 'offline') knopf = `<span class="k-kauf tonal" style="opacity:.5">Kaufen</span>`;
+    else knopf = `<span class="k-kauf">Kaufen</span>`;
+    const preis = zustand === 'gekauft' || zustand === 'foerderer' ? `<span class="k-p" style="font-weight:600;color:var(--primary)">Erscheinungsbild anpassen ›</span>`
+      : zustand === 'offline' ? `<span class="k-p"><span class="k-ske" style="display:inline-block;width:64px"></span></span>`
+      : aktion;
+    return `<div class="k-pk"><div class="k-pk-bild" style="background-image:url('${S}${p.bild[m]}')"><span class="k-sw"><i style="background:${a}"></i><i style="background:${b}"></i><i style="background:${c}"></i></span></div>
+      <div class="k-pk-in"><div class="k-pk-k"><div><b>${p.name}</b><small>${p.text}</small></div></div>
+      <div class="k-icons">${tz.map((t) => `<img src="${S}icons/${p.icons}-${t}.svg" alt="">`).join('')}</div>
+      <div class="k-pk-fuss">${preis}${knopf}</div></div></div>`;
+  }
+  const badges = () => `<div class="k-badges"><span class="k-bl">${KOMPASS.map((k) => `<img src="${S}badges/${k}.svg" alt="">`).join('')}</span><span>Jedes Paket schaltet zusätzlich die Kompass-Badges für dein Profil frei.</span></div>`;
+  const fuss = () => `<div class="k-fuss"><div class="k-links"><span>Käufe wiederherstellen</span><span>Abo verwalten</span></div>
+    Förderer ist ein Jahres-Abo. Die Zahlung erfolgt über deinen App-Store-Account. Das Abo verlängert sich automatisch, wenn du es nicht mindestens 24 Stunden vor Ablauf kündigst. Die kostenlose Woche gibt es einmal pro Account.<br><span style="color:var(--primary)">Nutzungsbedingungen</span> · <span style="color:var(--primary)">Datenschutz</span></div>`;
+  const intro = '<p class="k-intro">Alles für den Stammesalltag bleibt kostenlos. Mit einem Kauf trägst du Store-Gebühren und Weiterentwicklung mit.</p>';
+
+  function seiteA(m, z = {}) {
+    return intro + (z.banner || '') + foerderer(z.foe) +
+      `<div class="k-sub">Oder einzelne Design-Pakete</div>` +
+      PAKETE.map((p) => paket(p, m, (z.pakete && z.pakete[p.id]) || z.paketAlle || 'neu')).join('') +
+      badges() + fuss();
+  }
+  function seiteB(m, tab) {
+    const seg = `<div class="k-seg"><span class="${tab === 'foe' ? 'on' : ''}">Förderer</span><span class="${tab === 'pak' ? 'on' : ''}">Design-Pakete</span></div>`;
+    const inhalt = tab === 'foe'
+      ? foerderer() + `<p class="k-intro" style="margin-top:12px">Lieber nur ein Design? Unter „Design-Pakete“ gibt es jedes Paket einzeln für 2,99 €.</p>`
+      : PAKETE.map((p) => paket(p, m)).join('') + badges();
+    return intro + seg + inhalt + fuss();
+  }
+
+  // ------------------------------------------------------------ Kaufseite
+  function seite() {
+    const r = (m) => tel(m, `s-neu-${m}`, `nichts gekauft · ${m}`, seiteA(m)) + tel(m, `s-wald-${m}`, `Paket Wald gekauft · ${m}`, seiteA(m, { pakete: { wald: 'gekauft' } }), { falz: false });
+    return variante('s-hell', 'Hell', '', r('hell')) + variante('s-dunkel', 'Dunkel', '', r('dunkel'));
+  }
+
+  // ------------------------------------------------------------ Einstiege
+  function e1(m, gekauft) {
+    const zeile = (icon, farbe, titel, sub, rechts = '') => `<div class="k-zeile"><span class="k-quad" style="--c:${farbe}">${ico(icon, 18)}</span><div class="k-t"><b>${titel}</b>${sub ? `<small>${sub}</small>` : ''}</div>${rechts}${ico('right', 18, 'muted')}</div>`;
+    const inhalt = `<div class="sec">Unterstützen</div><div class="card nopad k-liste">${gekauft
+      ? zeile('heart', '#c2410c', 'Supporter', 'Förderer bis 15.10.2027', '<span class="k-chip gold">Förderer</span>')
+      : zeile('heart', '#c2410c', 'Supporter werden', 'Design-Pakete und Förderer-Abo')}</div>
+      <div class="sec">Einstellungen</div><div class="card nopad k-liste">${zeile('building', '#003056', 'Stamm', 'Silberfels')}${zeile('apps', '#5856d6', 'App', 'Sprache, Datenschutz')}${zeile('palette', '#ff9500', 'Erscheinungsbild', 'Design, Farben, App-Icon, Badge')}${zeile('bell', '#ff3b30', 'Benachrichtigungen', 'Geburtstage, Qualifikationen')}</div>
+      <div class="sec">Hilfe</div><div class="card nopad k-liste">${zeile('info', '#8e8e93', 'Hilfe & Diagnose', 'Problem melden, Protokolle, Speicher')}</div>`;
+    return B.telefon(ctx[m], B.kopfOhne('Einstellungen'), inhalt, { shot: `e1-${gekauft ? 'foe' : 'neu'}-${m}`, beschriftung: `E1 · Einstellungen, ${gekauft ? 'als Förderer' : 'noch nichts gekauft'} · ${m}<div class="r-notiz">Entwurfsnotiz: Profilkopf und Schnellzugriff darüber bleiben unverändert und sind hier weggelassen.</div>`, tabbar: true });
+  }
+  function e2(m) {
+    const p = PAKETE[0];
+    const [a, b, c] = p.farben[m];
+    const opt = (name, farben, gesperrt, sel) => `<div class="k-optk${sel ? ' sel' : ''}"><div class="k-optb"><span class="k-swatch"><i style="background:${farben[0]}"></i><i style="background:${farben[2]};border:1px solid var(--border)"></i></span>${gesperrt ? `<span class="k-lock">${ico('lock', 20)}</span>` : ''}</div>${name}</div>`;
+    const seite = `<div class="sec">Farbpalette</div><div class="k-opt">${opt('Standard', ['#003056', '', '#ffffff'], false, true)}${opt('Wald', p.farben[m], true)}${opt('Lagerfeuer', PAKETE[1].farben[m], true)}${opt('Nachthimmel', PAKETE[2].farben[m], true)}${opt('Hochkontrast', ['#002a4d', '', '#ffffff'], false)}</div>`;
+    const sheet = `<div class="r-sheet-bg"></div><div class="r-sheet"><i class="r-griff"></i>
+      <div class="k-sheet-bild" style="background-image:url('${S}${p.bild[m]}')"></div>
+      <div class="k-sheet-t">Teil von Paket Wald</div>
+      <p class="k-sheet-u">Die Farbpalette Wald gehört zum Paket Wald. Es enthält:</p>
+      <ul class="k-sheet-l"><li>${ico('check', 17)}Farbpalette und Hintergrund Wald</li><li>${ico('check', 17)}App-Icons Kohte am See (Morgen, Abend, Nacht)</li><li>${ico('check', 17)}Alle Kompass-Badges</li></ul>
+      <span class="k-cta prim">Paket Wald kaufen · <s>2,99 €</s>1,99 €</span>
+      <div class="k-mitte">Alles als Förderer · 1 Woche kostenlos</div>
+      <div class="k-mitte" style="margin-top:10px">Alle Pakete ansehen</div></div>`;
+    return B.telefon(ctx[m], B.kopf('Erscheinungsbild'), seite, { shot: `e2-${m}`, beschriftung: `E2 · gesperrte Palette „Wald“ angetippt · ${m}`, tabbar: false, overlay: sheet });
+  }
+  function e3(m) {
+    const seite = `<div class="k-sperre mit-karte">${ico('lock', 26)}<h3>Teil des Förderer-Abos</h3>
+      <p>Mit der Übersicht siehst du für den ganzen Arbeitskontext, wer welche Qualifikation braucht und wann sie abläuft, und kannst dich erinnern lassen.</p>
+      ${foerderer()}
+      <p class="klein" style="margin-top:14px">Deine eigenen Qualifikationen siehst du weiter in deinen Mitgliedsdetails, Erinnerungen dafür gibt es unter Benachrichtigungen.</p></div>`;
+    return B.telefon(ctx[m], B.kopf('Qualifikationen'), seite, { shot: `e3-${m}`, beschriftung: `E3 · Qualifikationen gesperrt, Förderer-Karte · ${m}`, tabbar: false, lang: true });
+  }
+  function einstiege() {
+    return variante('e2', 'E2 · Sheet beim Antippen einer gesperrten Option', 'Gilt für Palette, Hintergrund und App-Icon. Gesperrte Badges öffnen direkt die Kaufseite, weil jedes Paket sie freischaltet.', e2('hell') + e2('dunkel')) +
+      variante('e3', 'E3 · Qualifikationen gesperrt', 'Text wie heute, darunter die Förderer-Karte aus „Supporter werden“. Der Knopf startet direkt die Probewoche.', e3('hell') + e3('dunkel'));
+  }
+
+  // ------------------------------------------------------------ Profil
+  const POL = `${S}badges/foerderer-polarstern.svg`;
+  function profil(m, idee, stand) {
+    const foe = stand === 'foe';
+    const pak = stand === 'paket';
+    const badgeAv = foe && idee === 'P2' ? `<img src="${POL}" alt="">` : pak && idee === 'P2' ? `<img src="${S}badges/kompass-pfadi.svg" alt="">` : '';
+    let chip = '';
+    if (idee === 'P2') {
+      chip = foe ? `<span class="p-chip"><img src="${POL}" alt="">Förderer</span>`
+        : pak ? `<span class="p-chip leise">Supporter · Förderer werden ›</span>`
+        : `<span class="p-chip leise">${ico('heart', 13)} Supporter werden ›</span>`;
+    }
+    const kopf = `<div class="p-kopf"><div class="p-av">H${badgeAv}</div><b>Hanna Albrecht</b><small>hanna.albrecht@example.org</small>${chip}</div>`;
+    let block = '';
+    if (idee === 'P1') {
+      const inhalt = foe
+        ? `<img src="${POL}" alt=""><div class="k-t"><b>Förderer</b><small>Verlängert sich am 15.10.2027 · Danke!</small></div>${ico('right', 18, 'muted')}`
+        : pak
+          ? `<img src="${S}badges/kompass-pfadi.svg" alt=""><div class="k-t"><b>Supporter</b><small>Paket Wald · Als Förderer alles freischalten</small></div>${ico('right', 18, 'muted')}`
+          : `<span class="k-quad" style="--c:#c2410c">${ico('heart', 18)}</span><div class="k-t"><b>Supporter werden</b><small>Design-Pakete und Förderer-Abo</small></div>${ico('right', 18, 'muted')}`;
+      block = `<div class="p-sec">Unterstützung</div><div class="p-karte">${inhalt}</div>`;
+    }
+    if (idee === 'P3') {
+      block = foe
+        ? `<div class="p-sec">Unterstützung</div><div class="p-foe-mini"><img src="${POL}" alt=""><div class="k-t"><b>Danke, du bist Förderer!</b><small>Alle Pakete und Qualifikationen freigeschaltet. Verlängert sich am 15.10.2027.</small></div>${ico('right', 18)}</div>`
+        : `<div class="p-sec">Unterstützung</div><div class="p-foe-mini"><img src="${POL}" alt=""><div class="k-t"><b>Förderer werden</b><small>${pak ? 'Alle Pakete statt nur Wald, dazu die Qualifikationen-Übersicht.' : 'Alle Design-Pakete und die Qualifikationen-Übersicht.'} 1 Woche kostenlos.</small></div>${ico('right', 18)}</div>`;
+    }
+    const daten = `<div class="p-sec">Persönliche Daten</div><div class="p-karte"><div class="k-t"><b>1022</b><small>nami-id</small></div></div>`;
+    const ak = `<div class="p-sec">Arbeitskontext</div><div class="p-ak"><small>Arbeitskontext</small>Stamm Musterdorf</div>`;
+    const rollen = `<div class="p-sec">Rollen</div><div class="p-rollen">Vorsitzende*r<small>Stamm Musterdorf</small></div><div class="p-ab">Abmelden</div>`;
+    const reihenfolge = idee === 'P3' ? daten + block + ak + rollen : daten + block + ak + rollen;
+    const stLabel = foe ? 'als Förderer' : pak ? 'Paket gekauft' : 'nichts gekauft';
+    return B.telefon(ctx[m], `<header class="ab"><div class="k-row" style="justify-content:center"><b style="font-size:17px">Profil</b></div></header>`, `<div style="margin:0 -16px">${kopf}</div>` + reihenfolge, { shot: `${idee.toLowerCase()}-${stand}-${m}`, beschriftung: `${idee} · ${stLabel} · ${m}`, tabbar: false });
+  }
+  function profile() {
+    const r = (idee) => profil('hell', idee, 'neu') + profil('hell', idee, 'paket') + profil('hell', idee, 'foe') + profil('dunkel', idee, 'foe');
+    return variante('p1', 'P1 · Eigene Zeile „Unterstützung“', 'Schlichte Karte wie die übrigen Profilzeilen. Ohne Kauf ein Einstieg zur Kaufseite, sonst der Stand.', r('P1')) +
+      variante('p2', 'P2 · Im Profilkopf', 'Badge am Avatar und ein Chip unter der Mail. Ohne Kauf lädt der Chip zur Kaufseite ein, als Förderer zeigt er den Status.', r('P2')) +
+      variante('p3', 'P3 · Förderer-Banner', 'Auffälliger, im Stil der Förderer-Karte. Ohne Kauf wirbt es fürs Abo, als Förderer bedankt es sich.', r('P3'));
+  }
+
+  // ------------------------------------------------------------ Rückmeldung
+  const FRAGEN_ALT = [
+    { id: 'layout', titel: 'Layout der Kaufseite', optionen: ['A Alles auf einer Seite', 'B Umschalter'] },
+    { id: 'foe', titel: 'Förderer-Karte (Punkte, Knopf, Preistext)', optionen: ['passt', 'ändern'] },
+    { id: 'paket', titel: 'Paket-Karten (Bild, Farben, Icons, Preis)', optionen: ['passt', 'ändern'] },
+    { id: 'zust', titel: 'Zustände (gekauft, Förderer, Kauf läuft, offline)', optionen: ['passt', 'ändern'] },
+    { id: 'e1', titel: 'E1 Kachel in den Einstellungen', optionen: ['passt', 'ändern', 'weglassen'] },
+    { id: 'e2', titel: 'E2 Sheet bei gesperrter Option', optionen: ['passt', 'ändern', 'direkt zur Kaufseite'] },
+    { id: 'e3', titel: 'E3 Knopf bei Qualifikationen', optionen: ['passt', 'ändern'] },
+    { id: 'name', titel: 'Seitenname', optionen: ['Supporter werden', 'Unterstützen', 'anders'] },
+  ];
+  const FRAGEN = [
+    { id: 'preis', titel: 'Paket-Preis durchgestrichen mit „Einführungspreis bis 31.3.“', optionen: ['passt', 'ändern'] },
+    { id: 'link', titel: '„Erscheinungsbild anpassen ›“ nach dem Kauf', optionen: ['passt', 'ändern'] },
+    { id: 'e2', titel: 'E2 Sheet mit „Alle Pakete ansehen“', optionen: ['passt', 'ändern'] },
+    { id: 'e3', titel: 'E3 Förderer-Karte bei Qualifikationen', optionen: ['passt', 'ändern'] },
+    { id: 'profil', titel: 'Förderer im Profil', optionen: ['P1', 'P2', 'P3', 'P1 + P2', 'P2 + P3'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Supporter werden, Runde 2'];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  document.getElementById('slot-seite').innerHTML = seite();
+  document.getElementById('slot-einstiege').innerHTML = einstiege();
+  document.getElementById('slot-profil').innerHTML = profile();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

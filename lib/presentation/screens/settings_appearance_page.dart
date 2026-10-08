@@ -9,6 +9,7 @@ import '../theme/theme.dart';
 import '../widgets/section_header.dart';
 import '../widgets/supporter_background.dart';
 import '../widgets/supporter_badge.dart';
+import 'supporter/supporter_paket_sheet.dart';
 
 /// Einstellungen fuer das Erscheinungsbild: Hell/Dunkel, Farbpalette,
 /// App-Icon, Hintergrund der Mitgliederliste und Supporter-Badge.
@@ -131,6 +132,10 @@ class _PalettePicker extends StatelessWidget {
             key: ValueKey('appearance-palette-${id.name}'),
             selected: model.palette == id,
             locked: !model.access.isPaletteUnlocked(id),
+            onLockedTap: supporterKaufEinstieg(
+              context,
+              AppearanceCatalog.palettePakete[id],
+            ),
             label: t.t('appearance_palette_${id.name}'),
             onTap: () => model.setPalette(id),
             child: _PaletteSwatch(colors: appPalettes[id]!.of(brightness)),
@@ -251,6 +256,10 @@ class _IconPicker extends StatelessWidget {
                         selected:
                             model.appIcon == AppIconChoice(package, variant),
                         locked: !model.access.isIconPackageUnlocked(package),
+                        onLockedTap: supporterKaufEinstieg(
+                          context,
+                          AppearanceCatalog.iconPakete[package],
+                        ),
                         label: t.t('appearance_icon_variant_${variant.name}'),
                         onTap: () =>
                             onSelected(AppIconChoice(package, variant)),
@@ -373,6 +382,10 @@ class _BackgroundPicker extends StatelessWidget {
                 key: ValueKey('appearance-background-${id.name}'),
                 selected: model.background == id,
                 locked: !model.access.isBackgroundUnlocked(id),
+                onLockedTap: supporterKaufEinstieg(
+                  context,
+                  AppearanceCatalog.backgroundPakete[id],
+                ),
                 label: t.t('appearance_background_${id.name}'),
                 onTap: () => model.setBackground(id),
                 child: _BackgroundFrame(
@@ -451,6 +464,7 @@ class _BadgePicker extends StatelessWidget {
                   key: ValueKey('appearance-badge-${badge.assetName}'),
                   selected: model.badge == badge.id,
                   locked: !model.access.isTierUnlocked(badge.tier),
+                  onLockedTap: supporterKaufEinstieg(context, null),
                   label: badge.tier == SupportTier.foerderer
                       ? t.t('appearance_badge_foerderer')
                       : null,
@@ -479,10 +493,14 @@ class _Choice extends StatelessWidget {
     required this.child,
     this.label,
     this.locked = false,
+    this.onLockedTap,
   });
 
   final bool selected;
   final bool locked;
+
+  /// Kaufweg fuer gesperrte Optionen; ohne Store-Anbindung `null`.
+  final VoidCallback? onLockedTap;
   final String? label;
   final VoidCallback onTap;
   final Widget child;
@@ -498,7 +516,7 @@ class _Choice extends StatelessWidget {
       label: [?label, if (locked) t.t('appearance_locked')].join(', '),
       excludeSemantics: label != null,
       child: InkWell(
-        onTap: locked ? null : onTap,
+        onTap: locked ? onLockedTap : onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(6),

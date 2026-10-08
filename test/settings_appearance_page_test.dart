@@ -4,11 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/appearance/in_memory_appearance_settings_repository.dart';
 import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/appearance/support_access.dart';
+import 'package:nami/domain/supporter/supporter_kauf_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
+import 'package:nami/presentation/model/supporter_kauf_model.dart';
 import 'package:nami/presentation/screens/settings_appearance_page.dart';
 import 'package:nami/services/app_icon_service.dart';
 import 'package:provider/provider.dart';
+
+import 'support/fake_supporter_store_client.dart';
 
 void main() {
   final t = AppLocalizations(const Locale('de'));
@@ -18,6 +22,7 @@ void main() {
     FakeAppIconService? iconService,
     SupportAccess access = const UnlockedSupportAccess(),
     ValueChanged<ThemeMode>? onThemeModeChanged,
+    SupporterKaufModel? kauf,
   }) async {
     final model = AppearanceModel(
       repository: InMemoryAppearanceSettingsRepository(),
@@ -26,8 +31,11 @@ void main() {
     );
     await model.load();
     await tester.pumpWidget(
-      ChangeNotifierProvider<AppearanceModel>.value(
-        value: model,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AppearanceModel>.value(value: model),
+          if (kauf != null) ChangeNotifierProvider.value(value: kauf),
+        ],
         child: MaterialApp(
           localizationsDelegates: [
             GlobalMaterialLocalizations.delegate,
@@ -117,5 +125,35 @@ void main() {
     await tapKey(tester, 'appearance-palette-hochkontrast');
     expect(model.palette, AppPaletteId.hochkontrast);
     expect(find.byIcon(Icons.lock), findsWidgets);
+    expect(find.byKey(const Key('supporter-sheet-nachthimmel')), findsNothing);
+  });
+
+  testWidgets('mit Store öffnet eine gesperrte Option das Paket-Sheet', (
+    tester,
+  ) async {
+    final client = FakeSupporterStoreClient(
+      preise: const {'supporter_paket_nachthimmel': 1.99},
+    );
+    final kauf = SupporterKaufModel(
+      client: client,
+      repository: InMemorySupporterKaufRepository(),
+    );
+    await kauf.start();
+    await pumpPage(
+      tester,
+      access: const SchalterSupportAccess(SupporterTestZugang.keiner),
+      kauf: kauf,
+    );
+
+    await tapKey(tester, 'appearance-palette-nachthimmel');
+
+    expect(
+      find.byKey(const Key('supporter-sheet-nachthimmel')),
+      findsOneWidget,
+    );
+    expect(find.text('Teil von Paket Nachthimmel'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('supporter-sheet-kaufen')));
+    await tester.pump();
+    expect(client.gekauft, ['supporter_paket_nachthimmel']);
   });
 }
