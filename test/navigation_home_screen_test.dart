@@ -1028,6 +1028,10 @@ class _FakeOauthService extends HitobitoOauthService {
     );
   }
 
+  // Kein echter Widerruf ueber das Netz beim Abmelden.
+  @override
+  Future<bool> revoke(AuthSession session) async => true;
+
   // Laesst die ersten N Aufrufe von fetchProfile mit einem 404 fehlschlagen -
   // simuliert einen zunaechst fehlerhaften Profil-Endpoint, der sich per
   // Retry doch noch erfolgreich abrufen laesst.
