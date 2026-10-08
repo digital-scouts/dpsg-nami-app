@@ -1,6 +1,8 @@
 ---
 layout: page
 title: Datenschutzerklärung
+parent: Rechtliches
+nav_order: 1
 ---
 
 Stand: 7. Oktober 2026
@@ -39,7 +41,7 @@ Die App nutzt den Dienst der [Wiredash GmbH](https://docs.wiredash.com/company/p
 
 - **Technische Kennung:** Beim Start übermittelt die App höchstens alle 30 Minuten eine zufällige Kennung der Installation, App-Version, Betriebssystem und Sprache. So sehen wir, welche Versionen im Einsatz sind. Rechtsgrundlage ist unser berechtigtes Interesse an einem stabilen Betrieb (Art. 6 Abs. 1 lit. f DSGVO).
 - **Feedback und Zufriedenheitsumfrage:** nur wenn du sie selbst startest. Übermittelt werden dein Text, auf Wunsch deine E-Mail-Adresse und Screenshots sowie Gerätedaten wie Modell und Bildschirmgröße. Achte darauf, dass auf Screenshots keine Mitgliederdaten zu sehen sind, oder übermale sie. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.
-- **Nutzungsereignisse und Fehlerberichte:** nur mit deiner Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du beim ersten Start oder in den Einstellungen unter „Nutzungsanalyse“ gibst und jederzeit widerrufen kannst. Übermittelt werden zum Beispiel Anmeldeschritte, Wechsel der Gruppenebene samt Name, geänderte Einstellungen, die Art einer Mitgliedsänderung ohne Inhalte und technische Fehlermeldungen. Die Liste aller Ereignisse steht unter [Wiredash und Tracking](./wiredash/).
+- **Nutzungsereignisse und Fehlerberichte:** nur mit deiner Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du beim ersten Start oder in den Einstellungen unter „Nutzungsanalyse“ gibst und jederzeit widerrufen kannst. Übermittelt werden zum Beispiel Anmeldeschritte, Wechsel der Gruppenebene samt Name, geänderte Einstellungen, die Art einer Mitgliedsänderung ohne Inhalte und technische Fehlermeldungen. Die Liste aller Ereignisse steht unter [Wiredash und Tracking](./technik/wiredash/).
 
 ## Bundesweite Statistik (freiwillig)
 

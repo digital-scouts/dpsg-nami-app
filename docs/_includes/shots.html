@@ -1,0 +1,18 @@
+{%- comment -%}
+  Screenshot-Reihe mit nummerierten Bildunterschriften.
+  Nutzung: {% include shots.html items="statistik:Überblick des Stamms|statistik_gruppe:Gruppenstatistik" %}
+  Bilder liegen unter assets/img/screens/<name>.jpg und entstehen mit
+  tool/store_screenshots/run_store_screenshots.sh --set docs.
+{%- endcomment -%}
+<div class="shots">
+{%- assign eintraege = include.items | split: "|" -%}
+{%- for eintrag in eintraege -%}
+  {%- assign teile = eintrag | split: ":" -%}
+  {%- assign bild = teile[0] | strip -%}
+  {%- assign text = teile[1] | strip -%}
+  <figure>
+    <div class="phone"><img src="{{ '/assets/img/screens/' | append: bild | append: '.jpg' | relative_url }}" alt="{{ text }}" loading="lazy"></div>
+    <figcaption><i class="ref">{{ forloop.index }}</i>{{ text }}</figcaption>
+  </figure>
+{%- endfor -%}
+</div>

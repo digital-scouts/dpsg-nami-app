@@ -56,6 +56,7 @@ import 'stories/statistik_age_distribution_story.dart';
 import 'stories/statistik_group_distribution_story.dart';
 import 'stories/statistik_bearbeiten_story.dart';
 import 'stories/statistik_kacheln_story.dart';
+import 'stories/docs/docs_scenes_story.dart';
 import 'stories/store/store_scenes_story.dart';
 
 Future<void> main() async {
@@ -153,6 +154,7 @@ List<Story> buildStorybookStories() {
     stufenwechselTimelineStory(),
     stufenwechselEmpfehlungStory(),
     ...storeSceneStories(),
+    ...docsSceneStories(),
   ];
 }
 

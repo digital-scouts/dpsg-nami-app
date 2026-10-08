@@ -1,53 +1,85 @@
-# Welcome to Jekyll!
+# GitHub Pages der NaMi-App: Funktionsübersicht, Nutzerhandbuch, Technik.
+# Gebaut von GitHub Pages (legacy, Branch develop, Ordner /docs).
+# Lokal: cd docs && bundle exec jekyll serve
 #
-# This config file is meant for settings that affect your whole blog, values
-# which you are expected to set up once and rarely edit after that. If you find
-# yourself editing this file very often, consider using Jekyll's data files
-# feature for the data you need to update frequently.
-#
-# For technical reasons, this file is *NOT* reloaded automatically when you use
-# 'bundle exec jekyll serve'. If you change this file, please restart the server process.
-#
-# If you need help with YAML syntax, here are some quick references for you:
-# https://learn-the-web.algonquindesign.ca/topics/markdown-yaml-cheat-sheet/#yaml
-# https://learnxinyminutes.com/docs/yaml/
-#
-# Site settings
-# These are used to personalize your new site. If you look in the HTML files,
-# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
-# You can create any custom variable you would like, and they will be accessible
-# in the templates via {{ site.myvariable }}.
+# Die App ruft diese Adressen direkt ab, sie dürfen sich nicht ändern:
+#   /app-privacy-policy   (lib/domain/rechtliches/anbieter.dart)
+#   /notifications.json   (PULL_NOTIFICATIONS_URL)
+#   /version.json         (APP_UPDATE_URL)
 
 title: NaMi App
+description: >-
+  Die inoffizielle App zur NaMi, der Mitgliederverwaltung der DPSG:
+  Mitglieder, Statistik und Stufenwechsel für Leitende, auch offline.
 email: dev@jannecklange.de
-description: >- # this means to ignore newlines until "baseurl:"
-  Die NaMi ist die Namentliche Mitgliedermeldung des Pfadfinderverbandes DPSG (Deutsche Pfadfinderschaft Sankt Georg). Dies ist die inofizelle App zur NaMi.
-baseurl: "/dpsg-nami-app" # the subpath of your site, e.g. /blog
-domain: "digital-scouts.github.io/dpsg-nami-app/"
-url: "https://digital-scouts.github.io/dpsg-nami-app/" # the base hostname & protocol for your site, e.g. http://example.com
-github_username:  JanneckLange
+lang: de
+baseurl: "/dpsg-nami-app"
+url: "https://digital-scouts.github.io"
+github_username: JanneckLange
 
-# Build settings
-theme: minima
+remote_theme: just-the-docs/just-the-docs@v0.12.0
 plugins:
+  - jekyll-remote-theme
+  - jekyll-redirect-from
   - jekyll-feed
+  - jekyll-seo-tag
 
-# Exclude from processing.
-# The following items will not be processed, by default.
-# Any item listed under the `exclude:` key here will be automatically added to
-# the internal "default list".
-#
-# Excluded items can be processed by explicitly listing the directories or
-# their entries' file path in the `include:` list.
-#
-# exclude:
-#   - .sass-cache/
-#   - .jekyll-cache/
-#   - gemfiles/
-#   - Gemfile
-#   - Gemfile.lock
-#   - node_modules/
-#   - vendor/bundle/
-#   - vendor/cache/
-#   - vendor/gems/
-#   - vendor/ruby/
+color_scheme: nami
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 2
+  button: false
+heading_anchors: true
+back_to_top: true
+back_to_top_text: "Nach oben"
+nav_sort: case_insensitive
+
+aux_links:
+  "GitHub":
+    - "https://github.com/digital-scouts/dpsg-nami-app"
+aux_links_new_tab: true
+
+footer_content: >-
+  Privat entwickelt. Kein offizielles Angebot der DPSG und nicht von ihr autorisiert.
+  <a href="/dpsg-nami-app/impressum/">Impressum</a> ·
+  <a href="/dpsg-nami-app/app-privacy-policy">Datenschutzerklärung</a>
+
+mermaid:
+  version: "11.4.1"
+
+callouts_level: quiet
+callouts:
+  hinweis:
+    title: Hinweis
+    color: blue
+  wichtig:
+    title: Gut zu wissen
+    color: yellow
+  achtung:
+    title: Achtung
+    color: red
+
+defaults:
+  # Handbuch und Technik unter /bereich/seite/, damit Links mit Schrägstrich
+  # auch auf GitHub Pages funktionieren.
+  - scope:
+      path: "handbuch"
+    values:
+      permalink: /handbuch/:basename/
+  - scope:
+      path: "technik"
+    values:
+      permalink: /technik/:basename/
+  - scope:
+      path: "_posts"
+    values:
+      nav_exclude: true
+      layout: post
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - .sass-cache
+  - .jekyll-cache

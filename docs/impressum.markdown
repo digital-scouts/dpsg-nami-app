@@ -2,6 +2,8 @@
 layout: page
 title: Impressum
 permalink: /impressum/
+parent: Rechtliches
+nav_order: 3
 ---
 
 Janneck Lange

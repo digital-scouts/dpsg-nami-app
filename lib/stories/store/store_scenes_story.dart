@@ -64,7 +64,7 @@ Story storeMitgliederStory() => Story(
 
 Story storeMitgliedDetailStory() => Story(
   name: 'Store/Mitgliedsdetail',
-  builder: (context) => _StoreApp(
+  builder: (context) => StoreSceneApp(
     home: MemberDetailPage(mitglied: StoreShowcaseData.featuredMitglied()),
   ),
 );
@@ -79,7 +79,7 @@ Story storeStatistikStory() => Story(
 
 Story storeBundesvergleichStory() => Story(
   name: 'Store/Bundesvergleich',
-  builder: (context) => _StoreApp(
+  builder: (context) => StoreSceneApp(
     home: Scaffold(
       appBar: AppBar(title: const Text('Bundesweiter Vergleich')),
       body: BundesvergleichView(
@@ -111,7 +111,7 @@ Story storeStufenwechselStory() => Story(
 
 Story storeErfolgeStory() => Story(
   name: 'Store/Erfolge',
-  builder: (context) => _StoreApp(
+  builder: (context) => StoreSceneApp(
     home: AchievementsPage(
       achievements: achievementSampleProgress(
         AchievementSampleScenario.mixed,
@@ -136,7 +136,7 @@ Story storeErscheinungsbildDunkelStory() => Story(
 
 Story storeKarteStory() => Story(
   name: 'Store/Karte',
-  builder: (context) => const _StoreApp(home: SettingsMapPage()),
+  builder: (context) => const StoreSceneApp(home: SettingsMapPage()),
 );
 
 class _ErscheinungsbildScene extends StatelessWidget {
@@ -152,7 +152,7 @@ class _ErscheinungsbildScene extends StatelessWidget {
         appIconService: FakeAppIconService(),
         access: const _NurFreieOptionen(),
       )..load(),
-      child: _StoreApp(
+      child: StoreSceneApp(
         dark: dark,
         home: SettingsAppearancePage(
           themeMode: dark ? ThemeMode.dark : ThemeMode.light,
@@ -169,8 +169,8 @@ class _NurFreieOptionen extends SupportAccess {
   bool isTierUnlocked(SupportTier tier) => tier == SupportTier.free;
 }
 
-class _StoreApp extends StatelessWidget {
-  const _StoreApp({required this.home, this.dark = false});
+class StoreSceneApp extends StatelessWidget {
+  const StoreSceneApp({super.key, required this.home, this.dark = false});
 
   final Widget home;
   final bool dark;

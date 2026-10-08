@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% seo %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="{{ '/assets/css/landing.css' | relative_url }}">
+  <link rel="icon" type="image/png" href="{{ '/assets/img/appicon.png' | relative_url }}">
+</head>
+<body>
+  <header class="topnav">
+    <div class="wrap">
+      <a class="brand" href="{{ '/' | relative_url }}"><img src="{{ '/assets/img/appicon.png' | relative_url }}" alt="">NaMi</a>
+      <nav aria-label="Hauptnavigation">
+        <ul>
+          <li><a href="#funktionen">Funktionen</a></li>
+          <li><a href="{{ '/handbuch/' | relative_url }}">Handbuch</a></li>
+          <li><a href="{{ '/technik/' | relative_url }}">Technik</a></li>
+          <li><a href="{{ '/handbuch/datenschutz/' | relative_url }}">Datenschutz</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main>
+{{ content }}
+  </main>
+  <footer class="foot">
+    <div class="wrap">
+      <div><b>NaMi</b><p>Privat entwickelt. Kein offizielles Angebot der DPSG und nicht von ihr autorisiert.</p></div>
+      <div><b>Hilfe</b><a href="{{ '/handbuch/' | relative_url }}">Handbuch</a><a href="{{ '/handbuch/faq/' | relative_url }}">FAQ</a><a href="{{ '/handbuch/probleme-melden/' | relative_url }}">Probleme melden</a></div>
+      <div><b>Projekt</b><a href="{{ '/technik/' | relative_url }}">Technik</a><a href="{{ '/neuigkeiten/' | relative_url }}">Neuigkeiten</a><a href="https://github.com/digital-scouts/dpsg-nami-app">GitHub</a></div>
+      <div><b>Rechtliches</b><a href="{{ '/app-privacy-policy' | relative_url }}">Datenschutzerklärung</a><a href="{{ '/app-terms-conditions' | relative_url }}">Nutzungsbedingungen</a><a href="{{ '/impressum/' | relative_url }}">Impressum</a></div>
+    </div>
+  </footer>
+</body>
+</html>

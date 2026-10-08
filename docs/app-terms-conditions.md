@@ -1,6 +1,8 @@
 ---
 layout: page
 title: App Terms & Conditions
+parent: Rechtliches
+nav_order: 2
 ---
 
 ## Terms & Conditions

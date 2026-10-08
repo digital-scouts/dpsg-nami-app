@@ -1,5 +1,7 @@
-// Erzeugt Rohscreens der Store-Szenen aus Storybook in nativer Aufloesung.
-// Ausfuehren ueber tool/store_screenshots/run_store_screenshots.sh. Im
+// Erzeugt Rohscreens der Store- oder Docs-Szenen aus Storybook in nativer
+// Aufloesung. Ausfuehren ueber tool/store_screenshots/run_store_screenshots.sh.
+// STORE_SCREENSHOT_SET waehlt die Szenen: `store` (Standard) oder `docs`
+// (Store- und Handbuch-Szenen fuer GitHub Pages). Im
 // iOS-Simulator schreibt die App direkt in STORE_SCREENSHOT_DIR auf dem Host,
 // weil `flutter test` die App danach wieder deinstalliert.
 import 'dart:io';
@@ -10,10 +12,15 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:nami/stories/docs/docs_scenes_story.dart';
 import 'package:nami/stories/store/store_scenes_story.dart';
 import 'package:path_provider/path_provider.dart';
 
 const String _outDirDefine = String.fromEnvironment('STORE_SCREENSHOT_DIR');
+const String _setDefine = String.fromEnvironment(
+  'STORE_SCREENSHOT_SET',
+  defaultValue: 'store',
+);
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +34,10 @@ void main() {
           );
     outDir.createSync(recursive: true);
 
-    final stories = storeSceneStories();
+    final stories = [
+      ...storeSceneStories(),
+      if (_setDefine == 'docs') ...docsSceneStories(),
+    ];
     for (final story in stories) {
       final boundaryKey = GlobalKey();
       await tester.pumpWidget(
@@ -50,9 +60,11 @@ void main() {
         image.dispose();
         return data!.buffer.asUint8List();
       });
+      // `Store/Erscheinungsbild/Dunkel` -> `erscheinungsbild_dunkel`,
+      // `Docs/Statistik/Eigene Kachel` -> `statistik_eigene_kachel`.
       final fileName = story.name
-          .replaceFirst('Store/', '')
-          .replaceAll('/', '_')
+          .substring(story.name.indexOf('/') + 1)
+          .replaceAll(RegExp('[ /-]'), '_')
           .toLowerCase();
       File('${outDir.path}/$fileName.png').writeAsBytesSync(bytes!);
       debugPrint('store-screenshot: $fileName.png');

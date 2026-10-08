@@ -1,0 +1,85 @@
+---
+title: Anmeldung und Offline-Daten
+parent: Technik
+nav_order: 2
+---
+
+# Anmeldung, Sitzung und Offline-Daten
+{: .no_toc }
+
+Wie die App sich bei Hitobito anmeldet, wann sie synchronisiert und wie lange Daten auf dem Gerät bleiben.
+{: .lead }
+
+1. TOC
+{:toc}
+
+## Anmeldung
+
+Die App nutzt OAuth 2.0 mit Authorization Code und PKCE (`S256`) gegen Hitobito. Die Anmeldung läuft im Browser des Systems, die App sieht das Passwort nie.
+
+| Baustein | Umsetzung |
+|:--|:--|
+| Scopes | `openid name email api with_roles` |
+| Tokens | Access- und Refresh-Token im Schlüsselbund (iOS) bzw. Keystore (Android) |
+| Mitgliederdaten | Hive-Box, AES-verschlüsselt; der Schlüssel liegt im Schlüsselbund bzw. Keystore |
+| Profil | Name, E-Mail, Sprache und Rollen aus dem OAuth-Profil; die Sprache setzt die App-Sprache |
+
+Nach einer Neuinstallation ist eine neue Anmeldung nötig, auch wenn der iOS-Schlüsselbund noch eine frühere Sitzung enthält.
+
+## Sync
+
+```mermaid
+sequenceDiagram
+  participant App
+  participant Hitobito
+  App->>Hitobito: Profil, Gruppen, Personen, Rollen, Qualifikationen
+  Hitobito-->>App: lesbarer Bestand des Arbeitskontexts
+  Note over App: vollständig geladen? dann ersetzen,<br>sonst alten Stand behalten
+  App->>App: verschlüsselt speichern, Datenstand merken
+```
+
+- Die App versucht etwa alle 24 Stunden zu aktualisieren (`HITOBITO_REFRESH_INTERVAL_HOURS`).
+- Während aktiver Nutzung prüft sie, ob ein blockierter Sync wieder möglich ist, etwa wenn WLAN verfügbar wird.
+- <span class="ui">Mobile Daten einschränken</span> erlaubt Sync nur im WLAN. Verbindungen, die weder WLAN noch Mobilfunk sind (etwa nur VPN), gelten als mobile Daten.
+- Ein nur teilweise geladener Sync gilt als fehlgeschlagen. Die App behält dann den vorherigen Stand, Datenstand und Löschfrist bleiben unverändert.
+
+## Abgelaufene Sitzung
+
+Läuft ein Zugriff mit `401` in eine abgelaufene Sitzung, versucht die App zuerst einen Retry mit aufgefrischtem Token.
+
+| Auslöser | Verhalten bei abgelaufener Sitzung |
+|:--|:--|
+| Nutzeraktion, etwa Speichern oder manueller Sync | öffnet die Anmeldung im Browser |
+| Start-, Intervall- und Verbindungs-Sync | kein Login-Fenster, einmaliger Hinweis „Erneut anmelden“ |
+| Nachsenden vorgemerkter Änderungen | kein Login-Fenster, Änderung bleibt vorgemerkt |
+
+Der zuletzt geladene Arbeitskontext bleibt in allen Fällen erhalten.
+
+## Wie lange Daten bleiben
+
+| Ereignis | Folge für lokale Hitobito-Daten |
+|:--|:--|
+| Sync erfolgreich | ersetzt, Löschfrist beginnt neu |
+| Sync fehlgeschlagen oder teilweise | alter Stand bleibt nutzbar |
+| 90 Tage ohne erfolgreichen Sync (`HITOBITO_DATA_MAX_AGE_DAYS`) | gelöscht |
+| Manuelles Abmelden | gelöscht; vorher Versuch, offene Änderungen zu senden, sonst Rückfrage |
+| Kein lesbarer Layer mehr | abgemeldet und gelöscht, Grund auf dem Anmeldebildschirm |
+| Wechsel des Arbeitskontexts | durch den neuen Kontext ersetzt |
+
+```mermaid
+timeline
+  title Lebensdauer eines Datenstands
+  Tag 0 : Sync erfolgreich
+  ab Tag 1 : tägliche Sync-Versuche
+  Tag 90 : ohne erfolgreichen Sync werden die Daten gelöscht
+```
+
+## App-Sperre
+
+Ist die App-Sperre aktiv und noch nicht entsperrt, finden keine Hitobito-Zugriffe statt. Sync und Nachsenden laufen erst nach der Entsperrung. Nach 60 Sekunden im Hintergrund fragt die App erneut (`HITOBITO_APP_LOCK_TIMEOUT_SECONDS`).
+
+Ein Logout beendet laufende Vorgänge. Was sie danach noch liefern, verwirft die App.
+
+## Demo-Modus
+
+Die Demo spricht Hitobito nicht an und hält alle Daten nur im Speicher. Jeder Demo-Zugang sieht nur, was Hitobito seiner Rolle liefern würde. Den Bundesvergleich sendet sie an eine getrennte Testinstanz des Statistikservers.
