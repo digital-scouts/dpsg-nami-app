@@ -1,6 +1,6 @@
 # Qualifikationen-Übersicht: Anforderungen
 
-Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Erweiterung der Seite „Qualifikationen“ (Einstellungen, Schnellzugriff) von einer reinen EFZ-Liste zu einer konfigurierbaren Übersicht über alle Qualifikationsarten. Die freigegebenen Entwürfe liegen unter `design/qualifikationen/` (Runden 1 bis 3, Vorlage ist Runde 3).
+Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Erweiterung der Seite „Qualifikationen“ (Einstellungen, Schnellzugriff) von einer reinen EFZ-Liste zu einer konfigurierbaren Übersicht über alle Qualifikationsarten. Die Entscheidungen der drei Entwurfsrunden stehen in `design/entscheidung/2026-10-02-qualifikationen-uebersicht.md`.
 
 ## Umgesetzter Stand
 

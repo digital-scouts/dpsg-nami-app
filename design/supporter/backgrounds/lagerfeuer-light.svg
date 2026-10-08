@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice"><title>lagerfeuer-tag runde3</title><style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice"><title>lagerfeuer-light</title><style>
 
 .smoke { animation-name: smoke; animation-timing-function: ease-out; animation-iteration-count: infinite; opacity: 0; transform-box: fill-box; transform-origin: center; }
 @keyframes smoke { 0% { transform: translate(0,0) scale(.6); opacity: 0; } 15% { opacity: .3; } 100% { transform: translate(var(--dx), var(--dy)) scale(3); opacity: 0; } }

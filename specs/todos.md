@@ -53,7 +53,7 @@ Ziel: Die neue Kachel-Statistik nach den ersten Rückmeldungen abrunden.
 
 Nächste Aufgaben:
 
-- Größere Schrift feinschleifen: Bei hoher Textskalierung wirkt die Schrift in einigen Kacheln eher kleiner und der Leerraum wächst (siehe Entwürfe Runde 5 unter `design/statistik/`).
+- Größere Schrift feinschleifen: Bei hoher Textskalierung wirkt die Schrift in einigen Kacheln eher kleiner und der Leerraum wächst (siehe `design/entscheidung/2026-10-02-stammesstatistik.md`, größere Schrift).
 - „Hinter den Kacheln“ aus Runde 2 (§6) als eigene Ausbaustufe konzipieren: Detailseiten beim Antippen der Kacheln.
 - Konfession aus echten Daten statt der bisherigen Beispielquelle anzeigen, sobald Hitobito sie liefert.
 
@@ -93,7 +93,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 
 - Erster Schritt: Ein Tipp auf eine Kachel öffnet die gefilterte Mitgliederliste.
   - Heute ist das Antippen nur für eigene Kacheln verdrahtet, in `lib/presentation/statistics/kachel_raster.dart`.
-- Danach Detailseiten nach `design/statistik/entwurf-runde-2.html` §6.
+- Danach Detailseiten hinter den Kacheln (offen in `design/entscheidung/2026-10-02-stammesstatistik.md`).
 
 **Qualifikationen: Erinnerungen** (#209)
 

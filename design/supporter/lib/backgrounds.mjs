@@ -1,6 +1,6 @@
 // Gemeinsame Bausteine der Header-Hintergruende (Foerderer): Farben, Himmel,
 // Voegel, Libellen, Wald und Sternschnuppen. Die freigegebenen Szenen stehen
-// in entwurf_lagerfeuer_nacht.mjs und entwurf_szenen.mjs (siehe generate.mjs).
+// in szenen.mjs und lagerfeuer_nacht.mjs (siehe generate.mjs).
 import { r1, pineRow } from './util.mjs';
 
 export const BACKGROUNDS = [
@@ -115,5 +115,5 @@ function forest(c, fogOpacity, between) {
   );
 }
 
-// Bausteine fuer die Entwuerfe (entwurf_szenen.mjs).
+// Bausteine fuer die Szenen (szenen.mjs).
 export { P, W, H, style, sky, BIRD_CSS, birds, DRAGONFLY_CSS, dragonfly, FOREST_CSS, forest, SHOOTING };

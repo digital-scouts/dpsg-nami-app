@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedbackrunde</title>
+<link rel="stylesheet" href="runde.css">
+<style>
+/* Bausteine dieser Runde. Groessen nur ueber --t-*, Farben nur ueber Tokens. */
+.app-kopf { background:var(--surface); padding:12px 16px 14px; border-bottom:1px solid var(--border); }
+.app-kopf .name { font-size:var(--t-title2); font-weight:700; }
+.app-kopf .zeile { font-size:var(--t-footnote); color:var(--fg2); }
+.app-kopf.k2 { background:var(--primary); color:var(--on-primary); border:0; }
+.app-kopf.k2 .zeile { color:var(--on-primary); opacity:.8; }
+.app-kopf .chips { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.app-kopf .chips span { font-size:var(--t-caption); padding:3px 10px; border-radius:999px; background:var(--primary-lite); color:var(--primary); }
+.app-kopf.k2 .chips span { background:rgba(255,255,255,.18); color:var(--on-primary); }
+.liste { padding:12px 16px 24px; display:flex; flex-direction:column; gap:10px; }
+.eintrag { background:var(--surface); border-radius:14px; padding:12px 14px; display:flex; justify-content:space-between; gap:12px; }
+.eintrag b { font-size:var(--t-body); }
+.eintrag span { font-size:var(--t-subhead); color:var(--fg2); text-align:right; }
+.liste.l2 { gap:0; }
+.liste.l2 .eintrag { border-radius:0; border-bottom:1px solid var(--border); }
+.liste.l2 .eintrag:first-child { border-radius:14px 14px 0 0; }
+.liste.l2 .eintrag:last-child { border-radius:0 0 14px 14px; border:0; }
+.detail { padding:16px; font-size:var(--t-body); }
+.detail .karte { background:var(--surface); border-radius:14px; padding:14px; margin-bottom:12px; }
+.detail .label { font-size:var(--t-caption); color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.tabbar { display:flex; justify-content:space-around; border-top:1px solid var(--border); background:var(--surface); padding:10px 0 28px; font-size:var(--t-caption); color:var(--muted); }
+.tabbar span::before { content:''; display:block; width:22px; height:22px; margin:0 auto 3px; border-radius:6px; background:currentColor; opacity:.35; }
+.tabbar .on { color:var(--primary); font-weight:600; }
+.tabbar .on::before { opacity:1; }
+.web .tabbar { display:none; }
+.web .app-kopf, .ipad .app-kopf { padding-left:32px; }
+.web .liste, .web .detail { max-width:760px; margin:0 auto; }
+</style>
+</head>
+<body>
+<main>
+<h1>Vorlage Feedbackrunde</h1>
+<p>Beispiel für den Skill: Varianten mit Auswahl und Kommentar direkt an der Variante, Kopfzeile mit Gerät, Theme, Schriftgröße und einer Wahl, die die Folgescreens steuert.</p>
+
+<section class="frage" data-frage="kopf">
+<h2>Kopfbereich</h2>
+<p>Wie soll der Kopf der Mitgliedsseite aussehen? Die Wahl hier steuert auch die Folgescreens unten.</p>
+<div class="variante" data-variante="k1" data-titel="K1: Hell mit Chips"><p class="desc">Flacher Kopf in Kartenfarbe, Stufen als Chips.</p><div class="screens" data-slot="kopf-k1"></div></div>
+<div class="variante" data-variante="k2" data-titel="K2: Farbiger Kopf"><p class="desc">Kopf in Primärfarbe, kräftiger, aber weniger ruhig.</p><div class="screens" data-slot="kopf-k2"></div></div>
+</section>
+
+<section class="frage" data-frage="liste">
+<h2>Liste</h2>
+<p>Einzelne Karten oder eine zusammenhängende Gruppe? Mehrfachauswahl erlaubt.</p>
+<div class="variante" data-variante="l1" data-titel="L1: Einzelne Karten"><div class="screens" data-slot="liste-l1"></div></div>
+<div class="variante" data-variante="l2" data-titel="L2: Gruppierte Liste"><div class="screens" data-slot="liste-l2"></div></div>
+</section>
+
+<section class="folge">
+<h2>Folgescreens</h2>
+<p>Zeigen den in der Kopfzeile eingestellten Kopf. Eine Auswahl bei „Kopfbereich“ stellt ihn automatisch um.</p>
+<div class="screens" data-slot="folge"></div>
+</section>
+</main>
+<script src="runde.js"></script>
+<script>
+const PERSONEN = [['Lena Albrecht', 'Wölflinge', '1022'], ['Mats Brandt', 'Jungpfadfinder', '1031'], ['Sami Engel', 'Pfadfinder', '1015']];
+
+const kopf = (art) => `<div class="app-kopf ${art}"><div class="name">Lena Albrecht</div><div class="zeile">Mitglied seit 2019 · 1022</div><div class="chips"><span>Wölflinge</span><span>Leitung</span></div></div>`;
+const liste = (art) => `<div class="liste ${art}">${PERSONEN.map(([n, s, id]) => `<div class="eintrag"><b>${n}</b><span>${s}<br>${id}</span></div>`).join('')}</div>`;
+const ROLLEN = [['Leitung', 'Wölflinge', 'seit 2021'], ['Mitglied', 'Stamm', 'seit 2019'], ['Kassenprüfung', 'Stamm', '2022–2024'], ['Mitglied', 'Pfadfinder', '2015–2019'], ['Mitglied', 'Jungpfadfinder', '2012–2015'], ['Mitglied', 'Wölflinge', '2009–2012'], ['Teilnahme', 'Wölflingsleitung Kurs', '2021'], ['Teilnahme', 'Modulausbildung', '2020']];
+const detail = () => `<div class="detail"><div class="karte"><div class="label">Kontakt</div>lena@example.org<br>0151 2345678</div><div class="karte"><div class="label">Adresse</div>Am Waldsee 3, 20095 Hamburg</div>${ROLLEN.map(([r, g, z]) => `<div class="karte"><div class="label">${g}</div>${r}<br><span style="color:var(--fg2);font-size:var(--t-subhead)">${z}</span></div>`).join('')}</div>`;
+const tabbar = () => `<nav class="tabbar unten"><span class="on">Mitglieder</span><span>Statistik</span><span>Einstellungen</span></nav>`;
+
+Runde.start({
+  nr: 1,
+  thema: 'Vorlage Feedbackrunde',
+  geraete: ['iphone', 'ipad', 'web'],
+  theme: 'hell',
+  steuerung: [{ id: 'kopf', titel: 'Kopf', optionen: [['k1', 'K1'], ['k2', 'K2']], frage: 'kopf' }],
+  fragen: [{ id: 'kopf', titel: 'Kopfbereich' }, { id: 'liste', titel: 'Liste', mehrfach: true }],
+  render(z) {
+    const slot = (name, html) => (document.querySelector(`[data-slot="${name}"]`).innerHTML = html);
+    slot('kopf-k1', Runde.geraet(z, kopf('k1') + liste('l1') + tabbar(), { shot: 'kopf-k1' }));
+    slot('kopf-k2', Runde.geraet(z, kopf('k2') + liste('l1') + tabbar(), { shot: 'kopf-k2' }));
+    slot('liste-l1', Runde.geraet(z, kopf(z.kopf) + liste('l1') + tabbar(), { shot: 'liste-l1' }));
+    slot('liste-l2', Runde.geraet(z, kopf(z.kopf) + liste('l2') + tabbar(), { shot: 'liste-l2' }));
+    slot('folge', Runde.geraet(z, kopf(z.kopf) + detail(), { titel: `Details mit ${z.kopf.toUpperCase()}, lang`, shot: 'folge' }));
+  },
+});
+</script>
+</body>
+</html>

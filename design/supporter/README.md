@@ -5,7 +5,7 @@ Quellen für App-Icons, Supporter-Badges, animierte Hintergründe und Farbpalett
 ```sh
 node design/supporter/build_ios_icons.mjs   # iOS-Icons (Icon Composer), ca. 2 Minuten
 node design/supporter/export_app_assets.mjs # Badges, Vorschaubilder, Android- und iOS-Icons in die App
-node design/supporter/generate.mjs          # Entwürfe und preview.html
+node design/supporter/generate.mjs          # Icons, Badges, Hintergründe, Paletten und preview.html
 open design/supporter/preview.html
 ```
 
@@ -16,8 +16,8 @@ open design/supporter/preview.html
 - `lib/icons.mjs`: 3 Szenen (Nachthimmel, Lagerfeuer, Waldsee) × 3 Tageszeiten (`icons/<motiv>-<zeit>.svg`, 1024 × 1024), jeweils in drei Ebenen teilbar
 - `build_ios_icons.mjs`: Icon-Composer-Bundles für iOS 26/27 mit Liquid Glass; `*Automatisch.icon` zeigt hell den Morgen und dunkel die Nacht
 - `lib/badges.mjs`: Kompass in 6 Farben plus Förderer-Badge Polarstern (`badges/*.svg`)
-- Hintergründe: 3 Szenen, jeweils Tag (hell) und Nacht (dunkel). Freigegeben sind die Entwürfe aus `lib/entwurf_lagerfeuer_nacht.mjs` und `lib/entwurf_szenen.mjs` (Zuordnung in `generate.mjs`, `FINAL_BACKGROUNDS`); `lib/backgrounds.mjs` liefert die gemeinsamen Bausteine. Die App zeichnet die Szenen nach in `lib/presentation/widgets/supporter_background_painter.dart`.
-- `entwurf-*.html`: Vorschauseiten der Feedback-Runden (ganze Szene, Handy-Kopf ohne und mit Suche) (`backgrounds/*.svg`)
+- Hintergründe: 3 Szenen, jeweils Tag (hell) und Nacht (dunkel), in `lib/szenen.mjs` und `lib/lagerfeuer_nacht.mjs` (`backgrounds/*.svg`); `lib/backgrounds.mjs` liefert die gemeinsamen Bausteine. Die App zeichnet die Szenen nach in `lib/presentation/widgets/supporter_background_painter.dart`.
+- Entscheidungen zu Szenen und Icons: `design/entscheidung/2026-09-29-supporter-designs.md` und `2026-10-08-supporter-waldsee-icons.md`. Neue Varianten über den Skill `feedbackrunde`, nicht hier ablegen.
 - `lib/palettes.mjs`: 5 Paletten mit denselben Tokens wie `DPSGColors` (`palettes.json`)
 - `preview.html`: Übersicht mit Auswahl; die Auswahl lässt sich als Liste kopieren
 

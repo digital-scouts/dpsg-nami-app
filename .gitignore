@@ -73,3 +73,4 @@ assets/territorialgrenzen_bistumsatlas
 # curated chat_ai/eval/results/*.md summaries are versioned, not raw per-run logs/reports)
 chat_ai/eval/results/runs/*.jsonl
 chat_ai/eval/results/runs/*.md
+design/.runden/

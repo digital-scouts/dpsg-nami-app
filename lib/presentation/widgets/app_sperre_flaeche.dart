@@ -8,7 +8,7 @@ import '../model/appearance_model.dart';
 import 'supporter_background.dart';
 
 /// Deckende Fläche der App-Sperre und des Sichtschutzes im App-Umschalter
-/// (Entwurf `design/app-sperre/`, Runde 3: B3 mit Szenenhöhe S).
+/// (B3 mit Szenenhöhe S, `design/entscheidung/2026-10-07-app-sperre.md`).
 ///
 /// Ohne Supporter-Hintergrund ein Verlauf in der Primärfarbe, sonst der
 /// aktive animierte Hintergrund mit der Szene auf gut der Hälfte der Höhe.

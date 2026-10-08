@@ -1,0 +1,74 @@
+/* Feedbackrunde: Seitenrahmen, Kopfzeile, Geräte und Auswahl an den Varianten.
+   Inhalte in den Geräten nutzen die Tokens --bg, --surface, --fg … und die
+   Schrift-Tokens --t-*, damit Theme und Schriftgröße überall greifen. */
+
+/* ---------- Seite ---------- */
+body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width:1780px; margin:0 auto; padding:28px 28px 120px; }
+h1 { font-size:2rem; margin:0 0 .3rem; }
+h2 { font-size:1.45rem; margin:0 0 .35rem; }
+h3 { font-size:1.05rem; margin:0 0 .2rem; }
+main p { color:#5d5b54; margin:0 0 1rem; max-width:80ch; }
+.tag { font-size:.75rem; font-weight:600; background:#e2dccb; color:#6b5520; border-radius:999px; padding:2px 10px; vertical-align:middle; margin-left:6px; }
+.fest { background:#e8f1ea; border:1px solid #b9d4bf; border-radius:12px; padding:10px 16px; max-width:900px; font-size:14px; color:#21412a; margin:0 0 1.2rem; }
+.fest ul { margin:.3rem 0 0; padding-left:1.2rem; }
+
+/* ---------- Kopfzeile ---------- */
+.rk { position:sticky; top:0; z-index:20; background:rgba(236,234,228,.95); backdrop-filter:blur(8px); border-bottom:1px solid #d6d3c9; padding:8px 28px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; font-size:14px; }
+.rk .titel { font-weight:700; margin-right:4px; }
+.rk label { color:#5d5b54; font-size:13px; margin-right:4px; }
+.rk .gruppe { display:inline-flex; align-items:center; }
+.rk nav { display:flex; gap:12px; }
+.rk nav a { color:#003056; }
+.rk .rechts { margin-left:auto; display:flex; gap:10px; align-items:center; }
+.rk .stand { color:#5d5b54; font-size:13px; }
+.tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+.tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 11px; border-radius:999px; cursor:pointer; color:#3a3934; }
+.tgl button.on { background:#003056; color:#fff; }
+.kopieren { border:0; background:#003056; color:#fff; font:inherit; font-weight:600; border-radius:999px; padding:7px 16px; cursor:pointer; }
+.kopieren.ok { background:#1f7a45; }
+
+/* ---------- Fragen und Varianten ---------- */
+section.frage, section.folge { border-top:1px solid #d6d3c9; padding:28px 0 8px; }
+.variante { margin:0 0 30px; padding:14px 16px 16px; border-radius:18px; border:2px solid transparent; }
+.variante.gewaehlt { border-color:#1f7a45; background:#f3f8f4; }
+.variante .desc { max-width:78ch; color:#4a4943; margin:0 0 12px; }
+.wahl { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 12px; }
+.wahl .titel { font-weight:700; font-size:1.05rem; margin-right:4px; }
+.wahl button { border:1.5px solid #003056; background:#fff; color:#003056; font:inherit; font-size:14px; font-weight:600; border-radius:999px; padding:5px 14px; cursor:pointer; }
+.gewaehlt .wahl button { background:#1f7a45; border-color:#1f7a45; color:#fff; }
+.wahl input, .fragefuss input, .allgemein textarea { font:inherit; font-size:14px; border:1px solid #cfcbbf; border-radius:10px; padding:6px 10px; background:#fff; }
+.wahl input { flex:1; min-width:220px; max-width:520px; }
+.fragefuss { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:-10px 0 20px; padding:10px 16px; background:#e4e1d8; border-radius:14px; }
+.fragefuss button { border:1.5px solid #8a3a2a; background:#fff; color:#8a3a2a; font:inherit; font-size:13px; font-weight:600; border-radius:999px; padding:4px 12px; cursor:pointer; }
+.fragefuss button.on { background:#8a3a2a; color:#fff; }
+.fragefuss input { flex:1; min-width:220px; }
+.allgemein textarea { width:100%; max-width:900px; min-height:70px; box-sizing:border-box; }
+
+/* ---------- Geräte ---------- */
+.screens { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; }
+.geraet { margin:0; flex:none; }
+.geraet figcaption { font-size:13px; color:#6b6960; margin-top:8px; }
+/* Mindesthoehe = ein Bildschirm; laengere Inhalte bekommen die Falz-Linie
+   "Ende 1. Bildschirm". `fest` schneidet auf genau einen Bildschirm ab. */
+.rahmen { overflow:hidden; background:var(--bg); color:var(--fg); position:relative; display:flex; flex-direction:column; min-height:var(--hoehe); box-sizing:border-box; font:var(--t-body)/1.35 system-ui, -apple-system, sans-serif; }
+.rahmen.fest { height:var(--hoehe); }
+.rahmen .unten { margin-top:auto; }
+.falz { visibility:hidden; position:absolute; left:0; right:0; top:var(--hoehe); height:0; border-top:2px dashed #e0703a; z-index:6; pointer-events:none; }
+.falz span { position:absolute; right:10px; top:-21px; font:600 11px system-ui; color:#fff; background:#e0703a; border-radius:6px; padding:1px 7px; }
+.rahmen.lang .falz { visibility:visible; }
+.iphone .rahmen { --hoehe:844px; width:390px; border-radius:46px; box-shadow:0 0 0 10px #1c1c1e, 0 18px 40px rgba(0,0,0,.25); margin:10px; }
+.ipad { zoom:.8; }
+.ipad .rahmen { --hoehe:1180px; width:820px; border-radius:30px; box-shadow:0 0 0 16px #1c1c1e, 0 18px 40px rgba(0,0,0,.25); margin:16px; }
+.web { zoom:.8; }
+.web .rahmen { --hoehe:800px; width:1280px; border-radius:12px; box-shadow:0 0 0 1px #c9c6bc, 0 18px 40px rgba(0,0,0,.18); }
+.ipad figcaption, .web figcaption { font-size:16px; }
+.status { height:50px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; font-size:15px; font-weight:600; background:var(--surface); position:relative; }
+.ipad .status { height:28px; padding:0 22px; font-size:13px; }
+.status .island { position:absolute; left:50%; top:11px; transform:translateX(-50%); width:122px; height:35px; border-radius:18px; background:#000; }
+.status .sys { width:26px; height:12px; border:1.5px solid var(--fg); border-radius:4px; position:relative; opacity:.8; }
+.status .sys::after { content:''; position:absolute; inset:1.5px 6px 1.5px 1.5px; background:var(--fg); border-radius:1.5px; }
+.browser { height:40px; display:flex; align-items:center; gap:8px; padding:0 14px; background:#e8e6e1; border-bottom:1px solid #d0cdc4; }
+.browser i { width:12px; height:12px; border-radius:50%; background:#d0cdc4; }
+.browser span { flex:1; margin-left:12px; background:#fff; border-radius:8px; padding:4px 12px; font:13px system-ui; color:#6b6960; }
+.hell.web .browser, .dunkel.web .browser { color-scheme:light; }
