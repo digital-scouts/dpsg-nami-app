@@ -110,9 +110,7 @@ void main() {
     expect(find.text('2/4', findRichText: true), findsWidgets);
   });
 
-  testWidgets('ohne Foerderer-Abo erscheint nur der Hinweis', (
-    tester,
-  ) async {
+  testWidgets('ohne Foerderer-Abo erscheint nur der Hinweis', (tester) async {
     await pumpSeite(
       tester,
       SettingsQualifikationenPage(
