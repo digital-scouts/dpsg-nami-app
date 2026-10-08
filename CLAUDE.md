@@ -51,3 +51,4 @@
 - Lies zuerst die relevanten Dateien, bevor du groessere Aenderungen vornimmst.
 - Vermeide unnoetige Massenreformatierung und unangrenzende Refactorings.
 - Benenne Annahmen, Risiken oder offene Punkte knapp, wenn sie fuer die Aufgabe relevant bleiben.
+- Sichtbare Aenderungen vor der Umsetzung mit dem Skill `feedbackrunde` (.claude/skills/feedbackrunde/) klaeren. Im Repo landet nur die Entscheidung unter design/entscheidung/, keine Rundendateien.
