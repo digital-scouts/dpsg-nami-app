@@ -64,7 +64,7 @@ class MessageOfTheDayCard extends StatelessWidget {
                   foregroundColor: motd.action!.color,
                 ),
                 onPressed: () {
-                  // TODO: Opem link in InApp browser
+                  // TODO(#210): Open link in InApp browser
                 },
                 child: Text(motd.action!.label),
               ),
