@@ -1450,7 +1450,9 @@ void main() {
       statusCode: 401,
     );
 
-    ({AuthSessionModel model, FakeOauthService oauthService}) buildModel() {
+    ({AuthSessionModel model, FakeOauthService oauthService}) buildModel({
+      DateTime? expiresAt,
+    }) {
       final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'refreshed-token',
@@ -1470,6 +1472,7 @@ void main() {
             accessToken: 'stale-token',
             refreshToken: 'stale-refresh-token',
             receivedAt: DateTime(2026, 3, 27),
+            expiresAt: expiresAt,
           ),
         ),
         profileRepository: InMemoryAuthProfileRepository(
@@ -1566,6 +1569,96 @@ void main() {
         expect(oauthService.authenticateInteractiveCallCount, 0);
         expect(model.requiresInteractiveLogin, isTrue);
         expect(model.lastSyncAttemptResult, SyncAttemptResult.loginRequired);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'invalid_grant beim Refresh verlangt Neuanmeldung ohne Zugriff mit altem Token',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        oauthService
+          ..refreshIfNeededErneuert = true
+          ..refreshError = const HitobitoAuthException(
+            'Token-Anfrage fehlgeschlagen (400, invalid_grant).',
+            statusCode: 400,
+            art: HitobitoAuthFehlerArt.sitzungBeendet,
+          );
+        final usedTokens = <String>[];
+
+        final result = await model.runWithoutInteractiveRelogin(
+          () => model.executeRemoteAccess<String>(
+            trigger: 'pending_retry_timer',
+            action: (session) async {
+              usedTokens.add(session.accessToken);
+              return 'ok';
+            },
+          ),
+        );
+
+        expect(result, isNull);
+        expect(usedTokens, isEmpty);
+        expect(oauthService.refreshCallCount, 1);
+        expect(model.requiresInteractiveLogin, isTrue);
+        expect(oauthService.authenticateInteractiveCallCount, 0);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'voruebergehender Refresh-Fehler bei abgelaufenem Token verlangt keine Neuanmeldung',
+      () async {
+        final (:model, :oauthService) = buildModel(
+          expiresAt: DateTime(2026, 3, 28, 10),
+        );
+        await model.initialize();
+        oauthService
+          ..refreshIfNeededErneuert = true
+          ..refreshError = const HitobitoAuthException(
+            'Token-Anfrage fehlgeschlagen (503).',
+            statusCode: 503,
+            art: HitobitoAuthFehlerArt.voruebergehend,
+          );
+
+        await model.syncHitobitoData(
+          trigger: 'interval',
+          userInitiated: false,
+          syncMembers: (_) async {},
+        );
+
+        expect(model.lastSyncAttemptResult, SyncAttemptResult.serverError);
+        expect(model.requiresInteractiveLogin, isFalse);
+        expect(oauthService.fetchProfileCallCount, 0);
+        expect(oauthService.authenticateInteractiveCallCount, 0);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      '401 der API mit gestoertem Refresh sendet das abgelehnte Token nicht erneut',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        oauthService.refreshError = TimeoutException('Keine Antwort');
+        final usedTokens = <String>[];
+
+        await expectLater(
+          model.runWithoutInteractiveRelogin(
+            () => model.executeRemoteAccess<String>(
+              trigger: 'pending_retry_timer',
+              action: (session) async {
+                usedTokens.add(session.accessToken);
+                throw unauthorized;
+              },
+            ),
+          ),
+          throwsA(isA<TimeoutException>()),
+        );
+
+        expect(usedTokens, <String>['stale-token']);
+        expect(oauthService.refreshCallCount, 1);
+        expect(model.requiresInteractiveLogin, isFalse);
       },
       timeout: const Timeout(Duration(seconds: 3)),
     );

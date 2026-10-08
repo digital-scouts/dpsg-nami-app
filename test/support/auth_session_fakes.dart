@@ -80,6 +80,9 @@ class FakeOauthService extends HitobitoOauthService {
   Object? authenticateError;
   Object? refreshError;
   Object? fetchProfileError;
+
+  /// Ob `refreshIfNeeded` wie bei abgelaufenem Access-Token erneuert.
+  bool refreshIfNeededErneuert = false;
   int authenticateInteractiveCallCount = 0;
   int refreshCallCount = 0;
   int fetchProfileCallCount = 0;
@@ -127,7 +130,7 @@ class FakeOauthService extends HitobitoOauthService {
     AuthSession session, {
     Duration threshold = const Duration(minutes: 5),
   }) async {
-    return session;
+    return refreshIfNeededErneuert ? refresh(session) : session;
   }
 }
 

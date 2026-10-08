@@ -631,10 +631,14 @@ class AuthSessionModel extends ChangeNotifier {
     return preparation.session;
   }
 
+  /// [altesTokenAbgelehnt]: Hitobito hat das aktuelle Access-Token bereits
+  /// mit 401 abgelehnt. Scheitert der Refresh dann voruebergehend, wird der
+  /// Fehler durchgereicht, statt das abgelehnte Token erneut zu senden.
   Future<_PreparedRemoteAccess> _prepareSessionForRemoteAccess({
     required String trigger,
     bool forceRefresh = false,
     bool allowMobileDataOverride = false,
+    bool altesTokenAbgelehnt = false,
   }) async {
     final generation = _sessionGeneration;
     if (_session == null || _state == AuthState.reloginRequired) {
@@ -685,8 +689,8 @@ class AuthSessionModel extends ChangeNotifier {
       return const _PreparedRemoteAccess(session: null);
     }
 
+    final currentSession = _session!;
     try {
-      final currentSession = _session!;
       final refreshedSession = forceRefresh && currentSession.canRefresh
           ? await _oauthService.refresh(currentSession)
           : await _oauthService.refreshIfNeeded(currentSession);
@@ -706,7 +710,7 @@ class AuthSessionModel extends ChangeNotifier {
       if (generation != _sessionGeneration || _requiresInteractiveLogin) {
         return const _PreparedRemoteAccess(session: null);
       }
-      if (_isUnauthorized(error)) {
+      if (_istSitzungsende(error)) {
         await _logExpiredLoginRetry(trigger: trigger);
         final reloggedInSession = await _attemptInteractiveRelogin(
           trigger: '${trigger}_interactive_relogin',
@@ -743,6 +747,12 @@ class AuthSessionModel extends ChangeNotifier {
         requiresInteractiveLogin: false,
         notify: false,
       );
+      // Hitobito lehnt das alte Token ab. Ein Zugriff damit scheitert mit
+      // 401 und wuerde eine Stoerung am Token-Endpunkt (Ueberlast,
+      // Zeitlimit) faelschlich als abgelaufene Anmeldung werten.
+      if (altesTokenAbgelehnt || _istAbgelaufen(currentSession)) {
+        rethrow;
+      }
     }
 
     return _PreparedRemoteAccess(session: _session);
@@ -807,6 +817,7 @@ class AuthSessionModel extends ChangeNotifier {
         trigger: '${trigger}_retry',
         forceRefresh: true,
         allowMobileDataOverride: allowMobileDataOverride,
+        altesTokenAbgelehnt: true,
       );
       final refreshedSession = retryPreparation.session;
       if (refreshedSession == null || generation != _sessionGeneration) {
@@ -1259,8 +1270,12 @@ class AuthSessionModel extends ChangeNotifier {
     if (error is TimeoutException || error is http.ClientException) {
       return SyncAttemptResult.networkError;
     }
-    final statusCode = error is HitobitoApiException ? error.statusCode : null;
-    if (statusCode != null && statusCode >= 500) {
+    final statusCode = switch (error) {
+      HitobitoApiException(:final statusCode) => statusCode,
+      HitobitoAuthException(:final statusCode) => statusCode,
+      _ => null,
+    };
+    if (statusCode != null && (statusCode >= 500 || statusCode == 429)) {
       return SyncAttemptResult.serverError;
     }
     return SyncAttemptResult.unknownError;
@@ -1424,6 +1439,21 @@ class AuthSessionModel extends ChangeNotifier {
     if (notify) {
       notifyListeners();
     }
+  }
+
+  /// Der Token-Endpunkt hat die Sitzung beendet; nur eine neue Anmeldung
+  /// hilft. Andere Refresh-Fehler lassen die Sitzung bestehen.
+  bool _istSitzungsende(Object error) {
+    if (error is! HitobitoAuthException) {
+      return false;
+    }
+    return error.art == HitobitoAuthFehlerArt.sitzungBeendet ||
+        (error.art == null && error.statusCode == 401);
+  }
+
+  bool _istAbgelaufen(AuthSession session) {
+    final expiresAt = session.expiresAt;
+    return expiresAt != null && !expiresAt.isAfter(_retentionPolicy.now());
   }
 
   bool _isUnauthorized(Object error) {

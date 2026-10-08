@@ -13,15 +13,32 @@ import 'hitobito_auth_env.dart';
 import 'hitobito_http_client.dart';
 import 'logger_service.dart';
 
+/// Was ein Fehler am Token-Endpunkt fuer die Sitzung bedeutet.
+enum HitobitoAuthFehlerArt {
+  /// Hitobito hat den Refresh-Token abgelehnt (`invalid_grant`), etwa nach
+  /// einer Woche ohne Nutzung. Nur eine neue Anmeldung hilft.
+  sitzungBeendet,
+
+  /// Ueberlast oder Serverfehler (429, 5xx). Die Sitzung kann noch gueltig
+  /// sein, ein spaeterer Versuch kann gelingen.
+  voruebergehend,
+
+  /// Client-ID oder Secret passen nicht (`invalid_client`). Auch eine neue
+  /// Anmeldung hilft nicht.
+  konfiguration,
+}
+
 class HitobitoAuthException implements Exception {
   const HitobitoAuthException(
     this.message, {
     this.statusCode,
+    this.art,
     this.isExpectedInteractionFailure = false,
   });
 
   final String message;
   final int? statusCode;
+  final HitobitoAuthFehlerArt? art;
   final bool isExpectedInteractionFailure;
 
   factory HitobitoAuthException.fromPlatformException(PlatformException error) {
@@ -331,20 +348,59 @@ class HitobitoOauthService {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      final oauthFehler = _oauthFehlercode(response.body);
       throw HitobitoAuthException(
-        'Token-Anfrage fehlgeschlagen (${response.statusCode}).',
+        oauthFehler == null
+            ? 'Token-Anfrage fehlgeschlagen (${response.statusCode}).'
+            : 'Token-Anfrage fehlgeschlagen (${response.statusCode}, $oauthFehler).',
         statusCode: response.statusCode,
+        art: _fehlerArt(response.statusCode, oauthFehler),
       );
     }
 
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoAuthException(
-        'Token-Antwort hat ein ungueltiges Format.',
+        'Token-Antwort hat ein ungültiges Format.',
       );
+    }
+    final accessToken = decoded['access_token'];
+    if (accessToken is! String || accessToken.isEmpty) {
+      throw const HitobitoAuthException('Token-Antwort ohne Zugangstoken.');
     }
 
     return decoded;
+  }
+
+  /// Doorkeeper beantwortet abgelaufene oder widerrufene Refresh-Tokens mit
+  /// 400 `invalid_grant`; 401 gibt es nur bei `invalid_client`.
+  static HitobitoAuthFehlerArt? _fehlerArt(
+    int statusCode,
+    String? oauthFehler,
+  ) {
+    if (oauthFehler == 'invalid_client') {
+      return HitobitoAuthFehlerArt.konfiguration;
+    }
+    if (oauthFehler == 'invalid_grant' || statusCode == 401) {
+      return HitobitoAuthFehlerArt.sitzungBeendet;
+    }
+    if (statusCode == 429 || statusCode >= 500) {
+      return HitobitoAuthFehlerArt.voruebergehend;
+    }
+    return null;
+  }
+
+  static String? _oauthFehlercode(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final error = decoded['error'];
+        return error is String && error.isNotEmpty ? error : null;
+      }
+    } on FormatException {
+      // Kein JSON, etwa eine HTML-Fehlerseite eines Proxys.
+    }
+    return null;
   }
 
   AuthSession _mapSession(

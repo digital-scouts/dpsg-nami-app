@@ -209,4 +209,83 @@ void main() {
       expect(await haengt.revoke(session), isFalse);
     });
   });
+
+  group('Fehler am Token-Endpunkt', () {
+    const config = HitobitoAuthConfig(
+      clientId: 'client',
+      clientSecret: 'secret',
+      authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+      tokenUrl: 'https://demo.hitobito.com/oauth/token',
+      redirectUri: 'de.jlange.nami.app:/oauth/callback',
+      scopeString: 'openid email',
+      discoveryUrl: '',
+      profileUrl: 'https://demo.hitobito.com/oauth/profile',
+    );
+    final session = AuthSession(
+      accessToken: 'alt',
+      refreshToken: 'refresh-alt',
+      receivedAt: DateTime(2026, 10, 1),
+    );
+
+    Future<HitobitoAuthException> refreshFehler(http.Response antwort) async {
+      final service = HitobitoOauthService(
+        config: config,
+        httpClient: MockClient((_) async => antwort),
+      );
+      try {
+        await service.refresh(session);
+      } on HitobitoAuthException catch (error) {
+        return error;
+      }
+      fail('Refresh haette scheitern muessen');
+    }
+
+    http.Response oauthFehler(int status, String code) => http.Response(
+      jsonEncode(<String, String>{'error': code}),
+      status,
+      headers: const <String, String>{'content-type': 'application/json'},
+    );
+
+    test('invalid_grant beendet die Sitzung', () async {
+      final error = await refreshFehler(oauthFehler(400, 'invalid_grant'));
+
+      expect(error.art, HitobitoAuthFehlerArt.sitzungBeendet);
+      expect(error.statusCode, 400);
+    });
+
+    test('invalid_client ist ein Konfigurationsfehler', () async {
+      final error = await refreshFehler(oauthFehler(401, 'invalid_client'));
+
+      expect(error.art, HitobitoAuthFehlerArt.konfiguration);
+    });
+
+    test('401 ohne Fehlercode beendet die Sitzung', () async {
+      final error = await refreshFehler(http.Response('', 401));
+
+      expect(error.art, HitobitoAuthFehlerArt.sitzungBeendet);
+    });
+
+    test('429 und 503 sind voruebergehend', () async {
+      final ueberlast = await refreshFehler(http.Response('', 429));
+      final wartung = await refreshFehler(
+        http.Response('<html>Wartung</html>', 503),
+      );
+
+      expect(ueberlast.art, HitobitoAuthFehlerArt.voruebergehend);
+      expect(wartung.art, HitobitoAuthFehlerArt.voruebergehend);
+    });
+
+    test('Antwort ohne access_token wird abgelehnt', () async {
+      final error = await refreshFehler(
+        http.Response(
+          jsonEncode(<String, Object>{'token_type': 'Bearer'}),
+          200,
+          headers: const <String, String>{'content-type': 'application/json'},
+        ),
+      );
+
+      expect(error.art, isNull);
+      expect(error.toString(), 'Token-Antwort ohne Zugangstoken.');
+    });
+  });
 }
