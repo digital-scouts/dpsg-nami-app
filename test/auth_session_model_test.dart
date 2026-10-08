@@ -1571,6 +1571,27 @@ void main() {
     );
 
     test(
+      'Zeitueberschreitung im Sync zaehlt als Netzfehler, nicht als Login-Pflicht',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+
+        await model.syncHitobitoData(
+          trigger: 'interval',
+          userInitiated: false,
+          syncMembers: (_) async =>
+              throw TimeoutException('Keine Antwort von hitobito.example'),
+        );
+
+        expect(model.lastSyncAttemptResult, SyncAttemptResult.networkError);
+        expect(model.requiresInteractiveLogin, isFalse);
+        expect(model.isSyncingHitobitoData, isFalse);
+        expect(oauthService.authenticateInteractiveCallCount, 0);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
       'syncHitobitoData vor Ende der Initialisierung speichert keinen Versuch',
       () async {
         final sensitiveStorage = FakeSensitiveStorageService()

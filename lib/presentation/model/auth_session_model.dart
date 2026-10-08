@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 import '../../domain/auth/auth_profile.dart';
 import '../../domain/auth/auth_profile_repository.dart';
@@ -1252,6 +1253,11 @@ class AuthSessionModel extends ChangeNotifier {
   SyncAttemptResult _classifySyncError(Object error) {
     if (_isUnauthorized(error)) {
       return SyncAttemptResult.loginRequired;
+    }
+    // Zeitlimit und abgebrochene Verbindung: Hitobito war nicht erreichbar,
+    // ein spaeterer Versuch kann gelingen.
+    if (error is TimeoutException || error is http.ClientException) {
+      return SyncAttemptResult.networkError;
     }
     final statusCode = error is HitobitoApiException ? error.statusCode : null;
     if (statusCode != null && statusCode >= 500) {

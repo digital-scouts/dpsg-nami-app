@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import '../domain/auth/auth_profile.dart';
 import '../domain/auth/auth_session.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_http_client.dart';
 import 'logger_service.dart';
 
 class HitobitoAuthException implements Exception {
@@ -60,7 +61,11 @@ class HitobitoOauthService {
     LoggerService? logger,
     HitobitoWebAuthenticator? webAuthenticator,
     Duration revokeTimeout = const Duration(seconds: 5),
-  }) : _httpClient = httpClient ?? http.Client(),
+  }) : _httpClient =
+           httpClient ??
+           HitobitoHttpClient(
+             antwortZeitlimit: HitobitoHttpClient.anmeldungZeitlimit,
+           ),
        _now = nowProvider ?? DateTime.now,
        _logger = logger,
        _webAuthenticator = webAuthenticator ?? _flutterWebAuth,
