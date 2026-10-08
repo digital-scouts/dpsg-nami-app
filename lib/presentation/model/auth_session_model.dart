@@ -10,6 +10,7 @@ import '../../domain/auth/auth_session_repository.dart';
 import '../../domain/auth/auth_state.dart';
 import '../../services/biometric_lock_service.dart';
 import '../../services/hitobito_api_exception.dart';
+import '../../services/hitobito_auth_env.dart';
 import '../../services/hitobito_data_retention_policy.dart';
 import '../../services/hitobito_oauth_service.dart';
 import '../../services/logger_service.dart';
@@ -561,6 +562,7 @@ class AuthSessionModel extends ChangeNotifier {
     }
     await _clearBackgroundedAt();
     if (!shouldRequireUnlock) {
+      unawaited(sitzungFrischHalten(trigger: 'resume'));
       return;
     }
 
@@ -1238,6 +1240,64 @@ class AuthSessionModel extends ChangeNotifier {
   Future<void> _refreshAfterUnlock() async {
     if (isRefreshAttemptDue) {
       await ensureProfileLoaded(force: true);
+    }
+    await sitzungFrischHalten(trigger: 'unlock');
+  }
+
+  /// Erneuert das Token still, wenn es aelter als
+  /// [HitobitoAuthEnv.sitzungAuffrischenNach] ist. Hitobito loescht
+  /// Refresh-Tokens nach etwa einer Woche ohne Erneuerung; der regulaere
+  /// Sync erneuert nur, wenn er faellig ist und das Netz ihn erlaubt.
+  /// Der Refresh uebertraegt nur wenige Bytes und laeuft deshalb auch bei
+  /// eingeschraenkten mobilen Daten. Fehler bleiben still; nur ein
+  /// Sitzungsende setzt [requiresInteractiveLogin].
+  Future<void> sitzungFrischHalten({required String trigger}) async {
+    final session = _session;
+    if (session == null ||
+        !session.canRefresh ||
+        _state != AuthState.signedIn ||
+        _requiresInteractiveLogin ||
+        _retentionPolicy.now().difference(session.receivedAt) <
+            HitobitoAuthEnv.sitzungAuffrischenNach) {
+      return;
+    }
+
+    final generation = _sessionGeneration;
+    try {
+      await _networkAccessPolicy?.ensureNetworkAllowed(
+        trigger: '${trigger}_token_refresh',
+        feature: 'Hitobito',
+        allowMobileDataOverride: true,
+      );
+      if (generation != _sessionGeneration || _session == null) {
+        return;
+      }
+      final erneuert = await _erneuereGemeinsam(_session!, erzwingen: true);
+      if (generation != _sessionGeneration) {
+        return;
+      }
+      if (erneuert.accessToken != _session?.accessToken ||
+          erneuert.refreshToken != _session?.refreshToken) {
+        _session = erneuert;
+        await _repository.save(erneuert);
+        await _logger.log('auth_flow', 'Session still erneuert ($trigger)');
+        notifyListeners();
+      }
+    } catch (error) {
+      if (generation != _sessionGeneration) {
+        return;
+      }
+      if (_istSitzungsende(error)) {
+        await _requireReloginForRemoteFailure(
+          error.toString(),
+          trigger: trigger,
+        );
+        return;
+      }
+      await _logger.log(
+        'auth_flow',
+        'Stille Token-Erneuerung fehlgeschlagen ($trigger): $error',
+      );
     }
   }
 

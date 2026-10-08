@@ -1502,6 +1502,7 @@ void main() {
 
     ({AuthSessionModel model, FakeOauthService oauthService}) buildModel({
       DateTime? expiresAt,
+      DateTime? receivedAt,
     }) {
       final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
@@ -1521,7 +1522,7 @@ void main() {
           initialSession: AuthSession(
             accessToken: 'stale-token',
             refreshToken: 'stale-refresh-token',
-            receivedAt: DateTime(2026, 3, 27),
+            receivedAt: receivedAt ?? DateTime(2026, 3, 27),
             expiresAt: expiresAt,
           ),
         ),
@@ -1783,6 +1784,65 @@ void main() {
         expect(model.requiresInteractiveLogin, isTrue);
         expect(model.state, AuthState.signedIn);
         expect(model.isLoadingProfile, isFalse);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'Zurueckkehren erneuert ein Token, das aelter als 12 Stunden ist',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+
+        await model.onAppResumed();
+        await pumpEventQueue();
+
+        expect(oauthService.refreshCallCount, 1);
+        expect(model.session?.accessToken, 'refreshed-token');
+        expect(oauthService.fetchProfileCallCount, 0);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'stille Erneuerung laesst ein junges Token in Ruhe',
+      () async {
+        final (:model, :oauthService) = buildModel(
+          receivedAt: DateTime(2026, 3, 28, 8),
+        );
+        await model.initialize();
+
+        await model.sitzungFrischHalten(trigger: 'resume');
+
+        expect(oauthService.refreshCallCount, 0);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'stille Erneuerung meldet nur ein Sitzungsende, keine Stoerung',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        oauthService.refreshError = const HitobitoAuthException(
+          'Token-Anfrage fehlgeschlagen (503).',
+          statusCode: 503,
+          art: HitobitoAuthFehlerArt.voruebergehend,
+        );
+
+        await model.sitzungFrischHalten(trigger: 'resume');
+        expect(model.hasRemoteAccessIssue, isFalse);
+        expect(model.requiresInteractiveLogin, isFalse);
+
+        oauthService.refreshError = const HitobitoAuthException(
+          'Token-Anfrage fehlgeschlagen (400, invalid_grant).',
+          statusCode: 400,
+          art: HitobitoAuthFehlerArt.sitzungBeendet,
+        );
+        await model.sitzungFrischHalten(trigger: 'resume');
+
+        expect(model.requiresInteractiveLogin, isTrue);
+        expect(oauthService.authenticateInteractiveCallCount, 0);
       },
       timeout: const Timeout(Duration(seconds: 3)),
     );

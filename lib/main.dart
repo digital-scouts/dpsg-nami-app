@@ -671,6 +671,9 @@ Future<void> _startApp({
         await hitobitoAuthConfigController.initialize();
       }
       await authModel.initialize();
+      if (!isDemo) {
+        unawaited(authModel.sitzungFrischHalten(trigger: 'startup'));
+      }
       if (isDemo && authModel.state == AuthState.signedOut) {
         // Der Demo-Zugang meldet sich wie ein echter Login an und laedt
         // danach seinen Startkontext.
