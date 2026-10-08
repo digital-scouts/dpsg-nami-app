@@ -8,6 +8,7 @@ import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
+import 'package:nami/presentation/widgets/neuanmeldung_sheet.dart';
 import 'package:provider/provider.dart';
 
 class SettingsMessagesPage extends StatefulWidget {
@@ -58,7 +59,8 @@ class _SettingsMessagesPageState extends State<SettingsMessagesPage> {
     if (notification.id == 'hitobito-issue') {
       final authModel = context.read<AuthSessionModel>();
       if (authModel.requiresInteractiveLogin) {
-        await authModel.signIn();
+        // Das Tippen auf den Hinweis ist die Zustimmung zur Anmeldung.
+        await neuAnmeldenMitHinweis(context, trigger: 'messages_hint');
       }
       return;
     }

@@ -9,6 +9,7 @@ import 'package:nami/stories/app_sidebar_story.dart';
 import 'package:nami/stories/app_snackbar_story.dart';
 import 'package:nami/stories/abmeldung_hinweis_karte_story.dart';
 import 'package:nami/stories/demo_zugang_sheet_story.dart';
+import 'package:nami/stories/neuanmeldung_sheet_story.dart';
 import 'package:nami/stories/feedback_prompt_dialog_story.dart';
 import 'package:nami/stories/hitobito_traffic_log_view_story.dart';
 import 'package:nami/stories/log_viewer_page_story.dart';
@@ -82,6 +83,7 @@ List<Story> buildStorybookStories() {
     abmeldungHinweisKarteStory(),
     feedbackPromptDialogStory(),
     demoZugangSheetStory(),
+    neuanmeldungSheetStory(),
     notificationsListStory(),
     storyMessageOfTheDayCard(),
     confettiOverlayStory(),

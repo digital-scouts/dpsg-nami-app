@@ -65,11 +65,35 @@ void main() {
     expect(controller.hasOverride, isFalse);
     expect(controller.config.clientId, 'env-client');
   });
+
+  test('nutzt die .env, wenn der Override nicht lesbar ist (A-188)', () async {
+    final storage = _FakeSensitiveStorageService()
+      ..ladeFehler = StateError('Schlüsselbund gesperrt');
+    final envConfig = HitobitoAuthConfig.fromBaseUrl(
+      clientId: 'env-client',
+      clientSecret: 'env-secret',
+      baseUrl: 'https://demo.hitobito.com',
+      redirectUri: 'de.jlange.nami.app:/oauth/callback',
+    );
+    final controller = HitobitoAuthConfigController(
+      sensitiveStorageService: storage,
+      oauthService: HitobitoOauthService(config: envConfig),
+      groupsService: HitobitoGroupsService(config: envConfig),
+      peopleService: HitobitoPeopleService(config: envConfig),
+      envConfig: envConfig,
+    );
+
+    await controller.initialize();
+
+    expect(controller.hasOverride, isFalse);
+    expect(controller.config.clientId, 'env-client');
+  });
 }
 
 class _FakeSensitiveStorageService extends SensitiveStorageService {
   String? clientId;
   String? clientSecret;
+  Object? ladeFehler;
 
   @override
   Future<void> clearHitobitoOauthOverride() async {
@@ -78,7 +102,13 @@ class _FakeSensitiveStorageService extends SensitiveStorageService {
   }
 
   @override
-  Future<String?> loadHitobitoOauthClientId() async => clientId;
+  Future<String?> loadHitobitoOauthClientId() async {
+    final fehler = ladeFehler;
+    if (fehler != null) {
+      throw fehler;
+    }
+    return clientId;
+  }
 
   @override
   Future<String?> loadHitobitoOauthClientSecret() async => clientSecret;
