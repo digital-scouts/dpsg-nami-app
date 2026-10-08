@@ -40,8 +40,9 @@ img { display: block; max-width: 100%; }
 .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; }
 
 /* ---------- Telefon ---------- */
-.phone { position: relative; flex: none; width: 100%; max-width: 260px; aspect-ratio: 600 / 1303; padding: 9px; border-radius: 34px; background: #0d0e11; box-shadow: var(--shadow), 0 0 0 1.5px #3a3d44 inset; }
-.phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 26px; }
+/* Die Höhe ergibt sich aus dem Screenshot, damit nichts seitlich abgeschnitten wird. */
+.phone { position: relative; flex: none; width: 100%; max-width: 260px; padding: 9px; border-radius: 34px; background: #0d0e11; box-shadow: var(--shadow), 0 0 0 1.5px #3a3d44 inset; }
+.phone img { width: 100%; height: auto; border-radius: 26px; }
 .phone.sm { max-width: 190px; padding: 7px; border-radius: 26px; }
 .phone.sm img { border-radius: 20px; }
 
@@ -160,7 +161,8 @@ img { display: block; max-width: 100%; }
   .feature { padding-block: 48px; }
   .feature .wrap, .feature.flip .wrap { grid-template-columns: 1fr; gap: 28px; }
   .feature .phone, .feature.flip .phone { order: 2; }
-  .feature .phone, .more-item .phone { max-width: 220px; aspect-ratio: 600 / 640; padding-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); box-shadow: none; }
+  /* Ausschnitt: oben bündig, nur unten abgeschnitten. */
+  .feature .phone, .more-item .phone { max-width: 220px; aspect-ratio: 600 / 640; overflow: hidden; padding-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); box-shadow: none; }
   .feature .phone img, .more-item .phone img { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 
   .more, .plans, .privacy { padding-block: 48px; }
