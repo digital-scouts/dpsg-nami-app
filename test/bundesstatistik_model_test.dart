@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -31,11 +33,19 @@ class _FakeRepository implements BundesstatistikRepository {
     sendungen.add((snapshot, credentials));
   }
 
+  /// Haelt den naechsten Abruf an, bis der Future abgeschlossen ist.
+  Future<void>? abrufSperre;
+
   @override
   Future<Bundesaggregat> ladeBundesaggregat(
     InstallationCredentials credentials,
   ) async {
     abrufe.add(credentials);
+    final sperre = abrufSperre;
+    abrufSperre = null;
+    if (sperre != null) {
+      await sperre;
+    }
     if (abrufFehler.isNotEmpty) {
       throw abrufFehler.removeAt(0);
     }
@@ -87,6 +97,24 @@ class _BlockedNetworkAccessPolicy extends NetworkAccessPolicy {
     reason: NetworkAccessBlockedReason.noMobileDataEnabled,
     message: 'blockiert',
   );
+}
+
+/// Gibt das Netz erst frei, wenn der Test es erlaubt; so laesst sich der
+/// Kontext waehrend eines laufenden Syncs aendern.
+class _GatedNetworkAccessPolicy extends NetworkAccessPolicy {
+  final Completer<void> freigabe = Completer<void>();
+
+  @override
+  Future<NetworkAccessDecision> evaluateAccess({
+    required String trigger,
+    String feature = 'Netzwerk',
+    bool allowMobileDataOverride = false,
+  }) async {
+    await freigabe.future;
+    return const NetworkAccessDecision.allowed(
+      type: NetworkConnectionType.wifi,
+    );
+  }
 }
 
 Bundesaggregat _aggregat({
@@ -366,6 +394,53 @@ void main() {
 
     expect(model.hatEinwilligung, isFalse);
     expect(model.status, BundesstatistikStatus.keineEinwilligung);
+    expect(model.aggregat, isNull);
+  });
+
+  test(
+    'sendet nach Stammwechsel waehrend des Syncs nichts ohne Einwilligung',
+    () async {
+      await modelMitEinwilligung();
+      repository = _FakeRepository();
+      now = now.add(const Duration(days: 8));
+      final netz = _GatedNetworkAccessPolicy();
+      final model = buildModel(networkAccessPolicy: netz);
+      await model.initialize();
+
+      // Sync fuer Stamm 11 (mit Einwilligung) startet und wartet auf das Netz.
+      final laufend = model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(),
+        datenstand: now,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      );
+      await Future<void>.delayed(Duration.zero);
+      // Wechsel in Stamm 12 ohne Einwilligung, bevor das Netz frei ist.
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(layerId: 12),
+        datenstand: now,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      );
+      netz.freigabe.complete();
+      await laufend;
+
+      expect(repository.sendungen, isEmpty);
+      expect(model.hatEinwilligung, isFalse);
+    },
+  );
+
+  test('verwirft ein Aggregat, das nach Widerruf eintrifft', () async {
+    final model = await modelMitEinwilligung();
+    final abruf = Completer<void>();
+    repository.abrufSperre = abruf.future;
+
+    final laufend = model.aktualisieren();
+    await Future<void>.delayed(Duration.zero);
+    await model.setzeEinwilligung(false);
+    abruf.complete();
+    await laufend;
+
     expect(model.aggregat, isNull);
   });
 
