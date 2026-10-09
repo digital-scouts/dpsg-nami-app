@@ -31,7 +31,7 @@ Die App speichert die Daten verschlüsselt auf dem Gerät, damit sie auch offlin
 ## Daten nur auf deinem Gerät
 
 - **Erfolge:** Zähler und Freischaltdaten, zum Beispiel wie oft die App geöffnet wurde. Sie bleiben bis zum Zurücksetzen der App.
-- **Statistik-Verlauf:** monatliche Zählwerte deines Stammes für bis zu 24 Monate, dazu deine Kachel-Einstellungen. Sie enthalten keine Daten einzelner Mitglieder und bleiben bis zum Zurücksetzen der App.
+- **Statistik-Verlauf:** monatliche Zählwerte deines Stammes für bis zu 24 Monate, dazu deine Kachel-Einstellungen. Sie enthalten keine Daten einzelner Mitglieder. Der Verlauf wird beim Abmelden, beim Wechsel des Kontos und nach Ablauf der Datenfrist gelöscht, die Kachel-Einstellungen beim Zurücksetzen der App.
 - **Erinnerungen:** Geburtstage der gewählten Stufen, ablaufende Qualifikationen und das bevorstehende Ende der Hitobito-Anmeldung plant die App als lokale Benachrichtigungen auf deinem Gerät. Dafür wird nichts übertragen. Beim Abmelden und beim Zurücksetzen der App werden sie gelöscht.
 - **Protokolle:** ein App-Protokoll mit technischen Ereignissen und ein Netzwerkprotokoll mit Methode, Status, Quelle und Adresse jeder Anfrage, ohne Inhalte. In Adressen können technische IDs von Personen und Gruppen stehen. Die Protokolle werden nach sieben Tagen gelöscht.
 

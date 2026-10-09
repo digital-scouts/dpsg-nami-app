@@ -477,6 +477,8 @@ Future<void> _startApp({
     // Daten, die Logout und Datenablauf entfernen muessen.
     purgeLocalPersonalData: () async {
       await SharedPrefsAddressMapLocationRepository().clearAll();
+      // Der Statistikverlauf zeigt Zahlen des bisherigen Kontos.
+      await statistikVerlaufRepository.clearAll();
       await mapTileCacheService.deleteRoot();
       await TeilenOrdner.leeren();
     },
@@ -1486,8 +1488,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _pendingNotificationsState = null;
     _urgentNotificationModel.setNotification(null);
 
-    await _authModel.logout();
-    await _appResetService.resetAllData();
+    try {
+      await _authModel.logout();
+    } catch (error) {
+      // Der Reset loescht die Sitzung ohnehin; ein Fehler beim Abmelden darf
+      // ihn nicht abbrechen.
+      await logger.logWarn(
+        'debug_tools',
+        'Abmelden vor dem Reset fehlgeschlagen: ${error.runtimeType}',
+      );
+    }
+    context.read<BundesstatistikModel>().zuruecksetzen();
+    final resetErgebnis = await _appResetService.resetAllData();
+    if (!resetErgebnis.vollstaendig) {
+      await logger.logWarn(
+        'debug_tools',
+        'App-Reset unvollstaendig: ${resetErgebnis.fehlgeschlagen.join(',')}',
+      );
+    }
     _pendingAchievementUnlocks.clear();
     await context.read<AchievementsModel>().load();
 
@@ -1514,8 +1532,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       AppSnackbar.showOnMessenger(
         messenger: scaffoldMessengerKey.currentState,
         context: snackbarContext,
-        message: AppLocalizations.of(snackbarContext).t('debug_reset_done'),
-        type: AppSnackbarType.success,
+        message: AppLocalizations.of(snackbarContext).t(
+          resetErgebnis.vollstaendig
+              ? 'debug_reset_done'
+              : 'debug_reset_partial',
+        ),
+        type: resetErgebnis.vollstaendig
+            ? AppSnackbarType.success
+            : AppSnackbarType.warning,
       );
     }
   }

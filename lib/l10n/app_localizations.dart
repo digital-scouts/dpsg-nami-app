@@ -295,7 +295,7 @@ class AppLocalizations {
       'legal_r_logmail_retention': 'bis die Fehlersuche abgeschlossen ist',
       'legal_device_title': 'Auf deinem Gerät',
       'legal_device_body':
-          'Mitgliederdaten liegen verschlüsselt auf deinem Gerät und werden beim Abmelden gelöscht, ebenso nach 90 Tagen ohne Aktualisierung. Erfolge und der Statistik-Verlauf bleiben bis zum Zurücksetzen der App, Protokolle sieben Tage.',
+          'Mitgliederdaten liegen verschlüsselt auf deinem Gerät und werden beim Abmelden gelöscht, ebenso nach 90 Tagen ohne Aktualisierung. Der Statistik-Verlauf wird beim Abmelden und Kontowechsel gelöscht, Erfolge bleiben bis zum Zurücksetzen der App, Protokolle sieben Tage.',
       'legal_rights_title': 'Deine Rechte',
       'legal_rights_intro': 'Du kannst jederzeit verlangen:',
       'legal_rights_list':
@@ -932,6 +932,8 @@ class AppLocalizations {
       'debug_reset_confirm_action': 'Jetzt löschen',
       'debug_reset_done':
           'Alle Daten wurden gelöscht. Bitte jetzt App beenden und neu starten.',
+      'debug_reset_partial':
+          'Nicht alle Daten konnten gelöscht werden. Bitte App beenden, neu starten und den Reset wiederholen.',
       'common_remove': 'Entfernen',
       'common_copy': 'Kopieren',
       'common_retry': 'Erneut versuchen',
@@ -1959,7 +1961,7 @@ class AppLocalizations {
       'legal_r_logmail_retention': 'until troubleshooting is finished',
       'legal_device_title': 'On your device',
       'legal_device_body':
-          'Member data is stored encrypted on your device and deleted when you sign out, or after 90 days without an update. Achievements and statistics history remain until the app is reset, logs for seven days.',
+          'Member data is stored encrypted on your device and deleted when you sign out, or after 90 days without an update. The statistics history is deleted when you sign out or switch accounts, achievements remain until the app is reset, logs for seven days.',
       'legal_rights_title': 'Your rights',
       'legal_rights_intro': 'You can request at any time:',
       'legal_rights_list':
@@ -2588,6 +2590,8 @@ class AppLocalizations {
       'debug_reset_confirm_action': 'Delete now',
       'debug_reset_done':
           'All data was deleted. Please close and restart the app now.',
+      'debug_reset_partial':
+          'Not all data could be deleted. Please close and restart the app and run the reset again.',
       'common_remove': 'Remove',
       'common_copy': 'Copy',
       'common_retry': 'Retry',

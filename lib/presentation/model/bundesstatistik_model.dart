@@ -227,6 +227,25 @@ class BundesstatistikModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Vergisst nach einem App-Reset alles im Speicher, vor allem die
+  /// Einwilligungen. Sonst schriebe das naechste Speichern sie zurueck.
+  void zuruecksetzen() {
+    _teilnahme = BundesstatistikTeilnahme.leer;
+    _personId = null;
+    _readModel = null;
+    _abdeckung = null;
+    _datenstand = null;
+    _hierarchie = null;
+    _eigeneKennzahlen = null;
+    _aggregat = null;
+    _aggregatGeladenAm = null;
+    _nichtTeilnehmend = false;
+    _letzterFehler = null;
+    _installationsId = null;
+    _syncErneutAngefordert = false;
+    notifyListeners();
+  }
+
   /// Wird bei Aenderungen an Anmeldung oder Arbeitskontext aufgerufen.
   Future<void> aktualisiereKontext({
     required String? personId,
