@@ -92,7 +92,7 @@ class HitobitoEfzService {
       final data = decoded['data'];
       if (data is! List) {
         throw const HitobitoEfzException(
-          'Efz-Einsichtnahmen-Antwort enthaelt keine gueltige Datensammlung.',
+          'Efz-Einsichtnahmen-Antwort enthält keine gültige Datensammlung.',
         );
       }
 
@@ -159,7 +159,7 @@ class HitobitoEfzService {
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoEfzException(
-        'Efz-Einsichtnahmen-Antwort hat ein ungueltiges Format.',
+        'Efz-Einsichtnahmen-Antwort hat ein ungültiges Format.',
       );
     }
     return decoded;

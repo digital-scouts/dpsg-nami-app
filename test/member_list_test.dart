@@ -407,6 +407,18 @@ void main() {
 
     await pumpList(jetzt.subtract(const Duration(minutes: 30)));
     expect(find.text('Letztes Update: vor 30 Minuten'), findsOneWidget);
+
+    await pumpList(jetzt.subtract(const Duration(minutes: 1, seconds: 20)));
+    expect(find.text('Letztes Update: vor 1 Minute'), findsOneWidget);
+
+    await pumpList(jetzt.subtract(const Duration(hours: 1, minutes: 5)));
+    expect(find.text('Letztes Update: vor 1 Stunde'), findsOneWidget);
+
+    await pumpList(jetzt.subtract(const Duration(days: 1, hours: 2)));
+    expect(find.text('Letztes Update: vor 1 Tag'), findsOneWidget);
+
+    await pumpList(jetzt.subtract(const Duration(days: 3)));
+    expect(find.text('Letztes Update: vor 3 Tagen'), findsOneWidget);
   });
 
   testWidgets('Mitglieder-Header folgt dem Header-Raster', (tester) async {

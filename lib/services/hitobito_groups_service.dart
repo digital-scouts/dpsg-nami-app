@@ -226,7 +226,7 @@ class HitobitoGroupsService {
     final data = decoded['data'];
     if (data is! List) {
       throw const HitobitoGroupsException(
-        'Groups-Antwort enthaelt keine gueltige Datensammlung.',
+        'Groups-Antwort enthält keine gültige Datensammlung.',
       );
     }
 
@@ -510,7 +510,7 @@ class HitobitoGroupsService {
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoGroupsException(
-        'Groups-Antwort hat ein ungueltiges Format.',
+        'Groups-Antwort hat ein ungültiges Format.',
       );
     }
 

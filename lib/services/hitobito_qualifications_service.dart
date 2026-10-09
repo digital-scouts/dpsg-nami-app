@@ -65,7 +65,7 @@ class HitobitoQualificationsService {
       final data = decoded['data'];
       if (data is! List) {
         throw const HitobitoQualificationsException(
-          'Qualifications-Antwort enthaelt keine gueltige Datensammlung.',
+          'Qualifications-Antwort enthält keine gültige Datensammlung.',
         );
       }
 
@@ -147,7 +147,7 @@ class HitobitoQualificationsService {
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoQualificationsException(
-        'Qualifications-Antwort hat ein ungueltiges Format.',
+        'Qualifications-Antwort hat ein ungültiges Format.',
       );
     }
     return decoded;

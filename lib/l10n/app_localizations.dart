@@ -496,7 +496,7 @@ class AppLocalizations {
       'analytics_enable': 'Analyse/Telemetry erlauben',
       'app_lock_enable': 'App-Sperre aktivieren',
       'app_lock_enable_hint':
-          'Fordert nach Rueckkehr aus dem Hintergrund die Geraeteauthentifizierung an.',
+          'Fordert nach Rückkehr aus dem Hintergrund die Geräteauthentifizierung an.',
       'member_search_result_highlight_enable':
           'Suchtreffer im Untertitel hervorheben',
       'member_search_result_highlight_hint':
@@ -520,13 +520,13 @@ class AppLocalizations {
       'profile_context_current_layer_label': 'Aktiver Layer',
       'profile_context_switch_action': 'Layer wechseln',
       'profile_context_no_other_layers':
-          'Es sind aktuell keine weiteren erreichbaren Layer verfuegbar.',
+          'Es sind aktuell keine weiteren erreichbaren Layer verfügbar.',
       'profile_context_unavailable':
-          'Der Arbeitskontext ist derzeit nicht verfuegbar.',
+          'Der Arbeitskontext ist derzeit nicht verfügbar.',
       'profile_context_loading': 'Arbeitskontext wird geladen',
       'profile_context_sheet_title': 'Layer wechseln',
       'profile_context_sheet_hint':
-          'Waehle einen anderen erreichbaren Layer als aktiven Arbeitskontext.',
+          'Wähle einen anderen erreichbaren Layer als aktiven Arbeitskontext.',
       'profile_context_current_badge': 'Aktuell aktiv',
       'profile_context_switch_loading': 'Arbeitskontext wird gewechselt',
       'profile_roles_title': 'Rollen',
@@ -577,6 +577,9 @@ class AppLocalizations {
       'member_list_last_update_minutes': 'vor {count} Minuten',
       'member_list_last_update_hours': 'vor {count} Stunden',
       'member_list_last_update_days': 'vor {count} Tagen',
+      'member_list_last_update_minutes_one': 'vor 1 Minute',
+      'member_list_last_update_hours_one': 'vor 1 Stunde',
+      'member_list_last_update_days_one': 'vor 1 Tag',
       'member_list_footer_count': '{count} Mitglieder',
       'member_list_mobile_refresh_title': 'Über mobile Daten aktualisieren?',
       'member_list_mobile_refresh_body':
@@ -700,7 +703,7 @@ class AppLocalizations {
           'Treffer in der Mitgliederliste farbig markieren',
       'no_mobile_data_title': 'Keine Mobilen Daten',
       'no_mobile_data_hint':
-          'Blockiert Netzwerkzugriffe ueber mobile Daten. Online-Funktionen laufen dann nur ueber WLAN.',
+          'Blockiert Netzwerkzugriffe über mobile Daten. Online-Funktionen laufen dann nur über WLAN.',
       'settings_map': 'Karte',
       'settings_map_title': 'Karte',
       'settings_map_loading': 'Kartendaten werden geladen',
@@ -775,19 +778,19 @@ class AppLocalizations {
           'Kein Mailprogramm gefunden. Schreib gern direkt an {email}.',
       'settings_hitobito_issue_title': 'Hitobito derzeit nicht erreichbar',
       'settings_hitobito_issue_body':
-          'Die App zeigt weiter lokale Daten an. Tippe hier, um die Verbindung erneut zu pruefen.',
+          'Die App zeigt weiter lokale Daten an. Tippe hier, um die Verbindung erneut zu prüfen.',
       'settings_hitobito_login_expired_title': 'Anmeldung abgelaufen',
       'settings_hitobito_login_expired_body':
           'Tippe, um dich neu anzumelden. Deine gespeicherten Daten bleiben sichtbar.',
       'settings_hitobito_issue_relogin_body':
           'Die App zeigt weiter lokale Daten an. Tippe hier, um dich erneut bei Hitobito anzumelden.',
       'settings_hitobito_issue_offline_body':
-          'Du bist gerade offline. Die App zeigt lokale Daten an und verbindet sich wieder, sobald eine Verbindung verfuegbar ist.',
+          'Du bist gerade offline. Die App zeigt lokale Daten an und verbindet sich wieder, sobald eine Verbindung verfügbar ist.',
       'settings_data_expiry_soon_title': 'Lokale Daten laufen bald ab',
       'settings_data_expiry_soon_body':
-          'Melde dich innerhalb von {days} Tagen erneut an, damit die lokalen Daten verfuegbar bleiben.',
+          'Melde dich innerhalb von {days} Tagen erneut an, damit die lokalen Daten verfügbar bleiben.',
       'settings_messages_retention_hint':
-          'Hinweis: Externe Meldungen werden nach spaetestens 3 Tagen automatisch ausgeblendet.',
+          'Hinweis: Externe Meldungen werden nach spätestens 3 Tagen automatisch ausgeblendet.',
       'logout': 'Abmelden',
       'developed_with': 'Entwickelt mit',
       'developed_in_hamburg': 'in Hamburg',
@@ -831,10 +834,10 @@ class AppLocalizations {
           'Kartenvorschau wird nur über WLAN aktualisiert.',
       'auth_loading_title': 'Sichere Sitzung wird vorbereitet',
       'auth_loading_body':
-          'Bitte warte kurz, waehrend der geschuetzte App-Zustand geladen wird.',
+          'Bitte warte kurz, während der geschützte App-Zustand geladen wird.',
       'auth_login_title': 'Anmeldung erforderlich',
       'auth_login_body':
-          'Melde dich mit deinem Hitobito-Zugang an, um sensible DPSG-Daten offline verfuegbar zu machen.',
+          'Melde dich mit deinem Hitobito-Zugang an, um sensible DPSG-Daten offline verfügbar zu machen.',
       'auth_not_configured_body':
           'OAuth ist noch nicht konfiguriert. Hinterlege die Hitobito-Zugangsdaten in der .env, um den Login zu aktivieren.',
       'auth_login_action': 'Mit Hitobito anmelden',
@@ -894,10 +897,10 @@ class AppLocalizations {
       'auth_unlock_body':
           'Bestätige kurz deine Identität, um auf die lokal gespeicherten Daten zuzugreifen.',
       'auth_unlock_action': 'Jetzt entsperren',
-      'auth_refresh_due_title': 'Auffrischung nach 24 Stunden faellig',
+      'auth_refresh_due_title': 'Auffrischung nach 24 Stunden fällig',
       'auth_refresh_due_yes': 'Ja',
       'auth_refresh_due_no': 'Nein',
-      'auth_manual_refresh_action': 'Sitzung jetzt pruefen',
+      'auth_manual_refresh_action': 'Sitzung jetzt prüfen',
       'auth_lock_timeout_label': 'App-Sperre nach Hintergrund in Sekunden',
       'debug_reset_title': 'App zurücksetzen',
       'debug_reset_action': 'Alle Daten löschen',
@@ -2210,6 +2213,9 @@ class AppLocalizations {
       'member_list_last_update_minutes': '{count} minutes ago',
       'member_list_last_update_hours': '{count} hours ago',
       'member_list_last_update_days': '{count} days ago',
+      'member_list_last_update_minutes_one': '1 minute ago',
+      'member_list_last_update_hours_one': '1 hour ago',
+      'member_list_last_update_days_one': '1 day ago',
       'member_list_footer_count': '{count} members',
       'member_list_mobile_refresh_title': 'Update via mobile data?',
       'member_list_mobile_refresh_body':

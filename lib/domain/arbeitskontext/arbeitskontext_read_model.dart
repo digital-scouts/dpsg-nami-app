@@ -418,7 +418,7 @@ class ArbeitskontextReadModel {
     for (final gruppe in gruppen) {
       assert(
         gruppe.layerId == aktiverLayerId,
-        'Gruppen im ArbeitskontextReadModel muessen zum aktiven Layer gehoeren.',
+        'Gruppen im ArbeitskontextReadModel müssen zum aktiven Layer gehören.',
       );
       if (!ids.add(gruppe.id)) {
         continue;

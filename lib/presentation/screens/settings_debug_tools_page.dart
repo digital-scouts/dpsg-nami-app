@@ -342,7 +342,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                   children: [
                     Text(
                       '${result.brokenGroups.length} von '
-                      '${result.probedGroupCount} Gruppen mit ungueltigem '
+                      '${result.probedGroupCount} Gruppen mit ungültigem '
                       'zip_code gefunden:',
                     ),
                     const SizedBox(height: 12),

@@ -594,7 +594,7 @@ class ArbeitskontextModel extends ChangeNotifier {
 
       if (session == null || session.accessToken.isEmpty) {
         throw StateError(
-          'Es ist keine gueltige Session fuer den Arbeitskontext verfuegbar.',
+          'Es ist keine gültige Session für den Arbeitskontext verfügbar.',
         );
       }
 
@@ -1195,7 +1195,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         'layer switch rejected reason=missing_context target=${targetLayer.id}',
       );
       _errorMessage =
-          'Der Arbeitskontext kann ohne gueltige Sitzung nicht gewechselt werden.';
+          'Der Arbeitskontext kann ohne gültige Sitzung nicht gewechselt werden.';
       notifyListeners();
       return false;
     }
@@ -1217,7 +1217,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         'layer switch rejected reason=unavailable_target target=${targetLayer.id}',
       );
       _errorMessage =
-          'Der ausgewaehlte Layer ist kein erreichbares Wechselziel.';
+          'Der ausgewählte Layer ist kein erreichbares Wechselziel.';
       notifyListeners();
       return false;
     }
@@ -1538,7 +1538,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     }
 
     throw StateError(
-      'Der ausgewaehlte Layer ist in Hitobito nicht mehr als erreichbares Wechselziel verfuegbar.',
+      'Der ausgewählte Layer ist in Hitobito nicht mehr als erreichbares Wechselziel verfügbar.',
     );
   }
 
