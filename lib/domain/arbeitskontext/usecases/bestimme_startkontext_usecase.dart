@@ -20,7 +20,7 @@ class BestimmeStartkontextUseCase {
 
     if (verfuegbareLayer.isEmpty) {
       throw const StartkontextNichtBestimmbarError(
-        'Es ist kein erreichbarer Layer fuer den Startkontext verfuegbar.',
+        'Es ist kein erreichbarer Layer für den Startkontext verfügbar.',
       );
     }
 

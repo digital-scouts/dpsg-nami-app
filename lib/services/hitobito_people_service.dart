@@ -104,7 +104,7 @@ class HitobitoPeopleService {
       final data = decoded['data'];
       if (data is! List) {
         throw const HitobitoPeopleException(
-          'People-Antwort enthaelt keine gueltige Datensammlung.',
+          'People-Antwort enthält keine gültige Datensammlung.',
         );
       }
 
@@ -133,7 +133,7 @@ class HitobitoPeopleService {
   ) async {
     if (personId <= 0) {
       throw const HitobitoPeopleException(
-        'Die Person-ID fuer den Detailabruf ist ungueltig.',
+        'Die Person-ID für den Detailabruf ist ungültig.',
       );
     }
 
@@ -146,7 +146,7 @@ class HitobitoPeopleService {
     final data = decoded['data'];
     if (data is! Map<String, dynamic>) {
       throw const HitobitoPeopleException(
-        'People-Detailantwort enthaelt keine gueltige Person.',
+        'People-Detailantwort enthält keine gültige Person.',
       );
     }
 
@@ -166,7 +166,7 @@ class HitobitoPeopleService {
     final personId = mitglied.personId;
     if (personId == null || personId <= 0) {
       throw const HitobitoPeopleException(
-        'Die Person kann ohne gueltige Person-ID nicht aktualisiert werden.',
+        'Die Person kann ohne gültige Person-ID nicht aktualisiert werden.',
       );
     }
 
@@ -201,7 +201,7 @@ class HitobitoPeopleService {
     final personId = mitglied.personId;
     if (personId == null || personId <= 0) {
       throw const HitobitoPeopleException(
-        'Die Person kann ohne gueltige Person-ID nicht aktualisiert werden.',
+        'Die Person kann ohne gültige Person-ID nicht aktualisiert werden.',
       );
     }
 
@@ -280,7 +280,7 @@ class HitobitoPeopleService {
     final phoneNumberId = telefonnummer.phoneNumberId;
     if (phoneNumberId == null || phoneNumberId <= 0) {
       throw const HitobitoPeopleException(
-        'Die Telefonnummer kann ohne gueltige ID nicht aktualisiert werden.',
+        'Die Telefonnummer kann ohne gültige ID nicht aktualisiert werden.',
       );
     }
 
@@ -342,7 +342,7 @@ class HitobitoPeopleService {
     final additionalEmailId = email.additionalEmailId;
     if (additionalEmailId == null || additionalEmailId <= 0) {
       throw const HitobitoPeopleException(
-        'Die Zusatzmail kann ohne gueltige ID nicht aktualisiert werden.',
+        'Die Zusatzmail kann ohne gültige ID nicht aktualisiert werden.',
       );
     }
 
@@ -410,7 +410,7 @@ class HitobitoPeopleService {
     final additionalAddressId = adresse.additionalAddressId;
     if (additionalAddressId == null || additionalAddressId <= 0) {
       throw const HitobitoPeopleException(
-        'Die Zusatzadresse kann ohne gueltige ID nicht aktualisiert werden.',
+        'Die Zusatzadresse kann ohne gültige ID nicht aktualisiert werden.',
       );
     }
 
@@ -503,7 +503,7 @@ class HitobitoPeopleService {
           final phoneNumberId = telefonnummer.phoneNumberId;
           if (phoneNumberId == null || phoneNumberId <= 0) {
             throw const HitobitoPeopleException(
-              'Telefon-Update ohne gueltige ID ist nicht moeglich.',
+              'Telefon-Update ohne gültige ID ist nicht möglich.',
             );
           }
           data.add(<String, dynamic>{
@@ -523,7 +523,7 @@ class HitobitoPeopleService {
           final phoneNumberId = telefonnummer.phoneNumberId;
           if (phoneNumberId == null || phoneNumberId <= 0) {
             throw const HitobitoPeopleException(
-              'Telefon-Loeschen ohne gueltige ID ist nicht moeglich.',
+              'Telefon-Löschen ohne gültige ID ist nicht möglich.',
             );
           }
           data.add(<String, dynamic>{
@@ -567,7 +567,7 @@ class HitobitoPeopleService {
           final additionalEmailId = email.additionalEmailId;
           if (additionalEmailId == null || additionalEmailId <= 0) {
             throw const HitobitoPeopleException(
-              'Zusatzmail-Update ohne gueltige ID ist nicht moeglich.',
+              'Zusatzmail-Update ohne gültige ID ist nicht möglich.',
             );
           }
           data.add(<String, dynamic>{
@@ -587,7 +587,7 @@ class HitobitoPeopleService {
           final additionalEmailId = email.additionalEmailId;
           if (additionalEmailId == null || additionalEmailId <= 0) {
             throw const HitobitoPeopleException(
-              'Zusatzmail-Loeschen ohne gueltige ID ist nicht moeglich.',
+              'Zusatzmail-Löschen ohne gültige ID ist nicht möglich.',
             );
           }
           data.add(<String, dynamic>{
@@ -637,7 +637,7 @@ class HitobitoPeopleService {
           final additionalAddressId = adresse.additionalAddressId;
           if (additionalAddressId == null || additionalAddressId <= 0) {
             throw const HitobitoPeopleException(
-              'Zusatzadresse-Update ohne gueltige ID ist nicht moeglich.',
+              'Zusatzadresse-Update ohne gültige ID ist nicht möglich.',
             );
           }
           data.add(<String, dynamic>{
@@ -663,7 +663,7 @@ class HitobitoPeopleService {
           final additionalAddressId = adresse.additionalAddressId;
           if (additionalAddressId == null || additionalAddressId <= 0) {
             throw const HitobitoPeopleException(
-              'Zusatzadresse-Loeschen ohne gueltige ID ist nicht moeglich.',
+              'Zusatzadresse-Löschen ohne gültige ID ist nicht möglich.',
             );
           }
           data.add(<String, dynamic>{
@@ -765,7 +765,7 @@ class HitobitoPeopleService {
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoPeopleException(
-        'People-Antwort hat ein ungueltiges Format.',
+        'People-Antwort hat ein ungültiges Format.',
       );
     }
     return decoded;
@@ -850,7 +850,7 @@ class HitobitoPeopleService {
     final id = _toInt(resource['id']);
     if (id <= 0) {
       throw const HitobitoPeopleException(
-        'People-Antwort enthaelt eine ungueltige Person.',
+        'People-Antwort enthält eine ungültige Person.',
       );
     }
 

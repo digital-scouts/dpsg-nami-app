@@ -1,0 +1,54 @@
+NaMi-App (digital-scouts/dpsg-nami-app)
+
+Die Lizenz in LICENSE (CC BY-NC-SA 4.0) gilt für den eigenen Quelltext und die
+eigenen Grafiken dieses Projekts. Sie gilt nicht für das folgende Fremdmaterial.
+Für dieses gelten die Rechte und Bedingungen der jeweiligen Inhaber.
+
+Die App ist kein offizielles Angebot der Deutschen Pfadfinderschaft
+Sankt Georg (DPSG).
+
+
+Zeichen und Texte der DPSG
+--------------------------
+
+- Name „DPSG“ und die Lilie: assets/images/lilie.svg,
+  assets/images/lilie_schwarz.png
+- Stufensymbole: assets/images/biber.png, woe.png, jufi.png, pfadi.png,
+  rover.png
+- Satzungen und Ordnungen der DPSG: chat_ai/files/*.pdf sowie die daraus
+  erzeugten Auszüge in chat_ai/pilot_stammesversammlung/ und
+  assets/ai_kontext/
+
+Inhaber: Deutsche Pfadfinderschaft Sankt Georg. Die Nutzungserlaubnis ist
+angefragt (#243).
+
+
+Geodaten
+--------
+
+- assets/maps/stamm_markers.json: Standorte aus der DPSG-Stammessuche
+  (tools.dpsg.de)
+- assets/maps/dioeceses.geojson: Diözesangrenzen, Quelle wird geklärt (#243)
+- Kartenkacheln zur Laufzeit: © OpenStreetMap-Mitwirkende (ODbL,
+  https://www.openstreetmap.org/copyright), bei MapTiler zusätzlich © MapTiler.
+  Die App zeigt die Quellenangabe auf jeder Karte.
+
+
+Schriften
+---------
+
+- Work Sans: SIL Open Font License 1.1 (assets/fonts/WorkSans-OFL.txt)
+- Roboto: Apache License 2.0 (assets/fonts/Roboto-LICENSE.txt)
+
+
+Abhängigkeiten
+--------------
+
+Die Lizenzen aller eingebundenen Pakete zeigt die App unter
+Einstellungen > Impressum & Datenschutz > Open-Source-Lizenzen. Sonderfälle:
+
+- syncfusion_flutter_core, syncfusion_flutter_sliders: Syncfusion Community
+  License (proprietär)
+- flutter_map_tile_caching: GPL-3.0
+
+Bewertung und offene Punkte: specs/rechtliches.md

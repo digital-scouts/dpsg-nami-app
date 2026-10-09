@@ -70,7 +70,7 @@ class Arbeitskontext {
       'Rechte verkleinern nur die sichtbare Teilmenge innerhalb des Layers.';
 
   static const String unterlayerRegel =
-      'Unterlayer gehoeren nicht automatisch zum Arbeitskontext.';
+      'Unterlayer gehören nicht automatisch zum Arbeitskontext.';
 
   final ArbeitskontextLayer aktiverLayer;
   final List<ArbeitskontextLayer> verfuegbareLayer;

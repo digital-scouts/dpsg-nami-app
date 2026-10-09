@@ -2706,6 +2706,154 @@ void main() {
       expect(model.istMitgliedSchreibbar(mitglied), isTrue);
     },
   );
+
+  group('Parallele Ladevorgaenge (#190)', () {
+    final session = AuthSession(
+      accessToken: 'token-p',
+      receivedAt: DateTime(2026, 3, 31),
+    );
+    const profile = AuthProfile(
+      namiId: 5,
+      primaryGroupId: 11,
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: 11,
+          groupName: 'Stamm Musterdorf',
+          roleName: 'Leitung Stamm',
+          roleClass: 'Group::Stamm::Leitung',
+          permissions: <String>['layer_read'],
+        ),
+        AuthProfileRole(
+          groupId: 20,
+          groupName: 'Bezirk Rhein',
+          roleName: 'Leitung Bezirk',
+          roleClass: 'Group::Bezirk::Leitung',
+          permissions: <String>['layer_read'],
+        ),
+      ],
+    );
+    final julia = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+
+    Future<
+      (
+        ArbeitskontextModel,
+        _FakeArbeitskontextReadModelRepository,
+        _FakeHitobitoGroupsService,
+      )
+    >
+    bereitesModel() async {
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: _buildReadModel(
+            aktiverLayerId: 11,
+            aktiverLayerName: 'Stamm Musterdorf',
+            mitglieder: <Mitglied>[julia],
+          ),
+        },
+      );
+      final groupsService = _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
+          HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+        ],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+      return (model, readModelRepository, groupsService);
+    }
+
+    test(
+      'Layerwechsel waehrend eines Syncs wartet und wechselt danach',
+      () async {
+        final (model, readModelRepository, _) = await bereitesModel();
+        final refreshGate = Completer<void>();
+        readModelRepository.refreshDelay = refreshGate.future;
+
+        final refresh = model.refreshFromRemote(
+          session: session,
+          profile: profile,
+        );
+        await Future<void>.delayed(Duration.zero);
+        final wechsel = model.switchToLayer(
+          targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+          session: session,
+          profile: profile,
+        );
+        refreshGate.complete();
+        await refresh;
+
+        expect(await wechsel, isTrue);
+        expect(model.arbeitskontext?.aktiverLayer.id, 20);
+        expect(model.readModel?.arbeitskontext.aktiverLayer.id, 20);
+      },
+    );
+
+    test('Sync waehrend eines Layerwechsels ueberschreibt ihn nicht', () async {
+      final (model, readModelRepository, groupsService) = await bereitesModel();
+      final refreshCallsVorher = readModelRepository.refreshCallCount;
+      final groupsGate = Completer<void>();
+      groupsService.fetchDelay = groupsGate.future;
+
+      final wechsel = model.switchToLayer(
+        targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        session: session,
+        profile: profile,
+      );
+      await Future<void>.delayed(Duration.zero);
+      final refresh = model.refreshFromRemote(
+        session: session,
+        profile: profile,
+      );
+      groupsGate.complete();
+
+      expect(await wechsel, isTrue);
+      await refresh;
+      expect(model.readModel?.arbeitskontext.aktiverLayer.id, 20);
+      // Nur der Wechsel hat geladen; der Sync hat auf ihn gewartet.
+      expect(readModelRepository.refreshCallCount, refreshCallsVorher + 1);
+    });
+
+    test(
+      'ein vor dem Speichern gestarteter Sync ueberschreibt das Mitglied nicht',
+      () async {
+        final (model, readModelRepository, _) = await bereitesModel();
+        final refreshGate = Completer<void>();
+        readModelRepository.refreshDelay = refreshGate.future;
+
+        final refresh = model.refreshFromRemote(
+          session: session,
+          profile: profile,
+        );
+        await Future<void>.delayed(Duration.zero);
+        // Der Schreibpfad speichert waehrenddessen eine Aenderung.
+        await model.ersetzeMitglied(julia.copyWith(vorname: 'Juliane'));
+        refreshGate.complete();
+        await refresh;
+
+        final mitglied = model.readModel!.mitglieder.single;
+        expect(mitglied.vorname, 'Juliane');
+      },
+    );
+  });
 }
 
 class _FakeArbeitskontextLocalRepository

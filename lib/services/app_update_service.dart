@@ -252,7 +252,7 @@ class AppUpdateService {
   static Map<String, dynamic> _decodeManifest(String rawBody) {
     final decoded = jsonDecode(rawBody);
     if (decoded is! Map<String, dynamic>) {
-      throw Exception('Version Manifest hat ein ungueltiges Format.');
+      throw Exception('Version Manifest hat ein ungültiges Format.');
     }
 
     return decoded;

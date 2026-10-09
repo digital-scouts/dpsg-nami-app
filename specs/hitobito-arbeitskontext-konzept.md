@@ -117,6 +117,8 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Beim Wechsel des Arbeitskontexts wird der bisher lokal gespeicherte Kontext verworfen und der neue Kontext geladen.
 - Damit ist lokal immer genau ein Layer mit seinen Daten verankert.
 - Diese Entscheidung dient Einfachheit, begrenzter Datenmenge und einer klaren Erwartungshaltung für Nutzer.
+- Abgleich, Rollen-Nachladen und Kontextwechsel laufen nie gleichzeitig. Ein Wechsel wartet auf einen laufenden Abgleich und prüft das Ziel danach erneut. Ein Abgleich, der während eines Wechsels angestoßen wird, wartet auf ihn und lädt nicht noch einmal.
+- Ein Abgleich, der vor dem Speichern einer Mitgliedsänderung gestartet ist, übernimmt die gespeicherte Änderung in sein Ergebnis und überschreibt sie nicht mit dem älteren Serverstand. Die Rollen kommen weiter aus dem Abgleich.
 
 ### 6. Suche, Listen und Statistik
 

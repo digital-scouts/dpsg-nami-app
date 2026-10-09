@@ -123,7 +123,7 @@ void main() {
             isA<StartkontextNichtBestimmbarError>().having(
               (error) => error.message,
               'message',
-              'Es ist kein erreichbarer Layer fuer den Startkontext verfuegbar.',
+              'Es ist kein erreichbarer Layer für den Startkontext verfügbar.',
             ),
           ),
         );

@@ -301,18 +301,24 @@ class MemberList extends StatelessWidget {
       });
     }
     if (difference.inHours < 1) {
-      return t.tParams('member_list_last_update_minutes', <String, Object>{
-        'count': difference.inMinutes,
-      });
+      return _mitAnzahl(
+        t,
+        'member_list_last_update_minutes',
+        difference.inMinutes,
+      );
     }
     if (difference.inDays < 1) {
-      return t.tParams('member_list_last_update_hours', <String, Object>{
-        'count': difference.inHours,
-      });
+      return _mitAnzahl(t, 'member_list_last_update_hours', difference.inHours);
     }
-    return t.tParams('member_list_last_update_days', <String, Object>{
-      'count': difference.inDays,
-    });
+    return _mitAnzahl(t, 'member_list_last_update_days', difference.inDays);
+  }
+
+  /// Bei genau einer Einheit gilt der Schlüssel mit `_one` (Einzahl).
+  String _mitAnzahl(AppLocalizations t, String key, int count) {
+    if (count == 1) {
+      return t.t('${key}_one');
+    }
+    return t.tParams(key, <String, Object>{'count': count});
   }
 
   String _sortHintLabel(AppLocalizations t, MemberSortKey key) {
