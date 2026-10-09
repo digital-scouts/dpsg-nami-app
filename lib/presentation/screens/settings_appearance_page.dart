@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../model/appearance_model.dart';
 import '../notifications/app_snackbar.dart';
 import '../theme/theme.dart';
+import '../widgets/app_lesebreite.dart';
 import '../widgets/section_header.dart';
 import '../widgets/supporter_background.dart';
 import '../widgets/supporter_badge.dart';
@@ -70,43 +71,45 @@ class _SettingsAppearancePageState extends State<SettingsAppearancePage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(t.t('settings_appearance'))),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        children: [
-          DpsgSectionHeader(label: t.t('settings_app_section_display')),
-          _AppearanceCard(
-            divided: true,
-            children: [
-              for (final (mode, key) in const [
-                (ThemeMode.system, 'settings_app_theme_system'),
-                (ThemeMode.light, 'theme_light'),
-                (ThemeMode.dark, 'theme_dark'),
-              ])
-                _RadioRow(
-                  title: t.t(key),
-                  selected: _mode == mode,
-                  onTap: () => _setMode(mode),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          DpsgSectionHeader(label: t.t('appearance_section_palette')),
-          _PalettePicker(model: model),
-          if (model.iconChangeSupported) ...[
-            const SizedBox(height: 12),
-            DpsgSectionHeader(label: t.t('appearance_section_icon')),
-            _IconPicker(
-              model: model,
-              onSelected: (choice) => _setIcon(model, choice),
+      body: AppLesebreite(
+        builder: (context, rand) => ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24) + rand,
+          children: [
+            DpsgSectionHeader(label: t.t('settings_app_section_display')),
+            _AppearanceCard(
+              divided: true,
+              children: [
+                for (final (mode, key) in const [
+                  (ThemeMode.system, 'settings_app_theme_system'),
+                  (ThemeMode.light, 'theme_light'),
+                  (ThemeMode.dark, 'theme_dark'),
+                ])
+                  _RadioRow(
+                    title: t.t(key),
+                    selected: _mode == mode,
+                    onTap: () => _setMode(mode),
+                  ),
+              ],
             ),
+            const SizedBox(height: 12),
+            DpsgSectionHeader(label: t.t('appearance_section_palette')),
+            _PalettePicker(model: model),
+            if (model.iconChangeSupported) ...[
+              const SizedBox(height: 12),
+              DpsgSectionHeader(label: t.t('appearance_section_icon')),
+              _IconPicker(
+                model: model,
+                onSelected: (choice) => _setIcon(model, choice),
+              ),
+            ],
+            const SizedBox(height: 12),
+            DpsgSectionHeader(label: t.t('appearance_section_background')),
+            _BackgroundPicker(model: model),
+            const SizedBox(height: 12),
+            DpsgSectionHeader(label: t.t('appearance_section_badge')),
+            _BadgePicker(model: model),
           ],
-          const SizedBox(height: 12),
-          DpsgSectionHeader(label: t.t('appearance_section_background')),
-          _BackgroundPicker(model: model),
-          const SizedBox(height: 12),
-          DpsgSectionHeader(label: t.t('appearance_section_badge')),
-          _BadgePicker(model: model),
-        ],
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:nami/domain/member_filters/beitragsart.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/member_address_card.dart';
 import 'package:nami/presentation/widgets/member_detail/member_fakt_kacheln.dart';
 import 'package:nami/presentation/widgets/member_detail/member_familie_chips.dart';
@@ -66,53 +67,55 @@ class MemberDetails extends StatelessWidget {
         mitglied.additionalAddresses.any((adresse) => !adresse.istLeer);
     final abstand = SizedBox(height: spacing * 2);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 16),
-      children: <Widget>[
-        ...leadingChildren,
-        if (austritt != null && !austritt.isAfter(stichtag)) ...[
-          _AustrittsHinweis(
-            text: t.t('member_detail_ausgetreten_zum', {
-              'datum': DateFormatter.formatGermanShortDate(austritt),
-            }),
-          ),
-          SizedBox(height: spacing),
-        ],
-        MemberFaktKacheln(mitglied: mitglied, heute: stichtag),
-        if (haushalt.isNotEmpty) ...[
+    return AppLesebreite(
+      builder: (context, rand) => ListView(
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 16) + rand,
+        children: <Widget>[
+          ...leadingChildren,
+          if (austritt != null && !austritt.isAfter(stichtag)) ...[
+            _AustrittsHinweis(
+              text: t.t('member_detail_ausgetreten_zum', {
+                'datum': DateFormatter.formatGermanShortDate(austritt),
+              }),
+            ),
+            SizedBox(height: spacing),
+          ],
+          MemberFaktKacheln(mitglied: mitglied, heute: stichtag),
+          if (haushalt.isNotEmpty) ...[
+            abstand,
+            DpsgSectionHeader(label: t.t('member_detail_familie')),
+            MemberFamilieChips(
+              haushalt: haushalt,
+              heute: stichtag,
+              onTap: onHaushaltTap,
+            ),
+          ],
           abstand,
-          DpsgSectionHeader(label: t.t('member_detail_familie')),
-          MemberFamilieChips(
-            haushalt: haushalt,
-            heute: stichtag,
-            onTap: onHaushaltTap,
-          ),
-        ],
-        abstand,
-        DpsgSectionHeader(label: t.t('member_detail_kontakt')),
-        MemberContactInfoCard(mitglied: mitglied),
-        if (hatAdresse) ...[
+          DpsgSectionHeader(label: t.t('member_detail_kontakt')),
+          MemberContactInfoCard(mitglied: mitglied),
+          if (hatAdresse) ...[
+            abstand,
+            DpsgSectionHeader(label: t.t('member_detail_adresse')),
+            MemberAddressCard(
+              mitglied: mitglied,
+              addressLocationRepository: addressLocationRepository,
+              mapService: mapService,
+              addressSettingsRepository: addressSettingsRepository,
+              tileCacheService: tileCacheService,
+              previewTimeout: previewTimeout,
+            ),
+          ],
           abstand,
-          DpsgSectionHeader(label: t.t('member_detail_adresse')),
-          MemberAddressCard(
+          DpsgSectionHeader(label: t.t('member_detail_details')),
+          MemberMembershipInfoCard(
             mitglied: mitglied,
-            addressLocationRepository: addressLocationRepository,
-            mapService: mapService,
-            addressSettingsRepository: addressSettingsRepository,
-            tileCacheService: tileCacheService,
-            previewTimeout: previewTimeout,
+            beitragsart: beitragsart,
+            stammNamen: stammNamen,
+            gruppenNamen: gruppenNamen,
+            onEndMembership: onEndMembership,
           ),
         ],
-        abstand,
-        DpsgSectionHeader(label: t.t('member_detail_details')),
-        MemberMembershipInfoCard(
-          mitglied: mitglied,
-          beitragsart: beitragsart,
-          stammNamen: stammNamen,
-          gruppenNamen: gruppenNamen,
-          onEndMembership: onEndMembership,
-        ),
-      ],
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/appearance/appearance_catalog.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/presentation/widgets/supporter_background.dart';
 
@@ -17,6 +18,9 @@ import 'package:nami/presentation/widgets/supporter_background.dart';
 /// zur Unterkante des Headers - mit Supporter-Hintergrund
 /// animiert, sonst schlicht in `surface`. Ohne Backdrop (Storybook, Tests,
 /// Unterseiten mit AppBar) zeichnet der Header seine Flaeche selbst.
+///
+/// Auf breiten Fenstern ist der Header ein mittiger, unten abgerundeter
+/// Block in [AppLesebreite.breite], buendig mit dem Inhalt darunter.
 class AppPageHeader extends StatelessWidget {
   const AppPageHeader({
     super.key,
@@ -24,6 +28,7 @@ class AppPageHeader extends StatelessWidget {
     required this.secondary,
     this.background,
     this.card,
+    this.volleBreite = false,
   });
 
   /// Obere Zeile, z. B. Suche, Kennzahlen oder Profil.
@@ -37,6 +42,10 @@ class AppPageHeader extends StatelessWidget {
 
   /// Fasst beide Zeilen in einer Karte zusammen; `null` ohne Karte.
   final AppPageHeaderCard? card;
+
+  /// Bleibt auch auf breiten Fenstern randlos, z. B. ueber dem
+  /// Statistik-Raster, das die volle Breite nutzt.
+  final bool volleBreite;
 
   /// Obergrenze der Textskalierung im Header, damit er auch bei sehr
   /// grossen Systemschriften bedienbar bleibt und die Liste sichtbar ist.
@@ -60,26 +69,50 @@ class AppPageHeader extends StatelessWidget {
   /// bleibt gleich.
   static const double _cardVerticalPadding = 4;
 
+  /// Eckenradius unten, wenn der Header als Block steht.
+  static const double _blockRadius = 22;
+
   @override
   Widget build(BuildContext context) {
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: maxTextScaleFactor,
-      child: Builder(builder: _buildHeader),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (volleBreite || constraints.maxWidth <= AppLesebreite.breite) {
+            return _buildHeader(context, block: false);
+          }
+          return Align(
+            alignment: Alignment.topCenter,
+            heightFactor: 1,
+            child: SizedBox(
+              width: AppLesebreite.breite,
+              child: _buildHeader(context, block: true),
+            ),
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, {required bool block}) {
     final background = this.background;
     final useBackdrop = SupporterBackdrop.maybeOf(context) != null;
     final colorScheme = Theme.of(context).colorScheme;
     final scale = textScaleOf(context);
+    final radius = block
+        ? const BorderRadius.vertical(bottom: Radius.circular(_blockRadius))
+        : BorderRadius.zero;
     final header = DecoratedBox(
       decoration: BoxDecoration(
         color: useBackdrop ? Colors.transparent : colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.outline)),
+        borderRadius: block ? radius : null,
+        border: block
+            ? null
+            : Border(bottom: BorderSide(color: colorScheme.outline)),
       ),
       child: _HeaderBackground(
         background: useBackdrop ? null : background,
+        borderRadius: radius,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             _horizontalPadding,
@@ -98,7 +131,9 @@ class AppPageHeader extends StatelessWidget {
         ),
       ),
     );
-    return useBackdrop ? SupporterBackdropAnchor(child: header) : header;
+    return useBackdrop
+        ? SupporterBackdropAnchor(borderRadius: radius, child: header)
+        : header;
   }
 
   double get _outerVerticalPadding =>
@@ -182,9 +217,14 @@ class AppPageHeaderCard {
 
 /// Legt den gewaehlten Supporter-Hintergrund hinter den Header-Inhalt.
 class _HeaderBackground extends StatelessWidget {
-  const _HeaderBackground({required this.background, required this.child});
+  const _HeaderBackground({
+    required this.background,
+    required this.borderRadius,
+    required this.child,
+  });
 
   final AppearanceBackgroundId? background;
+  final BorderRadius borderRadius;
   final Widget child;
 
   @override
@@ -196,9 +236,12 @@ class _HeaderBackground extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: SupporterBackground(
-            key: ValueKey('page-header-background-${background.name}'),
-            background: background,
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: SupporterBackground(
+              key: ValueKey('page-header-background-${background.name}'),
+              background: background,
+            ),
           ),
         ),
         child,

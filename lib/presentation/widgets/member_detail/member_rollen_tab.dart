@@ -8,6 +8,7 @@ import '../../../domain/stufenwechsel/naechster_stufenwechsel.dart';
 import '../../../domain/taetigkeit/pfadfinder_verlauf.dart';
 import '../../../domain/taetigkeit/stufe.dart';
 import '../../../l10n/app_localizations.dart';
+import '../app_lesebreite.dart';
 import '../leserechte_hinweis.dart';
 import '../section_header.dart';
 import 'member_pfadfinder_verlauf.dart';
@@ -41,12 +42,14 @@ class MemberRollenTab extends StatelessWidget {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     if (rollenNichtLesbar && mitglied.roles.isEmpty) {
-      return ListView(
-        padding: const EdgeInsets.fromLTRB(10, 12, 10, 16),
-        children: [
-          DpsgSectionHeader(label: t.t('verlauf_titel')),
-          LeserechteHinweis(text: t.t('leserechte_rollen_hinweis')),
-        ],
+      return AppLesebreite(
+        builder: (context, rand) => ListView(
+          padding: const EdgeInsets.fromLTRB(10, 12, 10, 16) + rand,
+          children: [
+            DpsgSectionHeader(label: t.t('verlauf_titel')),
+            LeserechteHinweis(text: t.t('leserechte_rollen_hinweis')),
+          ],
+        ),
       );
     }
     final rollen = mitglied.roles
@@ -64,48 +67,50 @@ class MemberRollenTab extends StatelessWidget {
         verlauf.unbekanntBis != null &&
         !rollen.any((r) => r.endOn != null && r.endOn!.isBefore(heute));
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 16),
-      children: [
-        DpsgSectionHeader(label: t.t('verlauf_titel')),
-        MemberPfadfinderVerlauf(
-          verlauf: verlauf,
-          heute: heute,
-          stufenwechsel: stufenwechsel,
-          roverHoechstalter: grenzen.forStufe(Stufe.rover).maxJahre,
-        ),
-        const SizedBox(height: 18),
-        MemberRollenZeitstrahl(
-          rollen: rollen,
-          heute: heute,
-          eintritt: mitglied.hatBekanntesEintrittsdatum
-              ? mitglied.eintrittsdatum
-              : null,
-          aktiverLayerName: aktiverLayerName,
-        ),
-        if (historieFehlt)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.schedule_outlined,
-                  size: 15,
-                  color: theme.colorScheme.outlineVariant,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    t.t('rollen_historie_fehlt'),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outlineVariant,
+    return AppLesebreite(
+      builder: (context, rand) => ListView(
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 16) + rand,
+        children: [
+          DpsgSectionHeader(label: t.t('verlauf_titel')),
+          MemberPfadfinderVerlauf(
+            verlauf: verlauf,
+            heute: heute,
+            stufenwechsel: stufenwechsel,
+            roverHoechstalter: grenzen.forStufe(Stufe.rover).maxJahre,
+          ),
+          const SizedBox(height: 18),
+          MemberRollenZeitstrahl(
+            rollen: rollen,
+            heute: heute,
+            eintritt: mitglied.hatBekanntesEintrittsdatum
+                ? mitglied.eintrittsdatum
+                : null,
+            aktiverLayerName: aktiverLayerName,
+          ),
+          if (historieFehlt)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.schedule_outlined,
+                    size: 15,
+                    color: theme.colorScheme.outlineVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      t.t('rollen_historie_fehlt'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

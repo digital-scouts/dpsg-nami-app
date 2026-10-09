@@ -5,6 +5,7 @@ import 'package:nami/domain/achievements/achievement_progress.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../widgets/achievement_badge.dart';
+import '../widgets/app_lesebreite.dart';
 import '../widgets/achievement_tile.dart';
 import '../widgets/achievement_visuals.dart';
 import '../widgets/section_header.dart';
@@ -54,81 +55,83 @@ class AchievementsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(t.t('achievements_title'))),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            _AchievementsSummary(achievements: achievements),
-            if (tiered.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              DpsgSectionHeader(label: t.t('achievements_section_tiered')),
-              Card(
-                margin: EdgeInsets.zero,
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    for (var i = 0; i < tiered.length; i++) ...[
-                      if (i > 0) const Divider(height: 1, indent: 88),
-                      AchievementTile(
-                        key: Key('achievement-tile-${tiered[i].id}'),
-                        achievement: tiered[i],
-                        onTap: () =>
-                            showAchievementDetailSheet(context, tiered[i]),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-            if (special.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              DpsgSectionHeader(label: t.t('achievements_section_special')),
-              Card(
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 8,
-                  ),
-                  child: Wrap(
-                    alignment: WrapAlignment.spaceEvenly,
-                    runSpacing: 16,
+        child: AppLesebreite(
+          builder: (context, rand) => ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24) + rand,
+            children: [
+              _AchievementsSummary(achievements: achievements),
+              if (tiered.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                DpsgSectionHeader(label: t.t('achievements_section_tiered')),
+                Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
                     children: [
-                      for (final a in special)
-                        _SpecialAchievementCell(
-                          key: Key('achievement-special-${a.id}'),
-                          achievement: a,
-                          openAction: _openActionFor(a),
-                          onTap: () => showAchievementDetailSheet(context, a),
+                      for (var i = 0; i < tiered.length; i++) ...[
+                        if (i > 0) const Divider(height: 1, indent: 88),
+                        AchievementTile(
+                          key: Key('achievement-tile-${tiered[i].id}'),
+                          achievement: tiered[i],
+                          onTap: () =>
+                              showAchievementDetailSheet(context, tiered[i]),
                         ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(
-                  Icons.lock_outline,
-                  size: 14,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    t.t('achievements_local_hint'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ],
+              if (special.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                DpsgSectionHeader(label: t.t('achievements_section_special')),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 8,
+                    ),
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceEvenly,
+                      runSpacing: 16,
+                      children: [
+                        for (final a in special)
+                          _SpecialAchievementCell(
+                            key: Key('achievement-special-${a.id}'),
+                            achievement: a,
+                            openAction: _openActionFor(a),
+                            onTap: () => showAchievementDetailSheet(context, a),
+                          ),
+                      ],
                     ),
                   ),
                 ),
               ],
-            ),
-          ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      t.t('achievements_local_hint'),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

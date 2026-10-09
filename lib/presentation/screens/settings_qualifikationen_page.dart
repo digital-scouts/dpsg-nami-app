@@ -11,6 +11,7 @@ import '../model/qualifikations_einstellungen_model.dart';
 import '../model/supporter_kauf_model.dart';
 import '../navigation/app_router.dart';
 import '../theme/status_farben.dart';
+import '../widgets/app_lesebreite.dart';
 import '../widgets/leserechte_hinweis.dart';
 import '../widgets/qualifikationen/qualifikation_bausteine.dart';
 import 'qualifikationen/qualifikation_personen_page.dart';
@@ -148,71 +149,73 @@ class _Uebersicht extends StatelessWidget {
         ? t.t('quali_leer_hinweis')
         : null;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 10),
-          child: Text(
-            t.t('quali_kontext', {
-              'kontext': readModel.arbeitskontext.aktiverLayer.name,
-              'n': QualifikationenKontext.personenMitRolle(readModel, heute),
-            }),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        if (nichtLesbareHinweis)
-          LeserechteHinweis(text: t.t('leserechte_quali_uebersicht_hinweis')),
-        Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              for (final zeile in zeilen) ...[
-                QualifikationUebersichtZeile(
-                  zeile: zeile,
-                  onTap: () => onZeile(zeile),
-                ),
-                const Divider(height: 1, indent: 62),
-              ],
-              ListTile(
-                key: const Key('quali-hinzufuegen'),
-                leading: Icon(Icons.add, color: theme.colorScheme.primary),
-                title: Text(
-                  t.t('quali_hinzufuegen'),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                onTap: onAuswahl,
+    return AppLesebreite(
+      builder: (context, rand) => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24) + rand,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            child: Text(
+              t.t('quali_kontext', {
+                'kontext': readModel.arbeitskontext.aktiverLayer.name,
+                'n': QualifikationenKontext.personenMitRolle(readModel, heute),
+              }),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-            ],
-          ),
-        ),
-        if (hinweis != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          if (nichtLesbareHinweis)
+            LeserechteHinweis(text: t.t('leserechte_quali_uebersicht_hinweis')),
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            child: Column(
               children: [
-                Icon(Icons.info_outline, size: 18, color: theme.hintColor),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(hinweis, style: theme.textTheme.bodySmall),
+                for (final zeile in zeilen) ...[
+                  QualifikationUebersichtZeile(
+                    zeile: zeile,
+                    onTap: () => onZeile(zeile),
+                  ),
+                  const Divider(height: 1, indent: 62),
+                ],
+                ListTile(
+                  key: const Key('quali-hinzufuegen'),
+                  leading: Icon(Icons.add, color: theme.colorScheme.primary),
+                  title: Text(
+                    t.t('quali_hinzufuegen'),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: onAuswahl,
                 ),
               ],
             ),
           ),
+          if (hinweis != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 18, color: theme.hintColor),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(hinweis, style: theme.textTheme.bodySmall),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

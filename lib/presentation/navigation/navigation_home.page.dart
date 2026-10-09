@@ -17,6 +17,7 @@ import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/abmeldung_hinweis_karte.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/demo_zugang_sheet.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
@@ -220,15 +221,17 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           if (urgentNotification != null)
             SafeArea(
               bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: NotificationCard(
-                  notification: urgentNotification,
-                  onClose: () {
-                    context
-                        .read<UrgentNotificationModel>()
-                        .acknowledgeCurrent();
-                  },
+              child: AppLesebreiteBox(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: NotificationCard(
+                    notification: urgentNotification,
+                    onClose: () {
+                      context
+                          .read<UrgentNotificationModel>()
+                          .acknowledgeCurrent();
+                    },
+                  ),
                 ),
               ),
             ),

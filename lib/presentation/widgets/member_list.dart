@@ -8,6 +8,7 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/leserechte_hinweis.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
 
@@ -129,131 +130,134 @@ class MemberList extends StatelessWidget {
       }
     });
 
-    final listContent = Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _lastUpdateLabel(context, t).isEmpty
-                      ? t.tParams('member_list_count', <String, Object>{
-                          'count': filtered.length,
-                        })
-                      : _lastUpdateLabel(context, t),
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    fontWeight: FontWeight.w500,
+    final listContent = AppLesebreite(
+      builder: (context, rand) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8) + rand,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _lastUpdateLabel(context, t).isEmpty
+                        ? t.tParams('member_list_count', <String, Object>{
+                            'count': filtered.length,
+                          })
+                        : _lastUpdateLabel(context, t),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: onTapSortHint,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 2,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.swap_vert,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        _sortHintLabel(t, sortKey),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontSize: 12,
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: onTapSortHint,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.swap_vert,
+                          size: 14,
                           color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (hinweis != null)
-          LeserechteHinweis(
-            text: hinweis!,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          ),
-        Expanded(
-          child: filtered.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(t.t('member_list_no_results')),
-                      if (hasActiveFilterState && onResetFilters != null) ...[
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: onResetFilters,
-                          child: Text(t.t('member_list_reset_filters')),
-                        ),
-                      ],
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  itemCount: filtered.length + 1,
-                  itemBuilder: (ctx, i) {
-                    if (i == filtered.length) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        child: Text(
-                          t.tParams(
-                            'member_list_footer_count',
-                            <String, Object>{'count': filtered.length},
-                          ),
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelMedium
+                        const SizedBox(width: 2),
+                        Text(
+                          _sortHintLabel(t, sortKey),
+                          style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outlineVariant,
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w500,
                               ),
                         ),
-                      );
-                    }
-                    final entry = filtered[i];
-                    final m = entry.mitglied;
-                    return MemberListTile(
-                      mitglied: m,
-                      isFavourite: favourites.contains(m.mitgliedsnummer),
-                      subtitleMode: subtitleMode,
-                      subtitleText: subtitleTextBuilder?.call(m),
-                      subtitleHighlight: highlightSearchMatches
-                          ? entry.subtitleHighlight
-                          : null,
-                      showWarning: warningBuilder?.call(m) ?? false,
-                      trailingText: trailingTextBuilder?.call(m),
-                      roleCategory: roleCategoryBuilder?.call(m),
-                      supporterBadge: supporterBadgeBuilder?.call(m),
-                      onTap: () {
-                        if (onTapMember != null) {
-                          onTapMember!(m.mitgliedsnummer);
-                        }
-                      },
-                      toggleFavorites: () {
-                        if (onToggleFavourite != null) {
-                          onToggleFavourite!(m.mitgliedsnummer);
-                        }
-                      },
-                    );
-                  },
+                      ],
+                    ),
+                  ),
                 ),
-        ),
-      ],
+              ],
+            ),
+          ),
+          if (hinweis != null)
+            LeserechteHinweis(
+              text: hinweis!,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8) + rand,
+            ),
+          Expanded(
+            child: filtered.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(t.t('member_list_no_results')),
+                        if (hasActiveFilterState && onResetFilters != null) ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: onResetFilters,
+                            child: Text(t.t('member_list_reset_filters')),
+                          ),
+                        ],
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16) + rand,
+                    itemCount: filtered.length + 1,
+                    itemBuilder: (ctx, i) {
+                      if (i == filtered.length) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          child: Text(
+                            t.tParams(
+                              'member_list_footer_count',
+                              <String, Object>{'count': filtered.length},
+                            ),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
+                                ),
+                          ),
+                        );
+                      }
+                      final entry = filtered[i];
+                      final m = entry.mitglied;
+                      return MemberListTile(
+                        mitglied: m,
+                        isFavourite: favourites.contains(m.mitgliedsnummer),
+                        subtitleMode: subtitleMode,
+                        subtitleText: subtitleTextBuilder?.call(m),
+                        subtitleHighlight: highlightSearchMatches
+                            ? entry.subtitleHighlight
+                            : null,
+                        showWarning: warningBuilder?.call(m) ?? false,
+                        trailingText: trailingTextBuilder?.call(m),
+                        roleCategory: roleCategoryBuilder?.call(m),
+                        supporterBadge: supporterBadgeBuilder?.call(m),
+                        onTap: () {
+                          if (onTapMember != null) {
+                            onTapMember!(m.mitgliedsnummer);
+                          }
+                        },
+                        toggleFavorites: () {
+                          if (onToggleFavourite != null) {
+                            onToggleFavourite!(m.mitgliedsnummer);
+                          }
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
 
     if (onRefresh == null) {

@@ -15,6 +15,7 @@ import '../model/supporter_kauf_model.dart';
 import '../navigation/app_router.dart';
 import '../theme/theme.dart';
 import '../widgets/achievement_badge.dart';
+import '../widgets/app_lesebreite.dart';
 import '../widgets/logout_flow.dart';
 import '../widgets/supporter_badge.dart';
 
@@ -90,84 +91,86 @@ class _ProfilePageState extends State<ProfilePage> {
           appBar: AppBar(title: Text(t.t('profile'))),
           body: Stack(
             children: [
-              ListView(
-                padding: const EdgeInsets.only(bottom: 16),
-                children: [
-                  if (profile != null) ...[
-                    _ProfileHeader(
-                      profile: profile,
-                      accentColor: accentColor,
-                      badge: context.watch<AppearanceModel?>()?.badge,
-                      kauf: context.watch<SupporterKaufModel?>(),
-                    ),
-                    _ProfileSectionLabel(
-                      label: 'Persönliche Daten',
-                      accentColor: accentColor,
-                    ),
-                    _ProfileInfoCard(profile: profile),
-                  ] else ...[
-                    _ProfilePlaceholder(
-                      isLoading: authModel.isLoadingProfile,
-                      errorMessage: authModel.errorMessage,
-                    ),
-                  ],
-                  if (widget.achievements != null) ...[
-                    _ProfileSectionLabel(
-                      label: t.t('achievements_title'),
-                      accentColor: accentColor,
-                    ),
-                    _ProfileAchievementsCard(
-                      achievements: widget.achievements!,
-                      onTap: widget.onAchievements,
-                    ),
-                  ],
-                  _ProfileSectionLabel(
-                    label: t.t('profile_context_title'),
-                    accentColor: accentColor,
-                  ),
-                  _ArbeitskontextCard(
-                    arbeitskontextModel: arbeitskontextModel,
-                    accentColor: accentColor,
-                    onOpenLayerSwitcher: arbeitskontextModel.isSwitchingLayer
-                        ? null
-                        : () => _openLayerSwitcher(
-                            context,
-                            authModel: authModel,
-                            arbeitskontextModel: arbeitskontextModel,
-                          ),
-                  ),
-                  if (profile != null) ...[
-                    _ProfileSectionLabel(
-                      label: t.t('profile_roles_title'),
-                      accentColor: accentColor,
-                    ),
-                    _ProfileRolesCard(
-                      profile: profile,
-                      accentColor: accentColor,
-                    ),
-                  ],
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: OutlinedButton.icon(
-                      onPressed: authModel.session != null
-                          ? () => _abmelden(context)
-                          : null,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: theme.colorScheme.error,
-                        side: BorderSide(
-                          color: theme.colorScheme.error,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        minimumSize: const Size.fromHeight(48),
+              AppLesebreite(
+                builder: (context, rand) => ListView(
+                  padding: const EdgeInsets.only(bottom: 16) + rand,
+                  children: [
+                    if (profile != null) ...[
+                      _ProfileHeader(
+                        profile: profile,
+                        accentColor: accentColor,
+                        badge: context.watch<AppearanceModel?>()?.badge,
+                        kauf: context.watch<SupporterKaufModel?>(),
                       ),
-                      icon: const Icon(Icons.logout),
-                      label: Text(t.t('logout')),
+                      _ProfileSectionLabel(
+                        label: 'Persönliche Daten',
+                        accentColor: accentColor,
+                      ),
+                      _ProfileInfoCard(profile: profile),
+                    ] else ...[
+                      _ProfilePlaceholder(
+                        isLoading: authModel.isLoadingProfile,
+                        errorMessage: authModel.errorMessage,
+                      ),
+                    ],
+                    if (widget.achievements != null) ...[
+                      _ProfileSectionLabel(
+                        label: t.t('achievements_title'),
+                        accentColor: accentColor,
+                      ),
+                      _ProfileAchievementsCard(
+                        achievements: widget.achievements!,
+                        onTap: widget.onAchievements,
+                      ),
+                    ],
+                    _ProfileSectionLabel(
+                      label: t.t('profile_context_title'),
+                      accentColor: accentColor,
                     ),
-                  ),
-                ],
+                    _ArbeitskontextCard(
+                      arbeitskontextModel: arbeitskontextModel,
+                      accentColor: accentColor,
+                      onOpenLayerSwitcher: arbeitskontextModel.isSwitchingLayer
+                          ? null
+                          : () => _openLayerSwitcher(
+                              context,
+                              authModel: authModel,
+                              arbeitskontextModel: arbeitskontextModel,
+                            ),
+                    ),
+                    if (profile != null) ...[
+                      _ProfileSectionLabel(
+                        label: t.t('profile_roles_title'),
+                        accentColor: accentColor,
+                      ),
+                      _ProfileRolesCard(
+                        profile: profile,
+                        accentColor: accentColor,
+                      ),
+                    ],
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: OutlinedButton.icon(
+                        onPressed: authModel.session != null
+                            ? () => _abmelden(context)
+                            : null,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: theme.colorScheme.error,
+                          side: BorderSide(
+                            color: theme.colorScheme.error,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          minimumSize: const Size.fromHeight(48),
+                        ),
+                        icon: const Icon(Icons.logout),
+                        label: Text(t.t('logout')),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (arbeitskontextModel.isSwitchingLayer)
                 const _ProfileLoadingOverlay(),

@@ -8,6 +8,7 @@ import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/neuanmeldung_sheet.dart';
 import 'package:provider/provider.dart';
 
@@ -145,37 +146,43 @@ class _SettingsMessagesPageState extends State<SettingsMessagesPage> {
                     );
                   }
 
-                  return ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      Card(
-                        margin: EdgeInsets.zero,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Column(
-                            children: [
-                              for (int i = 0; i < hubMessages.length; i++) ...[
-                                _HubMessageTile(
-                                  notification: hubMessages[i],
-                                  locale: locale,
-                                  onTap: () =>
-                                      hubMessages[i].id ==
-                                          qualifikationsMeldungId
-                                      ? oeffneEigeneMitgliedsdetails(context)
-                                      : _acknowledgeIfNeeded(hubMessages[i]),
-                                ),
-                                if (i < hubMessages.length - 1)
-                                  const Divider(
-                                    height: 1,
-                                    indent: 16,
-                                    endIndent: 16,
+                  return AppLesebreite(
+                    builder: (context, rand) => ListView(
+                      padding: const EdgeInsets.all(16) + rand,
+                      children: [
+                        Card(
+                          margin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Column(
+                              children: [
+                                for (
+                                  int i = 0;
+                                  i < hubMessages.length;
+                                  i++
+                                ) ...[
+                                  _HubMessageTile(
+                                    notification: hubMessages[i],
+                                    locale: locale,
+                                    onTap: () =>
+                                        hubMessages[i].id ==
+                                            qualifikationsMeldungId
+                                        ? oeffneEigeneMitgliedsdetails(context)
+                                        : _acknowledgeIfNeeded(hubMessages[i]),
                                   ),
+                                  if (i < hubMessages.length - 1)
+                                    const Divider(
+                                      height: 1,
+                                      indent: 16,
+                                      endIndent: 16,
+                                    ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   );
                 },
               );

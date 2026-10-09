@@ -13,6 +13,7 @@ import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/theme/theme.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
 import 'package:nami/presentation/widgets/leserechte_hinweis.dart';
 import 'package:nami/presentation/widgets/stufenwechsel_date_row.dart';
@@ -172,11 +173,13 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
               onOpenAltersgrenzen: _openAltersgrenzen,
             ),
             if (rollenFehlen)
-              LeserechteHinweis(
-                text: AppLocalizations.of(
-                  context,
-                ).t('leserechte_stufenwechsel_hinweis'),
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              AppLesebreiteBox(
+                child: LeserechteHinweis(
+                  text: AppLocalizations.of(
+                    context,
+                  ).t('leserechte_stufenwechsel_hinweis'),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                ),
               ),
             Expanded(
               child: _StufenwechselContent(
@@ -506,21 +509,23 @@ class _StufenwechselContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      children: [
-        if (summaryCount == 0) ...[
-          const _NoStageChangeCard(),
-          const SizedBox(height: 12),
+    return AppLesebreite(
+      builder: (context, rand) => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20) + rand,
+        children: [
+          if (summaryCount == 0) ...[
+            const _NoStageChangeCard(),
+            const SizedBox(height: 12),
+          ],
+          for (final section in sections) ...[
+            _StageSectionCard(
+              section: section,
+              onMemberDetailsTap: onMemberDetailsTap,
+            ),
+            const SizedBox(height: 12),
+          ],
         ],
-        for (final section in sections) ...[
-          _StageSectionCard(
-            section: section,
-            onMemberDetailsTap: onMemberDetailsTap,
-          ),
-          const SizedBox(height: 12),
-        ],
-      ],
+      ),
     );
   }
 }
