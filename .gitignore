@@ -74,3 +74,8 @@ assets/territorialgrenzen_bistumsatlas
 chat_ai/eval/results/runs/*.jsonl
 chat_ai/eval/results/runs/*.md
 design/.runden/
+
+# Fastlane-Store-Lanes: Export aus export_fastlane.mjs und Laufberichte
+/fastlane/build/
+/fastlane/report.xml
+/fastlane/README.md

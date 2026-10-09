@@ -4,11 +4,13 @@
 # Nutzung:
 #   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name iphone
 #   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name duo
-#   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name ipad
+#   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name ipad --lang en
 #   tool/store_screenshots/run_store_screenshots.sh --set docs --device <simulator-udid>
 #   tool/store_screenshots/run_store_screenshots.sh --set review --device <simulator-udid>
 #
-# --set store (Standard): Szenen "Store/..." nach assets/workfiles/store/raw/<name>/.
+# --set store (Standard): Szenen "Store/..." nach
+# assets/workfiles/store/raw/<lang>/<name>/; --lang de|en (Standard de)
+# waehlt die Sprache der Szenen.
 # --set docs: Szenen "Store/..." und "Docs/..." fuer das Nutzerhandbuch, auf
 # 600 px Breite verkleinert als JPEG nach docs/assets/img/screens/.
 # --set review: Szenen "Review/..." (Kaufseite und Paket-Sheets auf Englisch)
@@ -27,16 +29,26 @@ set -euo pipefail
 DEVICE=""
 NAME=""
 SET="store"
+LANG_CODE="de"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --device) DEVICE="$2"; shift 2 ;;
     --name) NAME="$2"; shift 2 ;;
     --set) SET="$2"; shift 2 ;;
+    --lang) LANG_CODE="$2"; shift 2 ;;
     *) echo "Unbekanntes Argument: $1" >&2; exit 2 ;;
   esac
 done
 if [[ -z "$DEVICE" || ( "$SET" == "store" && -z "$NAME" ) || ( "$SET" != "store" && "$SET" != "docs" && "$SET" != "review" ) ]]; then
-  echo "Nutzung: $0 [--set store|docs|review] --device <simulator-udid> [--name <zielordner>]" >&2
+  echo "Nutzung: $0 [--set store|docs|review] --device <simulator-udid> [--name <zielordner>] [--lang de|en]" >&2
+  exit 2
+fi
+if [[ "$LANG_CODE" != "de" && "$LANG_CODE" != "en" ]]; then
+  echo "Unbekannte Sprache: $LANG_CODE (de oder en)" >&2
+  exit 2
+fi
+if [[ "$SET" != "store" && "$LANG_CODE" != "de" ]]; then
+  echo "--lang gilt nur fuer --set store" >&2
   exit 2
 fi
 
@@ -46,7 +58,7 @@ if [[ "$SET" == "docs" ]]; then
 elif [[ "$SET" == "review" ]]; then
   OUT_DIR="$ROOT/assets/workfiles/store/review"
 else
-  OUT_DIR="$ROOT/assets/workfiles/store/raw/$NAME"
+  OUT_DIR="$ROOT/assets/workfiles/store/raw/$LANG_CODE/$NAME"
 fi
 
 cd "$ROOT"
@@ -57,7 +69,8 @@ mkdir -p "$OUT_DIR"
 rm -f "$OUT_DIR"/*.png
 flutter test integration_test/store_screenshots_test.dart -d "$DEVICE" \
   --dart-define=STORE_SCREENSHOT_DIR="$OUT_DIR" \
-  --dart-define=STORE_SCREENSHOT_SET="$SET"
+  --dart-define=STORE_SCREENSHOT_SET="$SET" \
+  --dart-define=STORE_SCREENSHOT_LOCALE="$LANG_CODE"
 
 if [[ "$SET" == "docs" ]]; then
   DOCS_DIR="$ROOT/docs/assets/img/screens"
