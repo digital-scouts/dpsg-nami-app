@@ -21,6 +21,7 @@ import '../model/member_edit_model.dart';
 import '../model/member_filters_model.dart';
 import '../navigation/app_router.dart';
 import '../notifications/app_snackbar.dart';
+import '../widgets/app_seitenleiste.dart';
 import '../widgets/neuanmeldung_sheet.dart';
 import '../widgets/member_filter_sort_sheet.dart';
 import '../widgets/member_list_directory.dart';
@@ -43,6 +44,15 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
   String? _lastShownResolutionKey;
   int? _lastMemberFiltersLayerId;
 
+  /// Rechts geoeffnetes Mitglied, solange Liste und Detail nebeneinander
+  /// stehen.
+  String? _ausgewaehlt;
+
+  /// Als Unterseite geoeffnetes Detail, damit es beim Aufklappen in die
+  /// rechte Spalte wandern kann.
+  Route<void>? _detailRoute;
+  bool? _warNebeneinander;
+
   Mitglied? _findMemberById(List<Mitglied> members, String memberId) {
     for (final member in members) {
       if (member.mitgliedsnummer == memberId) {
@@ -53,14 +63,110 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     return null;
   }
 
-  Future<void> _openMemberDetails(BuildContext context, Mitglied member) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        settings: RouteSettings(
-          name: AppRoutes.memberDetail,
-          arguments: member.mitgliedsnummer,
-        ),
-        builder: (_) => MemberDetailPage(mitglied: member),
+  Future<void> _openMemberDetails(
+    BuildContext context,
+    Mitglied member, {
+    required bool nebeneinander,
+  }) async {
+    if (nebeneinander) {
+      setState(() => _ausgewaehlt = member.mitgliedsnummer);
+      return;
+    }
+    final route = MaterialPageRoute<void>(
+      settings: RouteSettings(
+        name: AppRoutes.memberDetail,
+        arguments: member.mitgliedsnummer,
+      ),
+      builder: (_) => MemberDetailPage(mitglied: member),
+    );
+    _detailRoute = route;
+    await Navigator.of(context).push(route);
+    if (identical(_detailRoute, route)) {
+      _detailRoute = null;
+    }
+  }
+
+  /// Liste und Detail stehen nebeneinander, sobald die Seitenleiste sichtbar
+  /// ist. Beim Zu- und Aufklappen wandert das offene Mitglied mit.
+  bool _nebeneinander(BuildContext context, List<Mitglied> members) {
+    final nebeneinander = AppSeitenleiste.sichtbar(
+      MediaQuery.sizeOf(context).width,
+    );
+    final war = _warNebeneinander;
+    _warNebeneinander = nebeneinander;
+    final ausgewaehlt = _ausgewaehlt;
+    if (ausgewaehlt != null && _findMemberById(members, ausgewaehlt) == null) {
+      _ausgewaehlt = null;
+    }
+    if (war == true && !nebeneinander && _ausgewaehlt != null) {
+      final member = _findMemberById(members, _ausgewaehlt!)!;
+      _ausgewaehlt = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(_openMemberDetails(context, member, nebeneinander: false));
+        }
+      });
+    } else if (war == false && nebeneinander) {
+      final route = _detailRoute;
+      final nummer = route?.settings.arguments;
+      if (route != null && route.isCurrent && nummer is String) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !route.isCurrent) {
+            return;
+          }
+          Navigator.of(context).removeRoute(route);
+          setState(() {
+            _detailRoute = null;
+            _ausgewaehlt = nummer;
+          });
+        });
+      }
+    }
+    return nebeneinander;
+  }
+
+  Widget _detailSpalte(
+    BuildContext context,
+    AppLocalizations t,
+    List<Mitglied> members,
+  ) {
+    final theme = Theme.of(context);
+    final ausgewaehlt = _ausgewaehlt;
+    final member = ausgewaehlt == null
+        ? null
+        : _findMemberById(members, ausgewaehlt);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(22)),
+        child: member == null
+            ? ColoredBox(
+                color: theme.colorScheme.surface,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.person_search_outlined,
+                        size: 48,
+                        color: theme.colorScheme.outline,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        t.t('members_detail_auswahl'),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : MemberDetailPage(
+                key: ValueKey(member.mitgliedsnummer),
+                mitglied: member,
+                eingebettet: true,
+              ),
       ),
     );
   }
@@ -268,6 +374,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     }
 
     if (members.isNotEmpty) {
+      final nebeneinander = _nebeneinander(context, members);
       final syncStatus = authModel.dataSyncStatus;
       // Badges anderer Mitglieder folgen mit der Server-Synchronisation;
       // bis dahin zeigt die Liste nur das eigene Badge.
@@ -276,6 +383,8 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       final ownPersonId = authModel.profile?.namiId;
       return MemberDirectory(
         mitglieder: members,
+        detail: nebeneinander ? _detailSpalte(context, t, members) : null,
+        ausgewaehltId: nebeneinander ? _ausgewaehlt : null,
         hinweis: _rollenHinweis(t, arbeitskontextModel),
         sortKey: sortKey,
         subtitleMode: subtitleMode,
@@ -332,7 +441,11 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
             return;
           }
           _logMemberDetailOpened(context);
-          _openMemberDetails(context, selectedMember);
+          _openMemberDetails(
+            context,
+            selectedMember,
+            nebeneinander: nebeneinander,
+          );
         },
         onRefresh: () => _refreshMembers(context),
       );

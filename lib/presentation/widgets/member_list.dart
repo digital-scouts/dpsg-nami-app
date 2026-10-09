@@ -54,8 +54,12 @@ class MemberList extends StatelessWidget {
     this.onTapSortHint,
     this.onRefresh,
     this.hinweis,
+    this.ausgewaehltId,
   });
   final List<Mitglied> mitglieder;
+
+  /// Mitgliedsnummer des rechts geoeffneten Mitglieds.
+  final String? ausgewaehltId;
 
   /// Hinweis unter der Zaehlzeile, etwa auf fehlende Rollen.
   final String? hinweis;
@@ -242,6 +246,7 @@ class MemberList extends StatelessWidget {
                         trailingText: trailingTextBuilder?.call(m),
                         roleCategory: roleCategoryBuilder?.call(m),
                         supporterBadge: supporterBadgeBuilder?.call(m),
+                        ausgewaehlt: m.mitgliedsnummer == ausgewaehltId,
                         onTap: () {
                           if (onTapMember != null) {
                             onTapMember!(m.mitgliedsnummer);

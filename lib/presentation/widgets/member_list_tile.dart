@@ -35,6 +35,7 @@ class MemberListTile extends StatelessWidget {
     this.trailingText,
     this.roleCategory,
     this.supporterBadge,
+    this.ausgewaehlt = false,
     this.onTap,
     this.toggleFavorites,
   });
@@ -50,6 +51,9 @@ class MemberListTile extends StatelessWidget {
 
   /// Supporter-Badge hinter dem Namen, z. B. beim eigenen Eintrag.
   final SupporterBadgeId? supporterBadge;
+
+  /// Rechts im Detail geoeffnet (Liste und Detail nebeneinander).
+  final bool ausgewaehlt;
   final VoidCallback? onTap;
   final VoidCallback? toggleFavorites;
 
@@ -119,7 +123,12 @@ class MemberListTile extends StatelessWidget {
           color: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Theme.of(context).colorScheme.outline),
+            side: ausgewaehlt
+                ? BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 2,
+                  )
+                : BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(

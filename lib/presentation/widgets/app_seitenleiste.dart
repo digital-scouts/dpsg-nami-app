@@ -1,4 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
+import '../../domain/appearance/appearance_catalog.dart';
+import 'app_lesebreite.dart';
+import 'supporter_badge.dart';
 
 /// Ein Eintrag der [AppSeitenleiste].
 class AppSeitenleisteEintrag {
@@ -19,6 +25,21 @@ class AppSeitenleisteEintrag {
   final bool gesperrt;
 }
 
+/// Profil oben in der [AppSeitenleiste].
+class AppSeitenleisteProfil {
+  const AppSeitenleisteProfil({
+    required this.name,
+    required this.ziel,
+    this.stamm,
+    this.badge,
+  });
+
+  final String name;
+  final String? stamm;
+  final SupporterBadgeId? badge;
+  final int ziel;
+}
+
 /// Navigation am linken Rand fuer breite Fenster (Duo aufgeklappt, iPad quer,
 /// iPad 13" hoch). Oben die Hauptbereiche, mit Abstand darunter der
 /// Schnellzugriff, am unteren Rand die Einstellungen. Schmal mit Beschriftung
@@ -34,20 +55,30 @@ class AppSeitenleiste extends StatelessWidget {
     required this.unten,
     required this.ausgewaehlt,
     required this.onAuswahl,
-    this.breit = false,
+    this.profil,
+    this.breite = schmaleBreite,
   });
 
   /// Ab dieser Fensterbreite ersetzt die Seitenleiste die untere Leiste.
   static const double ab = 840;
 
-  /// Ab dieser Fensterbreite steht der Text neben dem Symbol.
-  static const double breitAb = 1200;
-
   /// Breit genug, dass "Qualifikationen" ohne Verkleinerung passt.
   static const double schmaleBreite = 88;
-  static const double breiteBreite = 220;
+
+  /// Ab so viel freiem Platz neben dem Inhalt steht der Text neben dem
+  /// Symbol.
+  static const double breitAb = 200;
+  static const double hoechstbreite = 320;
 
   static bool sichtbar(double fensterbreite) => fensterbreite >= ab;
+
+  /// Der Inhalt hat eine feste Breite; was daneben uebrig bleibt, bekommt
+  /// die Leiste (breit ab [breitAb], hoechstens [hoechstbreite]).
+  static double breiteFuer(double fensterbreite) {
+    final frei =
+        fensterbreite - AppLesebreite.breite - 2 * AppLesebreite.blockRand;
+    return frei >= breitAb ? math.min(frei, hoechstbreite) : schmaleBreite;
+  }
 
   final List<AppSeitenleisteEintrag> oben;
   final List<AppSeitenleisteEintrag> schnellzugriff;
@@ -58,11 +89,17 @@ class AppSeitenleiste extends StatelessWidget {
   /// [AppSeitenleisteEintrag.ziel] des gewaehlten Eintrags.
   final int ausgewaehlt;
   final ValueChanged<int> onAuswahl;
-  final bool breit;
+
+  /// Profil ganz oben; `null` ohne Anmeldung.
+  final AppSeitenleisteProfil? profil;
+  final double breite;
+
+  bool get breit => breite > schmaleBreite;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final profil = this.profil;
     Widget eintrag(AppSeitenleisteEintrag e) => _Eintrag(
       eintrag: e,
       ausgewaehlt: e.ziel == ausgewaehlt,
@@ -76,7 +113,7 @@ class AppSeitenleiste extends StatelessWidget {
     return SafeArea(
       right: false,
       child: SizedBox(
-        width: breit ? breiteBreite : schmaleBreite,
+        width: breite,
         child: Column(
           children: [
             Expanded(
@@ -85,16 +122,12 @@ class AppSeitenleiste extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: ausrichtung,
                   children: [
-                    if (breit)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
-                        child: Text(
-                          'NaMi',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                    if (profil != null)
+                      _Profil(
+                        profil: profil,
+                        ausgewaehlt: profil.ziel == ausgewaehlt,
+                        breit: breit,
+                        onTap: () => onAuswahl(profil.ziel),
                       ),
                     for (final e in oben) eintrag(e),
                     if (schnellzugriff.isNotEmpty) ...[
@@ -231,6 +264,117 @@ class _Eintrag extends StatelessWidget {
               : RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           onTap: onTap,
           child: inhalt,
+        ),
+      ),
+    );
+  }
+}
+
+/// Avatar mit Initiale, breit mit Name und Stamm daneben. Lange Namen
+/// brechen auf zwei Zeilen um; ist das Profil gewaehlt, stehen sie ganz da.
+class _Profil extends StatelessWidget {
+  const _Profil({
+    required this.profil,
+    required this.ausgewaehlt,
+    required this.breit,
+    required this.onTap,
+  });
+
+  final AppSeitenleisteProfil profil;
+  final bool ausgewaehlt;
+  final bool breit;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final name = profil.name.trim();
+    final badge = profil.badge;
+    Widget avatar = Container(
+      padding: const EdgeInsets.all(2),
+      decoration: ShapeDecoration(
+        shape: CircleBorder(
+          side: BorderSide(
+            color: ausgewaehlt ? theme.colorScheme.primary : Colors.transparent,
+            width: 2,
+          ),
+        ),
+      ),
+      child: CircleAvatar(
+        radius: 20,
+        backgroundColor: theme.colorScheme.primary,
+        child: Text(
+          name.isNotEmpty ? name.characters.first.toUpperCase() : '?',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.onPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+    if (badge != null) {
+      avatar = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          avatar,
+          Positioned(
+            right: -4,
+            bottom: -4,
+            child: SupporterBadge(badge: badge, size: 20),
+          ),
+        ],
+      );
+    }
+    final zeilen = ausgewaehlt ? null : 2;
+    final inhalt = breit
+        ? Row(
+            children: [
+              avatar,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: zeilen,
+                      overflow: zeilen == null ? null : TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (profil.stamm case final stamm?)
+                      Text(
+                        stamm,
+                        maxLines: zeilen,
+                        overflow: zeilen == null ? null : TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          )
+        : Center(child: avatar);
+    return Semantics(
+      button: true,
+      selected: ausgewaehlt,
+      label: [name, ?profil.stamm].join(', '),
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: breit ? 8 : 0,
+              vertical: 6,
+            ),
+            child: inhalt,
+          ),
         ),
       ),
     );

@@ -127,7 +127,9 @@
         "Erinnerung, bevor die Hitobito-Anmeldung nach einer Woche ohne Nutzung abläuft.",
         "Auf dem iPad und aufklappbaren Smartphones stehen Listen und Mitgliedsdetails in angenehmer Lesebreite statt über den ganzen Bildschirm.",
         "Auf großen Bildschirmen wie dem iPad im Querformat sitzt die Navigation am linken Rand, zusammen mit Karte, Qualifikationen und NaMi AI.",
-        "Die Navigationsleiste bleibt auch auf Unterseiten wie den Mitgliedsdetails sichtbar."
+        "Die Navigationsleiste bleibt auch auf Unterseiten wie den Mitgliedsdetails sichtbar.",
+        "Auf großen Bildschirmen stehen Mitgliederliste und Mitgliedsdetails nebeneinander, ebenso die Einstellungen; das eigene Profil steht oben in der Seitenleiste. Auf dem iPhone Duo teilen sich beide Spalten am Falz wie zwei Buchseiten.",
+        "Die Qualifikationen-Übersicht zeigt oben, wie viele Personen mit Rolle unvollständig sind."
       ],
       "bugFixes": [
         "Mit reinem Leserecht auf deine Gruppe zeigt die App fehlende Rollen, Qualifikationen und Führungszeugnisse anderer als „Keine Berechtigung“ oder mit Hinweis, statt sie als leer oder 0 anzuzeigen.",

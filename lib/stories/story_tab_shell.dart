@@ -9,6 +9,7 @@ import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
+import 'package:nami/presentation/widgets/app_falz.dart';
 import 'package:nami/presentation/widgets/app_seitenleiste.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/services/app_icon_service.dart';
@@ -178,7 +179,7 @@ class StoryNavigationsScaffold extends StatelessWidget {
     required this.body,
   });
 
-  /// 0-3 Hauptbereiche, 4 Karte, 5 Qualifikationen.
+  /// 0-3 Hauptbereiche, 4 Karte, 5 Qualifikationen, 7 Profil.
   final int ausgewaehlt;
 
   /// Erhaelt, ob die Seitenleiste sichtbar ist.
@@ -209,11 +210,24 @@ class StoryNavigationsScaffold extends StatelessWidget {
                 ),
               ],
               unten: hauptbereiche.sublist(3),
+              // Beispielprofil wie in den Store-Daten.
+              profil: AppSeitenleisteProfil(
+                name: 'Hanna Albrecht',
+                stamm: 'Stamm Silberfels',
+                badge: context.watch<AppearanceModel?>()?.badge,
+                ziel: 7,
+              ),
               ausgewaehlt: ausgewaehlt,
-              breit: breite >= AppSeitenleiste.breitAb,
+              breite: AppSeitenleiste.breiteFuer(breite),
               onAuswahl: (_) {},
             ),
-          Expanded(child: body(context, seitenleiste)),
+          Expanded(
+            child: AppFalzBereich.fuer(
+              context,
+              versatz: seitenleiste ? AppSeitenleiste.breiteFuer(breite) : 0,
+              child: Builder(builder: (context) => body(context, seitenleiste)),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: seitenleiste || ausgewaehlt > 3
