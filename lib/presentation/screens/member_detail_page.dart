@@ -245,7 +245,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         );
       case PendingPersonUpdateRetryDisposition.retained:
         _showMessage(
-          t.t('member_detail_send_now_retained'),
+          result.grund == PendingRetryGrund.netz
+              ? t.t('member_detail_send_now_offline')
+              : t.t('member_detail_send_now_retained'),
           type: AppSnackbarType.warning,
         );
       case PendingPersonUpdateRetryDisposition.needsResolution:
@@ -261,6 +263,25 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           type: AppSnackbarType.error,
         );
     }
+  }
+
+  /// Verwirft sofort und bietet „Rückgängig“ an.
+  Future<void> _discardPending(PendingPersonUpdate entry) async {
+    final t = AppLocalizations.of(context);
+    final memberEditModel = context.read<MemberEditModel?>();
+    final verworfen = await memberEditModel?.discardPending(entry.entryId);
+    if (!mounted || verworfen == null || memberEditModel == null) {
+      return;
+    }
+    AppSnackbar.show(
+      context,
+      message: t.t('member_detail_discarded'),
+      type: AppSnackbarType.info,
+      action: AppSnackbarAction(
+        label: t.t('common_undo'),
+        onPressed: () => unawaited(memberEditModel.restorePending(verworfen)),
+      ),
+    );
   }
 
   void _showMessage(
@@ -321,6 +342,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       currentMitglied.mitgliedsnummer,
     );
     final needsResolution = pendingEntry?.needsResolution ?? false;
+    final abgelehntHinweis = needsResolution
+        ? pendingEntry?.resolutionCase?.hinweis
+        : null;
     final retryPaused =
         memberEditModel?.isAutomaticRetryPaused(
           currentMitglied.mitgliedsnummer,
@@ -432,14 +456,28 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
             ),
             if (hasPending)
               MaterialBanner(
-                content: Text(
-                  needsResolution
+                content: _PendingBannerText(
+                  text: abgelehntHinweis != null
+                      ? t.t('member_detail_pending_rejected_banner')
+                      : needsResolution
                       ? t.t('member_detail_pending_resolution_banner')
                       : retryPaused
                       ? t.t('member_detail_pending_paused_banner')
                       : t.t('member_detail_pending_retry_banner'),
+                  hinweis: abgelehntHinweis,
                 ),
                 actions: <Widget>[
+                  if (retryPaused && !needsResolution && pendingEntry != null)
+                    TextButton(
+                      key: const Key('member-detail-discard-pending'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                      onPressed: memberEditModel?.isBusy ?? true
+                          ? null
+                          : () => _discardPending(pendingEntry),
+                      child: Text(t.t('member_detail_discard_action')),
+                    ),
                   if (needsResolution && pendingEntry != null)
                     TextButton(
                       onPressed: () => _openEditPage(
@@ -639,6 +677,45 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
 
     final layerName = readModel.arbeitskontext.aktiverLayer.name.toLowerCase();
     return layerName.contains('stamm');
+  }
+}
+
+/// Bannertext; bei einer Ablehnung durch Hitobito mit dem Grund darunter.
+class _PendingBannerText extends StatelessWidget {
+  const _PendingBannerText({required this.text, this.hinweis});
+
+  final String text;
+  final String? hinweis;
+
+  @override
+  Widget build(BuildContext context) {
+    final hinweis = this.hinweis;
+    if (hinweis == null || hinweis.trim().isEmpty) {
+      return Text(text);
+    }
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(text),
+        const SizedBox(height: 8),
+        Container(
+          key: const Key('member-detail-rejected-reason'),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '„${hinweis.trim()}“',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

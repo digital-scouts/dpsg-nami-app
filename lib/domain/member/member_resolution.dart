@@ -168,11 +168,18 @@ class MemberResolutionCase {
     required this.remoteMitglied,
     required this.items,
     required this.source,
+    this.hinweis,
   });
 
   final Mitglied remoteMitglied;
   final List<MemberResolutionItem> items;
   final MemberResolutionSource source;
+
+  /// Begruendung von Hitobito, wenn die Aenderung als Ganzes abgelehnt wurde
+  /// (etwa fehlende Berechtigung). Dann gibt es oft keine Feldeintraege.
+  final String? hinweis;
+
+  bool get istAbgelehnt => hinweis != null;
 
   Set<MemberResolutionCause> get causes =>
       items.map((item) => item.effectiveCause).toSet();
@@ -200,6 +207,7 @@ class MemberResolutionCase {
       'remote_mitglied': remoteMitglied.toPeopleListJson(),
       'items': items.map((item) => item.toJson()).toList(growable: false),
       'source': source.name,
+      if (hinweis != null) 'hinweis': hinweis,
     };
   }
 
@@ -224,6 +232,7 @@ class MemberResolutionCase {
         (value) => value.name == json['source'],
         orElse: () => MemberResolutionSource.manualSave,
       ),
+      hinweis: json['hinweis'] as String?,
     );
   }
 }

@@ -1457,6 +1457,55 @@ void main() {
       expect(peopleService.calls, isEmpty);
     });
   });
+
+  test('legt eine Telefonnummer nicht doppelt an, wenn ein abgebrochener '
+      'Versuch sie schon angelegt hat', () async {
+    final peopleService = _FakeHitobitoPeopleService();
+    final basis = _fullRemoteResource().toMitglied();
+    // Hitobito hat die Nummer beim ersten Versuch angelegt, die App hat die
+    // Antwort aber nicht mehr bekommen.
+    peopleService.remoteResource = HitobitoPersonResource(
+      id: 23,
+      firstName: 'Julia',
+      lastName: 'Keller',
+      nickname: 'Luchs',
+      membershipNumber: 4711,
+      birthday: DateTime(2010, 3, 4),
+      gender: 'w',
+      updatedAt: DateTime.parse('2026-04-14T10:00:00Z'),
+      emailAdressen: basis.emailAdressen,
+      adressen: basis.adressen,
+      telefonnummern: const <MitgliedKontaktTelefon>[
+        MitgliedKontaktTelefon(
+          phoneNumberId: 77,
+          wert: '+491701234567',
+          label: 'Mobil',
+        ),
+      ],
+    );
+    final repository = HitobitoMemberWriteRepository(
+      peopleService: peopleService,
+      logger: _FakeLoggerService(),
+    );
+
+    await repository.updateMember(
+      accessToken: 'token-123',
+      basisMitglied: basis,
+      zielMitglied: basis.copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(wert: '+49 170 1234567', label: 'Mobil'),
+        ],
+      ),
+    );
+
+    expect(
+      peopleService.lastPhoneNumberMutations.where(
+        (mutation) =>
+            mutation.method == HitobitoRelationshipMutationMethod.create,
+      ),
+      isEmpty,
+    );
+  });
 }
 
 Future<T?> _retryingExecutor<T>({

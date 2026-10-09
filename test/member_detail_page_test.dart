@@ -1219,6 +1219,78 @@ void main() {
       );
       expect(find.text('Jetzt senden'), findsOneWidget);
     });
+
+    testWidgets('meldet beim Senden ohne Netz, dass Hitobito fehlt', (
+      tester,
+    ) async {
+      final model = _SendNowMemberEditModel(
+        entry: entry,
+        disposition: PendingPersonUpdateRetryDisposition.retained,
+        grund: PendingRetryGrund.netz,
+      );
+      await pumpDetail(tester, model);
+
+      await tester.tap(find.byKey(const Key('member-detail-send-now')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Hitobito ist gerade nicht erreichbar. Die Änderung bleibt vorgemerkt.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('verwirft pausierte Aenderung sofort mit Rueckgaengig', (
+      tester,
+    ) async {
+      final model = _SendNowMemberEditModel(
+        entry: entry,
+        disposition: PendingPersonUpdateRetryDisposition.retained,
+        paused: true,
+      );
+      await pumpDetail(tester, model);
+
+      await tester.tap(find.byKey(const Key('member-detail-discard-pending')));
+      await tester.pumpAndSettle();
+
+      expect(model.verworfen, isTrue);
+      expect(find.text('Änderung verworfen.'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Rückgängig'));
+      await tester.pumpAndSettle();
+      expect(model.verworfen, isFalse);
+    });
+
+    testWidgets('zeigt bei abgelehnter Aenderung den Grund von Hitobito', (
+      tester,
+    ) async {
+      final model = _SendNowMemberEditModel(
+        entry: entry.copyWith(
+          status: PendingPersonUpdateStatus.needsResolution,
+          resolutionCase: MemberResolutionCase(
+            remoteMitglied: member,
+            items: const <MemberResolutionItem>[],
+            source: MemberResolutionSource.pendingRetry,
+            hinweis: 'Keine Berechtigung',
+          ),
+        ),
+        disposition: PendingPersonUpdateRetryDisposition.needsResolution,
+      );
+      await pumpDetail(tester, model);
+
+      expect(
+        find.text(
+          'Hitobito hat eine vorgemerkte Änderung abgelehnt. Prüfe die betroffenen Felder und sende sie danach erneut.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('„Keine Berechtigung“'), findsOneWidget);
+      expect(find.text('Problem lösen'), findsOneWidget);
+      expect(
+        find.byKey(const Key('member-detail-discard-pending')),
+        findsNothing,
+      );
+    });
   });
 }
 
@@ -1332,6 +1404,7 @@ class _SendNowMemberEditModel extends MemberEditModel {
     required this.entry,
     required this.disposition,
     this.paused = false,
+    this.grund,
   }) : super(
          memberWriteRepository: _NoopMemberWriteRepository(),
          pendingRepository: _NoopPendingPersonUpdateRepository(),
@@ -1339,19 +1412,34 @@ class _SendNowMemberEditModel extends MemberEditModel {
          onMemberUpdated: (_) async {},
        );
 
-  final PendingPersonUpdate entry;
+  PendingPersonUpdate entry;
   final PendingPersonUpdateRetryDisposition disposition;
   final bool paused;
+  final PendingRetryGrund? grund;
+  bool verworfen = false;
   final List<({Iterable<String>? entryIds, String trigger})> retryCalls =
       <({Iterable<String>? entryIds, String trigger})>[];
 
   @override
   bool hasPendingForMitglied(String mitgliedsnummer) =>
-      mitgliedsnummer == entry.mitgliedsnummer;
+      !verworfen && mitgliedsnummer == entry.mitgliedsnummer;
 
   @override
   PendingPersonUpdate? pendingForMitglied(String mitgliedsnummer) =>
-      mitgliedsnummer == entry.mitgliedsnummer ? entry : null;
+      !verworfen && mitgliedsnummer == entry.mitgliedsnummer ? entry : null;
+
+  @override
+  Future<PendingPersonUpdate?> discardPending(String entryId) async {
+    verworfen = true;
+    notifyListeners();
+    return entry;
+  }
+
+  @override
+  Future<void> restorePending(PendingPersonUpdate entry) async {
+    verworfen = false;
+    notifyListeners();
+  }
 
   @override
   bool isAutomaticRetryPaused(String mitgliedsnummer) => paused;
@@ -1369,6 +1457,7 @@ class _SendNowMemberEditModel extends MemberEditModel {
         PendingPersonUpdateRetryItemResult(
           entry: entry,
           disposition: disposition,
+          grund: grund,
         ),
       ],
     );
