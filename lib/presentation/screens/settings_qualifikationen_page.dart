@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/appearance/appearance_catalog.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/arbeitskontext/teildaten_stand.dart';
 import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../domain/qualifikation/ermittle_qualifikations_uebersicht_usecase.dart';
 import '../../l10n/app_localizations.dart';
+import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/qualifikations_einstellungen_model.dart';
 import '../model/supporter_kauf_model.dart';
 import '../navigation/app_router.dart';
 import '../theme/status_farben.dart';
 import '../widgets/app_lesebreite.dart';
+import '../widgets/app_page_header.dart';
 import '../widgets/leserechte_hinweis.dart';
 import '../widgets/qualifikationen/qualifikation_bausteine.dart';
+import '../widgets/supporter_backdrop.dart';
 import 'qualifikationen/qualifikation_personen_page.dart';
 import 'supporter/supporter_bausteine.dart';
 import 'qualifikationen/qualifikationen_auswahl_page.dart';
@@ -61,60 +65,232 @@ class SettingsQualifikationenPage extends StatelessWidget {
     final heute = QualifikationenKontext.heute(heuteProvider);
     final istVollLesbar = QualifikationenKontext.istVollLesbar(context);
 
+    final zeilen = supporter && readModel != null
+        ? _useCase(
+            readModel: readModel,
+            einstellungen: einstellungen,
+            heute: heute,
+            istVollLesbar: istVollLesbar,
+          )
+        : const <UebersichtZeile>[];
+
+    final body = !supporter
+        ? _SupporterHinweis(
+            nutzen: _nutzen(
+              t,
+              abdeckung ?? _abdeckungAusModell(context),
+              readModel,
+            ),
+          )
+        : readModel == null
+        ? const Center(child: CircularProgressIndicator())
+        : readModel.efzStand == TeildatenStand.unbekannt &&
+              readModel.qualifikationenStand == TeildatenStand.unbekannt
+        ? _ZustandsHinweis(
+            icon: Icons.sync,
+            titel: t.t('quali_nicht_sync_titel'),
+            text: t.t('quali_nicht_sync_text'),
+          )
+        : _Uebersicht(
+            readModel: readModel,
+            zeilen: zeilen,
+            nichtLesbareHinweis: QualifikationenKontext.hatNichtLesbare(
+              readModel,
+              istVollLesbar,
+            ),
+            heute: heute,
+            onAuswahl: () => _oeffneAuswahl(context),
+            onZeile: (zeile) => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => QualifikationPersonenPage(
+                  schluessel: zeile.art.schluessel,
+                  readModel: this.readModel,
+                  heuteProvider: heuteProvider,
+                ),
+              ),
+            ),
+          );
+
+    // Kopf wie die Hauptbereiche (Entscheidung
+    // design/entscheidung/2026-10-09-responsive-profil-detail.md, Q1).
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.t('quali_titel')),
-        actions: [
-          if (supporter && readModel != null)
+      body: SupporterBackdrop(
+        background: context.watch<AppearanceModel?>()?.background,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _QualiKopf(
+                background: context.watch<AppearanceModel?>()?.background,
+                personen: readModel == null
+                    ? null
+                    : QualifikationenKontext.personenMitRolle(readModel, heute),
+                // Personen, denen mindestens ein Nachweis fehlt.
+                fehlen: {
+                  for (final zeile in zeilen)
+                    for (final eintrag in zeile.eintraege)
+                      if (eintrag.fehlt) eintrag.mitglied.mitgliedsnummer,
+                }.length,
+                kontext: readModel?.arbeitskontext.aktiverLayer.name,
+                onAuswahl: supporter && readModel != null
+                    ? () => _oeffneAuswahl(context)
+                    : null,
+              ),
+              Expanded(child: body),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Kopf der Qualifikationen als Karte wie beim Stufenwechsel: oben Personen
+/// mit Rolle und fehlende Nachweise, unten Arbeitskontext und Auswahl. Als
+/// Unterseite sitzt der Zurueck-Pfeil in der oberen Zeile.
+class _QualiKopf extends StatelessWidget {
+  const _QualiKopf({
+    required this.background,
+    required this.personen,
+    required this.fehlen,
+    required this.kontext,
+    required this.onAuswahl,
+  });
+
+  final AppearanceBackgroundId? background;
+
+  /// `null`, solange keine Daten da sind; dann steht der Titel oben.
+  final int? personen;
+  final int fehlen;
+  final String? kontext;
+  final VoidCallback? onAuswahl;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+    final personen = this.personen;
+    final zurueck = ModalRoute.of(context)?.canPop ?? false;
+    final onAuswahl = this.onAuswahl;
+    return AppPageHeader(
+      background: background,
+      card: const AppPageHeaderCard(divider: true, insetSecondary: false),
+      primary: Row(
+        children: [
+          if (zurueck)
             IconButton(
-              key: const Key('quali-auswahl-oeffnen'),
-              tooltip: t.t('quali_auswahl_tooltip'),
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => _oeffneAuswahl(context),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).maybePop(),
+            )
+          else
+            const Icon(Icons.verified_outlined),
+          const SizedBox(width: 10),
+          Expanded(
+            child: personen == null
+                ? Text(
+                    t.t('quali_titel'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                : Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '$personen ',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        TextSpan(
+                          text: t.t('quali_kopf_personen'),
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
+                    key: const Key('quali-kopf-personen'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+          ),
+          if (fehlen > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                t.t('quali_kopf_fehlen', {'n': fehlen}),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
         ],
       ),
-      body: !supporter
-          ? _SupporterHinweis(
-              nutzen: _nutzen(
-                t,
-                abdeckung ?? _abdeckungAusModell(context),
-                readModel,
+      secondary: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.t('quali_kopf_kontext'),
+                    maxLines: 1,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    kontext ?? '–',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge,
+                  ),
+                ],
               ),
-            )
-          : readModel == null
-          ? const Center(child: CircularProgressIndicator())
-          : readModel.efzStand == TeildatenStand.unbekannt &&
-                readModel.qualifikationenStand == TeildatenStand.unbekannt
-          ? _ZustandsHinweis(
-              icon: Icons.sync,
-              titel: t.t('quali_nicht_sync_titel'),
-              text: t.t('quali_nicht_sync_text'),
-            )
-          : _Uebersicht(
-              readModel: readModel,
-              zeilen: _useCase(
-                readModel: readModel,
-                einstellungen: einstellungen,
-                heute: heute,
-                istVollLesbar: istVollLesbar,
-              ),
-              nichtLesbareHinweis: QualifikationenKontext.hatNichtLesbare(
-                readModel,
-                istVollLesbar,
-              ),
-              heute: heute,
-              onAuswahl: () => _oeffneAuswahl(context),
-              onZeile: (zeile) => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => QualifikationPersonenPage(
-                    schluessel: zeile.art.schluessel,
-                    readModel: this.readModel,
-                    heuteProvider: heuteProvider,
+            ),
+          ),
+          if (onAuswahl != null) ...[
+            VerticalDivider(width: 1, color: theme.colorScheme.outline),
+            Tooltip(
+              message: t.t('quali_auswahl_tooltip'),
+              excludeFromSemantics: true,
+              child: InkWell(
+                key: const Key('quali-auswahl-oeffnen'),
+                onTap: onAuswahl,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.settings_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        t.t('quali_kopf_auswahl'),
+                        maxLines: 1,
+                        style: theme.textTheme.labelLarge,
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -153,18 +329,6 @@ class _Uebersicht extends StatelessWidget {
       builder: (context, rand) => ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24) + rand,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 10),
-            child: Text(
-              t.t('quali_kontext', {
-                'kontext': readModel.arbeitskontext.aktiverLayer.name,
-                'n': QualifikationenKontext.personenMitRolle(readModel, heute),
-              }),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
           if (nichtLesbareHinweis)
             LeserechteHinweis(text: t.t('leserechte_quali_uebersicht_hinweis')),
           Card(

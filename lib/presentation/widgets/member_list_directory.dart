@@ -55,8 +55,15 @@ class MemberDirectory extends StatefulWidget {
     this.onTapMember,
     this.onRefresh,
     this.hinweis,
+    this.detail,
+    this.ausgewaehltId,
   });
   final List<Mitglied> mitglieder;
+
+  /// Rechte Spalte neben der Liste; `null` zeigt nur die Liste. Der Kopf
+  /// steht dann ueber beiden Spalten.
+  final Widget? detail;
+  final String? ausgewaehltId;
   final String? hinweis;
   final Map<String, Set<String>> mitgliedsFilterKeys;
   final List<MemberFixedFilterGroup> fixedFilterGroups;
@@ -179,8 +186,10 @@ class _MemberDirectoryState extends State<MemberDirectory> {
   @override
   Widget build(BuildContext context) {
     final items = _buildItems();
+    final detail = widget.detail;
     final header = AppPageHeader(
       background: widget.headerBackground,
+      volleBreite: detail != null,
       primary: MemberSearchBar(
         initial: search,
         onChanged: _updateSearch,
@@ -206,39 +215,55 @@ class _MemberDirectoryState extends State<MemberDirectory> {
       ),
     );
 
+    final liste = MemberList(
+      mitglieder: widget.mitglieder,
+      ausgewaehltId: widget.ausgewaehltId,
+      hinweis: widget.hinweis,
+      searchString: search,
+      highlightSearchMatches: widget.highlightSearchMatches,
+      sortKey: widget.sortKey,
+      subtitleMode: widget.subtitleMode,
+      subtitleTextBuilder: widget.subtitleTextBuilder,
+      trailingTextBuilder: widget.trailingTextBuilder,
+      roleCategoryBuilder: widget.roleCategoryBuilder,
+      warningBuilder: widget.warningBuilder,
+      supporterBadgeBuilder: widget.supporterBadgeBuilder,
+      lastUpdateAt: widget.lastUpdateAt,
+      isRefreshing: widget.isRefreshing,
+      favourites: favourites,
+      selectedFilterKeys: widget.enableGroupFilter
+          ? selectedFilterKeys
+          : const <String>{},
+      mitgliedsFilterKeys: widget.mitgliedsFilterKeys,
+      onResetFilters: _resetFilters,
+      onToggleFavourite: toggleFavourite,
+      onTapSortHint: () => widget.onOpenFilterOptions?.call(
+        MemberFilterOptionsTrigger.listHeader,
+      ),
+      onTapMember: (id) {
+        widget.onTapMember?.call(id);
+      },
+      onRefresh: widget.onRefresh,
+    );
+
     return Column(
       children: [
         header,
         Expanded(
-          child: MemberList(
-            mitglieder: widget.mitglieder,
-            hinweis: widget.hinweis,
-            searchString: search,
-            highlightSearchMatches: widget.highlightSearchMatches,
-            sortKey: widget.sortKey,
-            subtitleMode: widget.subtitleMode,
-            subtitleTextBuilder: widget.subtitleTextBuilder,
-            trailingTextBuilder: widget.trailingTextBuilder,
-            roleCategoryBuilder: widget.roleCategoryBuilder,
-            warningBuilder: widget.warningBuilder,
-            supporterBadgeBuilder: widget.supporterBadgeBuilder,
-            lastUpdateAt: widget.lastUpdateAt,
-            isRefreshing: widget.isRefreshing,
-            favourites: favourites,
-            selectedFilterKeys: widget.enableGroupFilter
-                ? selectedFilterKeys
-                : const <String>{},
-            mitgliedsFilterKeys: widget.mitgliedsFilterKeys,
-            onResetFilters: _resetFilters,
-            onToggleFavourite: toggleFavourite,
-            onTapSortHint: () => widget.onOpenFilterOptions?.call(
-              MemberFilterOptionsTrigger.listHeader,
-            ),
-            onTapMember: (id) {
-              widget.onTapMember?.call(id);
-            },
-            onRefresh: widget.onRefresh,
-          ),
+          child: detail == null
+              ? liste
+              : LayoutBuilder(
+                  builder: (context, constraints) => Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: constraints.maxWidth < 900 ? 320 : 360,
+                        child: liste,
+                      ),
+                      Expanded(child: detail),
+                    ],
+                  ),
+                ),
         ),
       ],
     );

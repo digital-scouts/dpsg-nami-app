@@ -43,9 +43,13 @@ class MemberDetailPage extends StatefulWidget {
     this.previewTimeout,
     this.heuteProvider,
     this.stufenSettingsLoader,
+    this.eingebettet = false,
   });
 
   final Mitglied mitglied;
+
+  /// Rechts neben der Mitgliederliste: ohne Zurueck-Pfeil.
+  final bool eingebettet;
   final AddressMapLocationRepository? addressLocationRepository;
   final GeoapifyAddressMapService? mapService;
   final AddressSettingsRepository? addressSettingsRepository;
@@ -378,13 +382,16 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                             supporterBadge: _ownBadge(context, currentMitglied),
                             onStufenTap: () =>
                                 DefaultTabController.of(context).animateTo(1),
-                            leading: IconButton(
-                              tooltip: MaterialLocalizations.of(
-                                context,
-                              ).backButtonTooltip,
-                              onPressed: () => Navigator.of(context).maybePop(),
-                              icon: const Icon(Icons.arrow_back),
-                            ),
+                            leading: widget.eingebettet
+                                ? null
+                                : IconButton(
+                                    tooltip: MaterialLocalizations.of(
+                                      context,
+                                    ).backButtonTooltip,
+                                    onPressed: () =>
+                                        Navigator.of(context).maybePop(),
+                                    icon: const Icon(Icons.arrow_back),
+                                  ),
                             actions: [
                               if (hasPending) ...[
                                 const SizedBox(width: 8),

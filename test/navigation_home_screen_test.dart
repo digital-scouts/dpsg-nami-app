@@ -37,6 +37,8 @@ import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:nami/demo/demo_services.dart';
 import 'package:nami/presentation/model/qualifikations_einstellungen_model.dart';
+import 'package:nami/presentation/screens/profile_page.dart';
+import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_qualifikationen_page.dart';
 import 'package:nami/presentation/widgets/app_seitenleiste.dart';
 import 'package:provider/single_child_widget.dart';
@@ -144,14 +146,52 @@ void main() {
       );
     }
 
-    testWidgets('ist ab 1200 pt breit mit Ueberschrift', (tester) async {
+    testWidgets('Einstellungen stehen nebeneinander, rechts das Profil', (
+      tester,
+    ) async {
+      await pumpShell(tester, const Size(1032, 1376));
+
+      await tester.tap(inLeiste('Einstellungen'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SettingsPage), findsOneWidget);
+      expect(find.byType(ProfilePage), findsOneWidget);
+      expect(find.byType(AppSeitenleiste), findsOneWidget);
+      expect(find.byType(BackButton), findsNothing);
+    });
+
+    testWidgets(
+      'Einstellungsseiten oeffnen auf schmalen Fenstern ueber der unteren '
+      'Leiste',
+      (tester) async {
+        await pumpShell(tester, const Size(402, 874));
+
+        await tester.tap(find.byIcon(Icons.settings));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('settings-profile-header')));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProfilePage), findsOneWidget);
+        expect(find.byType(BottomNavigationBar), findsOneWidget);
+      },
+    );
+
+    test('nimmt den Platz neben dem Inhalt, wenn genug uebrig ist', () {
+      // Duo und iPad 13" hoch: zu wenig Platz, schmal.
+      expect(AppSeitenleiste.breiteFuer(951), AppSeitenleiste.schmaleBreite);
+      expect(AppSeitenleiste.breiteFuer(1032), AppSeitenleiste.schmaleBreite);
+      // iPad mini quer: 1133 - 848.
+      expect(AppSeitenleiste.breiteFuer(1133), 285);
+      expect(AppSeitenleiste.breiteFuer(1376), AppSeitenleiste.hoechstbreite);
+    });
+
+    testWidgets('ist breit mit Ueberschrift und Profil', (tester) async {
       await pumpShell(tester, const Size(1376, 1032));
 
       expect(
         tester.getSize(find.byType(AppSeitenleiste)).width,
-        AppSeitenleiste.breiteBreite,
+        AppSeitenleiste.hoechstbreite,
       );
       expect(inLeiste('Schnellzugriff'), findsOneWidget);
+      expect(inLeiste('Julia Keller'), findsOneWidget);
     });
 
     testWidgets(
@@ -175,7 +215,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(SettingsQualifikationenPage), findsOneWidget);
         expect(find.byType(AppSeitenleiste), findsOneWidget);
-        expect(find.byType(BackButton), findsNothing);
+        expect(find.byIcon(Icons.arrow_back), findsNothing);
 
         // Duo zuklappen bzw. Split View: die Seite bleibt als Unterseite der
         // Einstellungen offen, die untere Leiste bleibt sichtbar.
@@ -184,14 +224,14 @@ void main() {
         expect(find.byType(AppSeitenleiste), findsNothing);
         expect(find.byType(BottomNavigationBar), findsOneWidget);
         expect(find.byType(SettingsQualifikationenPage), findsOneWidget);
-        expect(find.byType(BackButton), findsOneWidget);
+        expect(find.byIcon(Icons.arrow_back), findsOneWidget);
 
         // Wieder aufklappen: zurueck in die Seitenleiste, ohne Zurueck-Pfeil.
         tester.view.physicalSize = const Size(1032, 1376);
         await tester.pumpAndSettle();
         expect(find.byType(AppSeitenleiste), findsOneWidget);
         expect(find.byType(SettingsQualifikationenPage), findsOneWidget);
-        expect(find.byType(BackButton), findsNothing);
+        expect(find.byIcon(Icons.arrow_back), findsNothing);
       },
     );
   });

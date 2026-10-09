@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/presentation/widgets/member_list_directory.dart';
+import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
@@ -437,6 +439,57 @@ void main() {
     expect(find.text('Festnetznummer'), findsOneWidget);
     expect(find.text('4711'), findsOneWidget);
   });
+
+  testWidgets(
+    'zeigt mit Seitenleiste Liste und Detail nebeneinander, auch beim Zu- '
+    'und Aufklappen',
+    (tester) async {
+      tester.view.physicalSize = const Size(1032, 1376);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        mitglieder: <Mitglied>[
+          Mitglied(
+            mitgliedsnummer: '4711',
+            vorname: 'Julia',
+            nachname: 'Keller',
+            geburtsdatum: DateTime(2010, 4, 6),
+            eintrittsdatum: DateTime(2020, 5, 1),
+          ),
+        ],
+        authModel: authModel,
+      );
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Mitglied auswählen'), findsOneWidget);
+
+      await tester.tap(find.text('Julia Keller').first);
+      await tester.pumpAndSettle();
+      expect(find.byType(MemberDetailPage), findsOneWidget);
+      expect(find.byType(MemberDirectory), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsNothing);
+
+      // Zuklappen: das Mitglied oeffnet als Unterseite mit Zurueck-Pfeil.
+      tester.view.physicalSize = const Size(402, 874);
+      await tester.pumpAndSettle();
+      expect(find.byType(MemberDetailPage), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+
+      // Aufklappen: wieder rechts neben der Liste.
+      tester.view.physicalSize = const Size(1032, 1376);
+      await tester.pumpAndSettle();
+      expect(find.byType(MemberDetailPage), findsOneWidget);
+      expect(find.byType(MemberDirectory), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsNothing);
+      expect(find.text('Mitglied auswählen'), findsNothing);
+    },
+  );
 
   testWidgets(
     'filtert die Members-Page lokal nach Stufen aus dem Arbeitskontext',

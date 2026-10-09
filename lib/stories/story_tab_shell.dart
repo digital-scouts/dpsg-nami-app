@@ -174,7 +174,7 @@ class StoryNavigationsScaffold extends StatelessWidget {
     required this.body,
   });
 
-  /// 0-3 Hauptbereiche, 4 Karte, 5 Qualifikationen.
+  /// 0-3 Hauptbereiche, 4 Karte, 5 Qualifikationen, 7 Profil.
   final int ausgewaehlt;
 
   /// Erhaelt, ob die Seitenleiste sichtbar ist.
@@ -205,8 +205,15 @@ class StoryNavigationsScaffold extends StatelessWidget {
                 ),
               ],
               unten: hauptbereiche.sublist(3),
+              // Beispielprofil wie in den Store-Daten.
+              profil: AppSeitenleisteProfil(
+                name: 'Hanna Albrecht',
+                stamm: 'Stamm Silberfels',
+                badge: context.watch<AppearanceModel?>()?.badge,
+                ziel: 7,
+              ),
               ausgewaehlt: ausgewaehlt,
-              breit: breite >= AppSeitenleiste.breitAb,
+              breite: AppSeitenleiste.breiteFuer(breite),
               onAuswahl: (_) {},
             ),
           Expanded(child: body(context, seitenleiste)),

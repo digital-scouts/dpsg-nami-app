@@ -5,6 +5,7 @@ import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/achievements_model.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
@@ -14,6 +15,7 @@ import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_page.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_paywall_page.dart';
+import 'package:nami/presentation/screens/profile_page.dart';
 import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_qualifikationen_page.dart';
@@ -55,13 +57,19 @@ class NavigationHomeScreen extends StatefulWidget {
 class _Schnellziel {
   const _Schnellziel({
     required this.id,
-    required this.eintrag,
+    required this.ziel,
     required this.route,
     required this.seite,
+    this.eintrag,
   });
 
   final String id;
-  final AppSeitenleisteEintrag eintrag;
+
+  /// Feste Nummer des Ziels, siehe [_NavigationHomeScreenState._index].
+  final int ziel;
+
+  /// Eintrag im Schnellzugriff; `null` fuer das Profil, das oben steht.
+  final AppSeitenleisteEintrag? eintrag;
   final String route;
 
   /// Seite neben der Seitenleiste, ohne Zurueck-Pfeil.
@@ -98,8 +106,12 @@ class _StapelBeobachter extends NavigatorObserver {
 class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   static _NavigationHomeScreenState? _aktiv;
 
-  /// 0-3: Hauptbereiche, ab 4: Schnellziele der Seitenleiste.
+  /// 0-3: Hauptbereiche, ab 4: Ziele nur der Seitenleiste.
   int _index = 0;
+  static const int _karte = 4;
+  static const int _qualifikationen = 5;
+  static const int _namiAiZiel = 6;
+  static const int _profil = 7;
   NamiAiAccessDecision _namiAi = const NamiAiAccessDecision(
     state: NamiAiAccessState.hidden,
   );
@@ -111,6 +123,57 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
   /// Ob im letzten Aufbau die Seitenleiste sichtbar war.
   bool? _warSeitenleiste;
+
+  /// Route des Ziels, das beim Zuklappen in die Einstellungen gewandert ist.
+  String? _zugeklappteRoute;
+
+  /// Rechts geoeffnete Einstellungsseite, solange die Einstellungen
+  /// nebeneinander stehen; `null` heisst Profil (bzw. App ohne Anmeldung).
+  String? _einstellungAuswahl;
+
+  static const Map<String, String> _einstellungsRouten = {
+    SettingsPage.profil: AppRoutes.profile,
+    SettingsPage.stamm: AppRoutes.settingsStamm,
+    SettingsPage.app: AppRoutes.settingsApp,
+    SettingsPage.erscheinungsbild: AppRoutes.settingsAppearance,
+    SettingsPage.benachrichtigungen: AppRoutes.settingsNotification,
+    SettingsPage.nachrichten: AppRoutes.settingsMessages,
+    SettingsPage.rechtliches: AppRoutes.settingsRechtliches,
+    SettingsPage.hilfe: AppRoutes.debugTools,
+  };
+
+  String _einstellungsWahl(bool profilDa) {
+    final wahl = _einstellungAuswahl;
+    if (wahl == null || (wahl == SettingsPage.profil && !profilDa)) {
+      return profilDa ? SettingsPage.profil : SettingsPage.app;
+    }
+    return wahl;
+  }
+
+  /// Oeffnet eine Seite im Inhaltsbereich, nicht ueber der Navigation.
+  Future<void> _unterseite(String route) async {
+    await _inhaltKey.currentState?.pushNamed(route);
+  }
+
+  /// Rechte Spalte der Einstellungen mit eigenem Navigator: Folgeseiten
+  /// (z. B. Altersgrenzen) bleiben in der Spalte.
+  Widget _einstellungsDetail(String wahl) {
+    final route = _einstellungsRouten[wahl]!;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(22)),
+        child: Navigator(
+          key: ValueKey('einstellungen-$wahl'),
+          initialRoute: route,
+          onGenerateInitialRoutes: (_, name) => [
+            onGenerateRoute(RouteSettings(name: name)),
+          ],
+          onGenerateRoute: onGenerateRoute,
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -225,47 +288,47 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         );
         break;
       case 3:
+        // Mit Seitenleiste stehen Liste und gewaehlte Seite nebeneinander,
+        // sonst oeffnen die Seiten im Inhaltsbereich.
+        final profilDa = _isProfileAvailable(authModel);
+        final wahl = _einstellungsWahl(profilDa);
+        VoidCallback oeffne(String eintrag) => seitenleiste
+            ? () => setState(() => _einstellungAuswahl = eintrag)
+            : () => _unterseite(_einstellungsRouten[eintrag]!);
         body = SettingsPage(
-          onStammSettings: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsStamm),
-          onAppSettings: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsApp),
-          onAppearanceSettings: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsAppearance),
-          onMessages: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsMessages),
-          onRechtliches: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsRechtliches),
-          onMapSettings: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsMap),
+          onStammSettings: oeffne(SettingsPage.stamm),
+          onAppSettings: oeffne(SettingsPage.app),
+          onAppearanceSettings: oeffne(SettingsPage.erscheinungsbild),
+          onMessages: seitenleiste
+              ? oeffne(SettingsPage.nachrichten)
+              : () => _unterseite(AppRoutes.settingsMessages),
+          onRechtliches: oeffne(SettingsPage.rechtliches),
+          onMapSettings: () => _unterseite(AppRoutes.settingsMap),
           onQualifikationen: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsQualifikationen),
-          onNamiAi: () => Navigator.pushNamed(context, AppRoutes.namiAiChat),
-          onNamiAiPaywall: () =>
-              Navigator.pushNamed(context, AppRoutes.namiAiPaywall),
-          onProfile: _isProfileAvailable(authModel)
-              ? () => Navigator.pushNamed(context, AppRoutes.profile)
-              : null,
+              _unterseite(AppRoutes.settingsQualifikationen),
+          onNamiAi: () => _unterseite(AppRoutes.namiAiChat),
+          onNamiAiPaywall: () => _unterseite(AppRoutes.namiAiPaywall),
+          onProfile: profilDa ? oeffne(SettingsPage.profil) : null,
           onExitDemo: _isDemo(context)
               ? context.read<AppModeController>().exitDemo
               : null,
           demoZugang: context.read<AppModeController?>()?.demoZugang,
           // Die Debug-Tools wirken auf die echte Installation.
-          onDebugTools: _isDemo(context)
-              ? null
-              : () => Navigator.pushNamed(context, AppRoutes.debugTools),
-          onNotificationSettings: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsNotification),
+          onDebugTools: _isDemo(context) ? null : oeffne(SettingsPage.hilfe),
+          onNotificationSettings: oeffne(SettingsPage.benachrichtigungen),
           // Mit Seitenleiste steht der Schnellzugriff dort.
           zeigeSchnellzugriff: !seitenleiste,
+          detail: seitenleiste ? _einstellungsDetail(wahl) : null,
+          ausgewaehlt: seitenleiste ? wahl : null,
         );
         break;
       default:
         body = const MemberPeoplePage();
     }
 
-    final inhalt = _index >= _tabIds.length
-        ? schnellziele[_index - _tabIds.length].seite(context)
+    final schnellziel = _schnellziel(_index, schnellziele);
+    final inhalt = schnellziel != null
+        ? schnellziel.seite(context)
         : _buildMainTabShell(
             context,
             content: body,
@@ -306,12 +369,14 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         children: [
           if (seitenleiste)
             AppSeitenleiste(
+              profil: _seitenleistenProfil(context, authModel),
               oben: hauptbereiche.sublist(0, 3),
-              schnellzugriff: [for (final z in schnellziele) z.eintrag],
+              schnellzugriff: [for (final z in schnellziele) ?z.eintrag],
               unten: hauptbereiche.sublist(3),
               ausgewaehlt: _index,
-              breit:
-                  MediaQuery.sizeOf(context).width >= AppSeitenleiste.breitAb,
+              breite: AppSeitenleiste.breiteFuer(
+                MediaQuery.sizeOf(context).width,
+              ),
               onAuswahl: (i) => _wechsle(i, schnellziele),
             ),
           Expanded(key: const ValueKey('shell-inhalt'), child: inhaltsbereich),
@@ -332,13 +397,13 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     final war = _warSeitenleiste;
     _warSeitenleiste = seitenleiste;
     if (_index >= _tabIds.length) {
-      final i = _index - _tabIds.length;
-      final ziel = i < schnellziele.length ? schnellziele[i] : null;
+      final ziel = _schnellziel(_index, schnellziele);
       if (!seitenleiste || ziel == null) {
         // Ohne Seitenleiste gibt es das Ziel nur als Unterseite der
         // Einstellungen; ist es weggefallen, bleiben die Einstellungen.
         _index = 3;
         if (ziel != null) {
+          _zugeklappteRoute = ziel.route;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final navigator = _inhaltKey.currentState;
             navigator?.popUntil((route) => route.isFirst);
@@ -357,38 +422,93 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           return;
         }
         final name = stapel.last.settings.name;
-        final i = schnellziele.indexWhere((z) => z.route == name);
-        if (i < 0) {
+        final ziel = schnellziele.where((z) => z.route == name).firstOrNull;
+        final eintrag = _einstellungsRouten.entries
+            .where((e) => e.value == name)
+            .firstOrNull;
+        if (ziel == null && eintrag == null) {
           return;
         }
+        // Was die Seitenleiste beim Zuklappen abgegeben hat, geht dorthin
+        // zurueck; andere Einstellungsseiten oeffnen rechts daneben.
+        final zurueckInLeiste =
+            ziel != null && (eintrag == null || name == _zugeklappteRoute);
+        _zugeklappteRoute = null;
         _inhaltKey.currentState?.removeRoute(stapel.last);
-        setState(() => _index = _tabIds.length + i);
+        setState(() {
+          if (zurueckInLeiste) {
+            _index = ziel.ziel;
+          } else {
+            _einstellungAuswahl = eintrag!.key;
+          }
+        });
       });
     }
   }
 
-  /// Karte, Qualifikationen und NaMi AI (sofern sichtbar), wie im
+  _Schnellziel? _schnellziel(int index, List<_Schnellziel> schnellziele) =>
+      schnellziele.where((z) => z.ziel == index).firstOrNull;
+
+  AppSeitenleisteProfil? _seitenleistenProfil(
+    BuildContext context,
+    AuthSessionModel authModel,
+  ) {
+    final profile = authModel.profile;
+    if (profile == null || !_isProfileAvailable(authModel)) {
+      return null;
+    }
+    return AppSeitenleisteProfil(
+      name: profile.secondaryDisplayName ?? profile.primaryDisplayName,
+      stamm: context
+          .watch<ArbeitskontextModel>()
+          .readModel
+          ?.arbeitskontext
+          .aktiverLayer
+          .name,
+      badge: context.watch<AppearanceModel?>()?.badge,
+      ziel: _profil,
+    );
+  }
+
+  /// Profil, Karte, Qualifikationen und NaMi AI (sofern sichtbar), wie im
   /// Schnellzugriff der Einstellungen ohne die Platzhalter.
   List<_Schnellziel> _schnellziele(BuildContext context, AppLocalizations t) {
     final qualiGesperrt =
         context.watch<AppearanceModel?>()?.access.qualifikationenFrei == false;
+    final authModel = context.watch<AuthSessionModel>();
     return [
+      if (_isProfileAvailable(authModel))
+        _Schnellziel(
+          id: 'profile',
+          ziel: _profil,
+          route: AppRoutes.profile,
+          seite: (_) => Builder(
+            builder: (context) => ProfilePage(
+              achievements:
+                  context.watch<AchievementsModel?>()?.achievements ?? const [],
+              onAchievements: () =>
+                  Navigator.pushNamed(context, AppRoutes.achievements),
+            ),
+          ),
+        ),
       _Schnellziel(
         id: 'map',
+        ziel: _karte,
         eintrag: AppSeitenleisteEintrag(
           icon: Icons.map_outlined,
           label: t.t('settings_map'),
-          ziel: _tabIds.length,
+          ziel: _karte,
         ),
         route: AppRoutes.settingsMap,
         seite: (_) => const SettingsMapPage(zeigeZurueck: false),
       ),
       _Schnellziel(
         id: 'qualifications',
+        ziel: _qualifikationen,
         eintrag: AppSeitenleisteEintrag(
           icon: Icons.verified_outlined,
           label: t.t('quali_titel'),
-          ziel: _tabIds.length + 1,
+          ziel: _qualifikationen,
           gesperrt: qualiGesperrt,
         ),
         route: AppRoutes.settingsQualifikationen,
@@ -397,10 +517,11 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       if (!_namiAi.isHidden)
         _Schnellziel(
           id: 'nami_ai',
+          ziel: _namiAiZiel,
           eintrag: AppSeitenleisteEintrag(
             icon: Icons.auto_awesome,
             label: 'NaMi AI',
-            ziel: _tabIds.length + 2,
+            ziel: _namiAiZiel,
           ),
           route: _namiAi.isEnabled
               ? AppRoutes.namiAiChat
@@ -415,7 +536,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   String _zielId(int index, List<_Schnellziel> schnellziele) =>
       index < _tabIds.length
       ? _tabIds[index]
-      : schnellziele[index - _tabIds.length].id;
+      : _schnellziel(index, schnellziele)?.id ?? 'unknown';
 
   void _wechsle(int i, List<_Schnellziel> schnellziele) {
     // Ein Tipp auf einen Bereich fuehrt immer zu dessen Startseite.

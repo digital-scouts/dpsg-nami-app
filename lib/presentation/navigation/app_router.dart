@@ -74,7 +74,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => ProfilePage(
-          achievements: context.watch<AchievementsModel>().achievements,
+          achievements:
+              context.watch<AchievementsModel?>()?.achievements ?? const [],
           onAchievements: () =>
               Navigator.pushNamed(context, AppRoutes.achievements),
         ),
@@ -83,7 +84,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => AchievementsPage(
-          achievements: context.watch<AchievementsModel>().achievements,
+          achievements:
+              context.watch<AchievementsModel?>()?.achievements ?? const [],
           // Passiver Link zur Bewertung nur auf iOS; auf Android gibt es das
           // Abzeichen nicht.
           onRateApp: defaultTargetPlatform == TargetPlatform.iOS
