@@ -2,7 +2,7 @@
 <!--
   App-Store-Kopfzeile 3840 × 1646. Marke mittig, weil der App Store je nach
   Gerät seitlich beschneidet; die Geräte am Rand dürfen wegfallen.
-  Parameter: ?style=navy|hell|stufen
+  Parameter: ?style=navy|hell|stufen&lang=de|en
 -->
 <html lang="de">
 <head>
@@ -41,10 +41,10 @@
   canvas.classList.add('s-' + style);
   canvas.innerHTML = `
     ${StoreRender.watermark(1900, 1000, -700)}
-    ${h.scenes.map((s) => `<div class="phone"><img src="raw/iphone/${s}.png${StoreRender.bust}" alt=""></div>`).join('')}
+    ${h.scenes.map((s) => `<div class="phone"><img src="${StoreRender.raw('iphone', s)}" alt=""></div>`).join('')}
     <div class="center">
       <div class="brand"><img src="../../icon/icon.png" alt=""><h1>${h.title}</h1></div>
-      <p class="claim">${h.claim}</p>
+      <p class="claim">${StoreRender.text(h.claim)}</p>
       <div class="stripes">
         <span style="background:var(--woe)"></span><span style="background:var(--jufi)"></span>
         <span style="background:var(--pfadi)"></span><span style="background:var(--rover)"></span>

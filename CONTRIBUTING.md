@@ -139,13 +139,13 @@ flutter run -t lib/main_storybook.dart
 Store- und Handbuch-Screenshots entstehen aus den Storybook-Szenen `Store/...` und `Docs/...` im iOS-Simulator:
 
 ```sh
-# Store-Rohscreens nach assets/workfiles/store/raw/<name>/
-tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name iphone
+# Store-Rohscreens nach assets/workfiles/store/raw/<sprache>/<name>/
+tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name iphone --lang de
 # Handbuch-Bilder (600 px, JPEG) nach docs/assets/img/screens/
 tool/store_screenshots/run_store_screenshots.sh --set docs --device <iphone-udid>
 ```
 
-Komposition und Texte der Store-Grafiken liegen unter [assets/workfiles/store/](assets/workfiles/store/README.md).
+Komposition, Texte (Deutsch und Englisch) und der Upload per Fastlane sind unter [assets/workfiles/store/](assets/workfiles/store/README.md) beschrieben. Den ganzen Durchlauf führt der Claude-Skill `store-seite` (`.claude/skills/store-seite/`).
 
 ## Karten-Geodaten
 

@@ -1,0 +1,3 @@
+# iOS-Bundle-ID und Android-Paketname sind identisch.
+app_identifier("de.jlange.nami.app")
+package_name("de.jlange.nami.app")
