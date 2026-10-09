@@ -411,6 +411,28 @@ class AppLocalizations {
       'acknowledge': 'Bestätigen',
       'update_available_title': 'Update verfügbar',
       'update_available_body': 'Es ist eine neuere Version der App verfügbar.',
+      'security_update_title': 'Sicherheitsupdate erforderlich',
+      'security_update_body':
+          'In dieser Version steckt eine Sicherheitslücke. Das Update behebt sie.',
+      'security_update_betrifft': 'Betrifft: {text}',
+      'security_update_rest':
+          'Du kannst es noch {count}× verschieben, danach sperrt sich die App bis zum Update.',
+      'security_update_now': 'Jetzt aktualisieren',
+      'security_update_later': 'In 3 Stunden erinnern',
+      'security_update_countdown_title': 'Sicherheitsupdate nötig',
+      'security_update_countdown_body':
+          'Die App sperrt sich in {hours} Std. {minutes} Min.',
+      'security_lock_title': 'Update erforderlich',
+      'security_lock_body':
+          'Diese Version ist wegen einer Sicherheitslücke gesperrt. Deine Daten bleiben verschlüsselt auf dem Gerät und sind nach dem Update wieder da.',
+      'security_lock_body_deleted':
+          'Diese Version ist wegen einer Sicherheitslücke gesperrt. Zum Schutz wurden die Mitgliederdaten auf diesem Gerät gelöscht. Nach dem Update lädt die App sie neu.',
+      'security_lock_version': 'Version {current} · mindestens {min} nötig',
+      'security_lock_store': 'Zum Store',
+      'security_lock_emergency': 'Notfallkontakte',
+      'security_lock_emergency_hint':
+          'Nur lesen. Die App ist bis zum Update gesperrt.',
+      'security_lock_recheck': 'Erneut prüfen',
       'update_required_title': 'Update erforderlich',
       'update_required_body':
           'Deine aktuelle App-Version wird nicht mehr unterstützt. Bitte aktualisiere die App.',
@@ -2054,6 +2076,28 @@ class AppLocalizations {
       'acknowledge': 'Acknowledge',
       'update_available_title': 'Update available',
       'update_available_body': 'A newer version of the app is available.',
+      'security_update_title': 'Security update required',
+      'security_update_body':
+          'This version has a security vulnerability. The update fixes it.',
+      'security_update_betrifft': 'Affects: {text}',
+      'security_update_rest':
+          'You can postpone it {count} more times, then the app locks until you update.',
+      'security_update_now': 'Update now',
+      'security_update_later': 'Remind me in 3 hours',
+      'security_update_countdown_title': 'Security update needed',
+      'security_update_countdown_body':
+          'The app locks in {hours} h {minutes} min.',
+      'security_lock_title': 'Update required',
+      'security_lock_body':
+          'This version is locked because of a security vulnerability. Your data stays encrypted on the device and is back after the update.',
+      'security_lock_body_deleted':
+          'This version is locked because of a security vulnerability. Member data on this device was deleted for protection. After the update, the app loads it again.',
+      'security_lock_version': 'Version {current} · at least {min} required',
+      'security_lock_store': 'Open store',
+      'security_lock_emergency': 'Emergency contacts',
+      'security_lock_emergency_hint':
+          'Read only. The app is locked until you update.',
+      'security_lock_recheck': 'Check again',
       'update_required_title': 'Update required',
       'update_required_body':
           'Your current app version is no longer supported. Please update the app.',

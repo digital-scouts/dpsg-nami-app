@@ -129,7 +129,8 @@
         "Auf großen Bildschirmen wie dem iPad im Querformat sitzt die Navigation am linken Rand, zusammen mit Karte, Qualifikationen und NaMi AI.",
         "Die Navigationsleiste bleibt auch auf Unterseiten wie den Mitgliedsdetails sichtbar.",
         "Auf großen Bildschirmen stehen Mitgliederliste und Mitgliedsdetails nebeneinander, ebenso die Einstellungen; das eigene Profil steht oben in der Seitenleiste. Auf dem iPhone Duo teilen sich beide Spalten am Falz wie zwei Buchseiten.",
-        "Die Qualifikationen-Übersicht zeigt oben, wie viele Personen mit Rolle unvollständig sind."
+        "Die Qualifikationen-Übersicht zeigt oben, wie viele Personen mit Rolle unvollständig sind.",
+        "Bei einer Sicherheitslücke fordert die App zum Update auf. Nach zweimal Verschieben zählt sie herunter und sperrt sich bis zum Update; Notfallkontakte bleiben lesbar, solange die Daten nicht gelöscht werden müssen."
       ],
       "bugFixes": [
         "Ein Wechsel der Ebene während eines laufenden Abgleichs wird nicht mehr still verworfen, sondern danach ausgeführt. Ein gerade gespeichertes Mitglied wird von einem älteren Abgleich nicht mehr überschrieben.",
