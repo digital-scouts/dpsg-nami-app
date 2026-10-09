@@ -19,7 +19,7 @@ Ziel: Die Sync-Kette bleibt automatisiert abgesichert. Offline-Konflikt, Telefon
 
 Nächste Aufgaben:
 
-- Kategorien für neue Kontaktangaben senden (#190, PR #155): Hitobito verlangt seit hitobito#4359 bei Telefonnummern, Zusatzmails und Zusatzadressen eine `category_id`. Ohne sie endet jede Neuanlage aus der App mit 422 („Kategorie muss ausgefüllt werden“). Umsetzbar, sobald [hitobito#4535](https://github.com/hitobito/hitobito/pull/4535) mit `GET /api/contact_account_categories` auf der Instanz läuft: Kategorien laden, beim Anlegen mitsenden, in der UI auswählbar machen, `specs/hitobito_dpsg_openapi.yaml` aktualisieren.
+- Kategorien für neue Kontaktangaben senden (#244, PR #155): Hitobito verlangt seit hitobito#4359 bei Telefonnummern, Zusatzmails und Zusatzadressen eine `category_id`. Ohne sie endet jede Neuanlage aus der App mit 422 („Kategorie muss ausgefüllt werden“). Umsetzbar, sobald [hitobito#4535](https://github.com/hitobito/hitobito/pull/4535) mit `GET /api/contact_account_categories` auf der Instanz läuft: Kategorien laden, beim Anlegen mitsenden, in der UI auswählbar machen, `specs/hitobito_dpsg_openapi.yaml` aktualisieren.
 - Das Öffnen und Lösen des Problemlösungsfalls im Problemlösungs-Screen an die Ketten-Szenarien anschließen.
 - Die übrigen duplizierten Test-Fakes (Logger, App-Settings, Auth, Pending- und Write-Repositories in etwa 15 Testdateien) auf `test/support/` umstellen.
 - Contract-Tests gegen einen lokalen Hitobito-Stack mit DPSG-Wagon prüfen: Service-Ebene in Dart mit Service-Token (`X-TOKEN`) statt Geräte-Integrationstests. Hürden sind der Port 3000, den auch der Statistikserver nutzt, eine Dev-Ausnahme für Cleartext-HTTP und der interaktive Login.
@@ -110,7 +110,6 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 - Auf dpsg.puzzle.ch bestätigt (2026-10-02): `/api/qualifications` liefert Daten, Rollen tragen über `include=group,layer_group` Gruppe und Layer, `household_key` verknüpft Haushalte.
 - Noch prüfen: Liefert dpsg.puzzle.ch mit der `fields[people]`-Whitelist weiterhin Kontaktangaben, Rollen und `membership_number`? `membership_number` fehlt in der OpenAPI-Spec. Sparse Fieldsets ignorieren unbekannte Felder üblicherweise, ein Gerätetest steht aber aus.
 - Vergangene Rollen: Die API liefert beendete Rollen derzeit nicht. Verlauf und Zeitstrahl sind darauf vorbereitet und markieren die Zeit vor der ersten bekannten Rolle. Zu klären ist, ob `filter[end_on]` oder ein Upstream-PR einen Abruf ermöglicht.
-- Store-Screenshots der Szene `Store/Mitgliedsdetail` neu erzeugen.
 
 **Events und Kurse aus Sicht der Teilnehmenden** (#211)
 
@@ -162,10 +161,10 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 - `feature/member-edit-felder` mergen, sobald der Hitobito-PR mit den Label-IDs durch ist.
 - (#215) Den 1.0.0-Eintrag in `assets/changelog.json` auf den tatsächlichen Umfang bringen.
 - (#215) Crash-Reporting entscheiden.
-- Antwort der DPSG zu Datenschutzrollen, OAuth-Client samt Review-Zugang für Apple/Google sowie Name, Lilie und Stufensymbolen einholen (A-84, A-59, A-64); danach über DSFA für die Geokodierung entscheiden (`specs/datenschutz/dsfa-schwellwert.md`).
+- (#243) Antwort der DPSG zu Datenschutzrollen, OAuth-Client samt Review-Zugang für Apple/Google sowie Name, Lilie und Stufensymbolen einholen (A-84, A-59, A-64); danach über DSFA für die Geokodierung entscheiden (`specs/datenschutz/dsfa-schwellwert.md`).
 - Impressum: ladungsfähige Anschrift ergänzen, spätestens bevor Supporter-Käufe live gehen (§ 5 DDG).
-- Offene Kartenbefunde klären: GPL-Lizenz von FMTC und erlaubte Quelle für Offline-Kacheln (A-62, A-51, A-55).
-- Prüfen, ob der Caddy des News-Stacks Access-Logs mit IP-Adressen schreibt (Rest von S-06).
+- (#245) Offene Kartenbefunde klären: GPL-Lizenz von FMTC und erlaubte Quelle für Offline-Kacheln (A-62, A-51, A-55). Bewertung und Empfehlung in `specs/rechtliches.md`.
+- (#243) Prüfen, ob der Caddy des News-Stacks Access-Logs mit IP-Adressen schreibt (Rest von S-06).
 - (#212) Store-Anbindung für Supporter-Pakete umsetzen, bevor die neuen Store-Texte („Kostenlos im Kern“, Qualifikationen-Übersicht als Extra) sichtbar werden. Der Testschalter `supporterTestZugang` wirkt seit A-94 nur noch in Debug- und Profile-Builds. Danach den DSA-Händlerstatus in App Store Connect und Play Console angeben (A-61).
 
 ## Später prüfen: Arbeitskontext-Ausbau (#214)
