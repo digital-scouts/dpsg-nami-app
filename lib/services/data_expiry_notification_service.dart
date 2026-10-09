@@ -76,7 +76,7 @@ class DataExpiryNotificationService {
     await _plugin.periodicallyShow(
       _notificationId,
       'Lokale Daten laufen bald ab',
-      'Melde dich innerhalb von $normalizedDays Tagen erneut an, damit lokale Daten verfuegbar bleiben.',
+      'Melde dich innerhalb von $normalizedDays Tagen erneut an, damit lokale Daten verfügbar bleiben.',
       RepeatInterval.daily,
       details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,

@@ -64,7 +64,7 @@ class AddressMapLocation {
     final addressNotFound = json['address_not_found'] == true;
     if (resolvedAt == null ||
         (!addressNotFound && (latitude == null || longitude == null))) {
-      throw const FormatException('Ungueltiger AddressMapLocation-Eintrag.');
+      throw const FormatException('Ungültiger AddressMapLocation-Eintrag.');
     }
 
     return AddressMapLocation(
