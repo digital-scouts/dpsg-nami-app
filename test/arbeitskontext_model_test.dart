@@ -2781,6 +2781,47 @@ void main() {
       return (model, readModelRepository, groupsService);
     }
 
+    test('Layerwechsel meldet keine Layer-Namen', () async {
+      final logger = _FakeLoggerService();
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+            HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: logger,
+      );
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+
+      await model.switchToLayer(
+        targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        session: session,
+        profile: profile,
+      );
+
+      expect(logger.layerSwitches, isNotEmpty);
+      for (final ereignis in logger.layerSwitches) {
+        expect(ereignis.values, isNot(contains('Bezirk Rhein')));
+        expect(ereignis.values, isNot(contains('Stamm Musterdorf')));
+      }
+      expect(
+        logger.messages.where((m) => m.contains('Stamm Musterdorf')),
+        isEmpty,
+      );
+    });
+
     test(
       'Layerwechsel waehrend eines Syncs wartet und wechselt danach',
       () async {
@@ -3055,6 +3096,15 @@ class _FakeLoggerService extends LoggerService {
       );
 
   final List<String> messages = <String>[];
+  final List<Map<String, Object?>> layerSwitches = <Map<String, Object?>>[];
+
+  @override
+  Future<void> trackLayerSwitch(
+    String outcome, {
+    Map<String, Object?> properties = const <String, Object?>{},
+  }) async {
+    layerSwitches.add(<String, Object?>{'outcome': outcome, ...properties});
+  }
 
   @override
   Future<void> log(String service, String message) async {

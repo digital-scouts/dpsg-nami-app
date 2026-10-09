@@ -23,9 +23,9 @@ Ebenfalls unabhängig vom Schalter sendet das Wiredash-SDK bei jedem Start, höc
 | Ereignis | Anlass | Eigenschaften (Auswahl) |
 |---|---|---|
 | `auth_flow` | Anmelden, Abmelden, Token-Erneuerung | `action`, `outcome` |
-| `layer_switch` | Wechsel des Arbeitskontexts | `outcome`, Layer-IDs und -Namen |
+| `layer_switch` | Wechsel des Arbeitskontexts | `outcome`, Layer-IDs |
 | `settings_changed` | geänderte Einstellung (30 s entprellt) | `setting`, neuer Wert |
-| `runtime_error` | unerwarteter Fehler | `source`, `error_type`, `exception`, `stack` (je auf 900 Zeichen gekürzt) |
+| `runtime_error` | unerwarteter Fehler | `source`, `error_type`, `exception` (bereinigte erste Zeile, höchstens 200 Zeichen), `stack` (auf 900 Zeichen gekürzt) |
 | `member_edit` | Bearbeiten, Speichern, erneutes Senden | siehe unten |
 | `member_resolution_*` | Problemlösungsfälle | siehe unten |
 | `feedback_prompt`, `promoter_survey` | Feedback-Dialog und Umfrage | siehe unten |

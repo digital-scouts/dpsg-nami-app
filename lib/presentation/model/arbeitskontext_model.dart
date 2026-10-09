@@ -620,7 +620,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         _status = ArbeitskontextStatus.ready;
         await _logger.log(
           'arbeitskontext',
-          'Arbeitskontext erfolgreich aus lokalem Cache geladen: layer=${cached.arbeitskontext.aktiverLayer.id} name=${cached.arbeitskontext.aktiverLayer.name}',
+          'Arbeitskontext erfolgreich aus lokalem Cache geladen: layer=${cached.arbeitskontext.aktiverLayer.id}',
         );
         _isInitialSequenceActive = true;
         _letzterLauf = const _SyncLauf.ausCache();
@@ -718,7 +718,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       if (_arbeitskontext != null) {
         await _logger.log(
           'arbeitskontext',
-          'Arbeitskontext erfolgreich remote geladen: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0} ${messung.logWerte()}',
+          'Arbeitskontext erfolgreich remote geladen: layer=${_arbeitskontext!.aktiverLayer.id} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0} ${messung.logWerte()}',
         );
       }
       _isInitialSequenceActive = true;
@@ -1050,7 +1050,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       if (_arbeitskontext != null) {
         await _logger.log(
           'arbeitskontext',
-          'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0} '
+          'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0} '
               'efz=${_readModel?.efzStand.name}/${_readModel?.efzEinsichtnahmen.length ?? 0} '
               'qualifikationen=${_readModel?.qualifikationenStand.name}/${_readModel?.qualifikationen.length ?? 0} '
               '${messung.logWerte()}',
@@ -1323,9 +1323,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       'started',
       properties: {
         'from_layer_id': current.aktiverLayer.id,
-        'from_layer_name': current.aktiverLayer.name,
         'to_layer_id': targetLayer.id,
-        'to_layer_name': targetLayer.name,
       },
     );
 
@@ -1364,9 +1362,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'failure',
           properties: {
             'from_layer_id': current.aktiverLayer.id,
-            'from_layer_name': current.aktiverLayer.name,
             'to_layer_id': targetLayer.id,
-            'to_layer_name': targetLayer.name,
             'reason': 'target_not_resolvable',
           },
         );
@@ -1419,9 +1415,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'success',
           properties: {
             'from_layer_id': current.aktiverLayer.id,
-            'from_layer_name': current.aktiverLayer.name,
             'to_layer_id': _arbeitskontext!.aktiverLayer.id,
-            'to_layer_name': _arbeitskontext!.aktiverLayer.name,
           },
         );
       }
@@ -1441,9 +1435,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         'failure',
         properties: {
           'from_layer_id': current.aktiverLayer.id,
-          'from_layer_name': current.aktiverLayer.name,
           'to_layer_id': targetLayer.id,
-          'to_layer_name': targetLayer.name,
           'error_type': error.runtimeType.toString(),
         },
       );

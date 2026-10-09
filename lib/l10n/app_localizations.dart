@@ -1486,6 +1486,8 @@ class AppLocalizations {
       'debug_logs_range_cancel': 'Abbrechen',
       'debug_logs_menu': 'Aktionen',
       'debug_logs_share': 'Teilen',
+      'debug_logs_report_failed':
+          'Die Mail konnte nicht geöffnet werden. Teile die Logs stattdessen.',
       'debug_logs_report': 'Report Issue',
       'debug_logs_report_hint':
           'Mail an den Entwickler, gleicher Ausschnitt im Anhang',
@@ -3107,6 +3109,8 @@ class AppLocalizations {
       'debug_logs_range_cancel': 'Cancel',
       'debug_logs_menu': 'Actions',
       'debug_logs_share': 'Share',
+      'debug_logs_report_failed':
+          'The email could not be opened. Share the logs instead.',
       'debug_logs_report': 'Report issue',
       'debug_logs_report_hint':
           'Email to the developer with the same excerpt attached',

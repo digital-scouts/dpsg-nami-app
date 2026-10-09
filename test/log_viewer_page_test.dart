@@ -20,6 +20,7 @@ class _Fixture {
   int loeschAufrufe = 0;
   File? geteilt;
   File? gemeldet;
+  bool meldenScheitert = false;
 
   LogQuelle get quelle => LogQuelle(
     titelKey: 'debug_logs_app_title',
@@ -58,7 +59,12 @@ class _Fixture {
       nowProvider: () => DateTime(2026, 10, 7, 9),
       temporaeresVerzeichnis: () async => temp,
       teilen: (datei, anker) async => geteilt = datei,
-      melden: (datei) async => gemeldet = datei,
+      melden: (datei) async {
+        if (meldenScheitert) {
+          throw StateError('kein Mailprogramm');
+        }
+        gemeldet = datei;
+      },
     ),
   );
 }
@@ -165,6 +171,30 @@ void main() {
     final inhalt = await tester.runAsync(fixture.gemeldet!.readAsString);
     expect(inhalt, isNot(contains('Gestern-Eintrag')));
     expect(inhalt, contains('Warnung heute'));
+  });
+
+  testWidgets('Report Issue weist auf Teilen hin, wenn die Mail scheitert', (
+    tester,
+  ) async {
+    final fixture = _Fixture()..meldenScheitert = true;
+    await starte(tester, fixture);
+
+    await tester.tap(find.byTooltip('Aktionen'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('log_menu_melden')));
+    await warteAufDateien(tester);
+
+    expect(
+      find.text(
+        'Die Mail konnte nicht geöffnet werden. Teile die Logs stattdessen.',
+      ),
+      findsOneWidget,
+    );
+    // Einblendung der Leiste abwarten.
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.widgetWithText(TextButton, 'Teilen'));
+    await warteAufDateien(tester);
+    expect(fixture.geteilt, isNotNull);
   });
 
   testWidgets('Loeschen fragt nach und loescht alle Tage', (tester) async {

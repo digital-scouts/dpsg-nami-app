@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -528,19 +529,31 @@ class _LogViewerPageState extends State<LogViewerPage> {
     final t = AppLocalizations.of(context);
     final melden =
         widget.melden ??
-        (File datei) async {
-          try {
-            await FlutterEmailSender.send(
-              Email(
-                body: t.t('debug_logs_email_body'),
-                attachmentPaths: [datei.path],
-                subject: t.t('debug_logs_email_subject'),
-                recipients: const [logReportRecipient],
-              ),
-            );
-          } catch (_) {}
-        };
-    await melden(datei);
+        (File datei) => FlutterEmailSender.send(
+          Email(
+            body: t.t('debug_logs_email_body'),
+            attachmentPaths: [datei.path],
+            subject: t.t('debug_logs_email_subject'),
+            recipients: const [logReportRecipient],
+          ),
+        );
+    try {
+      await melden(datei);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      // Ohne Mailprogramm bleibt Teilen als Weg, die Logs zu verschicken.
+      AppSnackbar.show(
+        context,
+        message: t.t('debug_logs_report_failed'),
+        type: AppSnackbarType.warning,
+        action: AppSnackbarAction(
+          label: t.t('debug_logs_share'),
+          onPressed: () => unawaited(_teilen()),
+        ),
+      );
+    }
   }
 
   Future<void> _loeschen() async {
