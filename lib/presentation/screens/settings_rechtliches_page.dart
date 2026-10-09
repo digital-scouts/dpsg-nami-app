@@ -207,6 +207,7 @@ class SettingsRechtlichesPage extends StatelessWidget {
   void _zeigeEmpfaenger(BuildContext context, Datenempfaenger empfaenger) {
     final id = installationsId;
     showModalBottomSheet<void>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -220,6 +221,7 @@ class SettingsRechtlichesPage extends StatelessWidget {
 
   void _zeigeText(BuildContext context, String titel, Widget inhalt) {
     showModalBottomSheet<void>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       showDragHandle: true,

@@ -15,11 +15,15 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
-  test('Rand waechst erst oberhalb der Lesebreite', () {
+  test('Rand greift erst mit Mindestrand oberhalb der Lesebreite', () {
     expect(AppLesebreite.randFuer(402), 0);
-    expect(AppLesebreite.randFuer(AppLesebreite.breite), 0);
-    expect(AppLesebreite.randFuer(871), 75.5);
-    expect(AppLesebreite.randFuer(1376), 328);
+    // iPad 11" hoch: knapp ueber der Lesebreite bleibt alles randlos.
+    expect(AppLesebreite.randFuer(820), 0);
+    // Duo aufgeklappt neben Seitenleiste und Systembereich rechts nutzt die
+    // volle Breite.
+    expect(AppLesebreite.randFuer(951 - 88 - 83), 0);
+    expect(AppLesebreite.randFuer(848), 24);
+    expect(AppLesebreite.randFuer(1376), 288);
     expect(AppLesebreite.randFuer(double.infinity), 0);
   });
 
@@ -58,7 +62,7 @@ void main() {
       setzeFenster(tester, const Size(1376, 1032));
       final rect = await headerRect(tester);
       expect(rect.width, AppLesebreite.breite);
-      expect(rect.left, 328);
+      expect(rect.left, 288);
     });
 
     testWidgets('volleBreite bleibt auch breit randlos', (tester) async {
@@ -95,8 +99,8 @@ void main() {
     await tester.pump();
 
     final kachel = tester.getRect(find.byType(MemberListTile).first);
-    // 720 pt Lesebreite abzueglich 16 pt Innenabstand je Seite.
-    expect(kachel.left, 328 + 16);
+    // Lesebreite abzueglich 16 pt Innenabstand je Seite.
+    expect(kachel.left, 288 + 16);
     expect(kachel.width, AppLesebreite.breite - 32);
   });
 }

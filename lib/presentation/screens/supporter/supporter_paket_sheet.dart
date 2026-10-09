@@ -23,6 +23,7 @@ VoidCallback? supporterKaufEinstieg(
     return () => Navigator.pushNamed(context, AppRoutes.supporter);
   }
   return () => showModalBottomSheet<void>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     showDragHandle: true,

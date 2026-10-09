@@ -95,20 +95,37 @@ class _SupporterBackdropState extends State<SupporterBackdrop> {
               if (flaeche == null || flaeche.rect.bottom <= 0) {
                 return const SizedBox.shrink();
               }
+              // Als Block folgt die Flaeche dem Anker, sonst reicht sie bis
+              // an beide Raender, auch hinter die seitliche Safe Area.
+              final block = flaeche.radius != BorderRadius.zero;
+              final flaecheInhalt = background == null
+                  ? ColoredBox(
+                      key: const ValueKey('supporter-backdrop-plain'),
+                      color: Theme.of(context).colorScheme.surface,
+                    )
+                  : SupporterBackground(background: background);
               return Positioned(
                 top: 0,
-                left: flaeche.rect.left,
-                width: flaeche.rect.width,
+                left: block ? flaeche.rect.left : 0,
+                width: block ? flaeche.rect.width : null,
+                right: block ? null : 0,
                 height: flaeche.rect.bottom,
-                child: ClipRRect(
-                  borderRadius: flaeche.radius,
-                  child: background == null
-                      ? ColoredBox(
-                          key: const ValueKey('supporter-backdrop-plain'),
-                          color: Theme.of(context).colorScheme.surface,
-                        )
-                      : SupporterBackground(background: background),
-                ),
+                child: block
+                    ? ClipRRect(
+                        borderRadius: flaeche.radius,
+                        child: flaecheInhalt,
+                      )
+                    : DecoratedBox(
+                        position: DecorationPosition.foreground,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ),
+                        child: flaecheInhalt,
+                      ),
               );
             },
           ),

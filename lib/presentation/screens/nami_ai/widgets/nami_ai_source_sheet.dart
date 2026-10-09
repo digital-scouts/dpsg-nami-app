@@ -19,6 +19,7 @@ Future<void> showNamiAiSourceSheet(
   }
 
   await showModalBottomSheet<void>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     builder: (context) {

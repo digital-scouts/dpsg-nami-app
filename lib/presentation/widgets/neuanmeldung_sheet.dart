@@ -13,6 +13,7 @@ class NeuanmeldungSheet extends StatelessWidget {
 
   static Future<bool?> show(BuildContext context) {
     return showModalBottomSheet<bool>(
+      useRootNavigator: true,
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

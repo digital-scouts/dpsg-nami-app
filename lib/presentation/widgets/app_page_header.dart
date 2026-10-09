@@ -78,7 +78,7 @@ class AppPageHeader extends StatelessWidget {
       maxScaleFactor: maxTextScaleFactor,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (volleBreite || constraints.maxWidth <= AppLesebreite.breite) {
+          if (volleBreite || !AppLesebreite.begrenzt(constraints.maxWidth)) {
             return _buildHeader(context, block: false);
           }
           return Align(
@@ -106,7 +106,8 @@ class AppPageHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: useBackdrop ? Colors.transparent : colorScheme.surface,
         borderRadius: block ? radius : null,
-        border: block
+        // Mit Backdrop zeichnet dieser die Trennlinie ueber die volle Breite.
+        border: block || useBackdrop
             ? null
             : Border(bottom: BorderSide(color: colorScheme.outline)),
       ),

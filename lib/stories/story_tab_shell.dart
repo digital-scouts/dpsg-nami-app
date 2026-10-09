@@ -9,6 +9,7 @@ import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
+import 'package:nami/presentation/widgets/app_seitenleiste.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/services/app_icon_service.dart';
 import 'package:provider/provider.dart';
@@ -155,15 +156,69 @@ class StoryTabPage extends StatelessWidget {
           ),
           child: child!,
         ),
-        home: Scaffold(
-          body: StoryTabShell(
+        home: StoryNavigationsScaffold(
+          ausgewaehlt: tabIndex,
+          body: (context, _) => StoryTabShell(
             background: background,
             simulateTopInset: simulateTopInset,
             child: child,
           ),
-          bottomNavigationBar: AppBottomNavigation(currentIndex: tabIndex),
         ),
       ),
+    );
+  }
+}
+
+/// Scaffold mit unterer Leiste oder, wie in der App ab 840 pt, mit
+/// Seitenleiste samt Schnellzugriff.
+class StoryNavigationsScaffold extends StatelessWidget {
+  const StoryNavigationsScaffold({
+    super.key,
+    required this.ausgewaehlt,
+    required this.body,
+  });
+
+  /// 0-3 Hauptbereiche, 4 Karte, 5 Qualifikationen.
+  final int ausgewaehlt;
+
+  /// Erhaelt, ob die Seitenleiste sichtbar ist.
+  final Widget Function(BuildContext context, bool seitenleiste) body;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final breite = MediaQuery.sizeOf(context).width;
+    final seitenleiste = AppSeitenleiste.sichtbar(breite);
+    final hauptbereiche = AppBottomNavigation.hauptbereiche(t);
+    return Scaffold(
+      body: Row(
+        children: [
+          if (seitenleiste)
+            AppSeitenleiste(
+              oben: hauptbereiche.sublist(0, 3),
+              schnellzugriff: [
+                AppSeitenleisteEintrag(
+                  icon: Icons.map_outlined,
+                  label: t.t('settings_map'),
+                  ziel: 4,
+                ),
+                AppSeitenleisteEintrag(
+                  icon: Icons.verified_outlined,
+                  label: t.t('quali_titel'),
+                  ziel: 5,
+                ),
+              ],
+              unten: hauptbereiche.sublist(3),
+              ausgewaehlt: ausgewaehlt,
+              breit: breite >= AppSeitenleiste.breitAb,
+              onAuswahl: (_) {},
+            ),
+          Expanded(child: body(context, seitenleiste)),
+        ],
+      ),
+      bottomNavigationBar: seitenleiste || ausgewaehlt > 3
+          ? null
+          : AppBottomNavigation(currentIndex: ausgewaehlt),
     );
   }
 }

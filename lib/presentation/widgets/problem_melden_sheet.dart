@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 /// Abbruch.
 Future<ProblemMeldung?> showProblemMeldenSheet(BuildContext context) {
   return showModalBottomSheet<ProblemMeldung>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     showDragHandle: true,

@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 /// Lesebreite fuer breite Fenster (iPad, aufgeklapptes iPhone, Split View):
@@ -11,12 +9,22 @@ import 'package:flutter/material.dart';
 class AppLesebreite extends StatelessWidget {
   const AppLesebreite({super.key, required this.builder});
 
-  /// Hoechstbreite des Inhalts einschliesslich seines Innenabstands.
-  static const double breite = 720;
+  /// Hoechstbreite des Inhalts einschliesslich seines Innenabstands. So
+  /// gewaehlt, dass das aufgeklappte Duo neben der Seitenleiste noch die
+  /// volle Breite nutzt.
+  static const double breite = 800;
+
+  /// Mindestrand je Seite, ab dem begrenzt wird. Darunter bleiben Inhalt und
+  /// Kopf randlos, damit kein schmaler Spalt entsteht.
+  static const double blockRand = 24;
+
+  /// Ob bei [verfuegbar] Breite begrenzt wird (Kopf als Block).
+  static bool begrenzt(double verfuegbar) =>
+      verfuegbar.isFinite && verfuegbar >= breite + 2 * blockRand;
 
   /// Zusaetzlicher Rand je Seite bei [verfuegbar] Breite.
   static double randFuer(double verfuegbar) =>
-      verfuegbar.isFinite ? math.max(0, (verfuegbar - breite) / 2) : 0;
+      begrenzt(verfuegbar) ? (verfuegbar - breite) / 2 : 0;
 
   /// Erhaelt den zusaetzlichen seitlichen Rand. Scrollende Listen addieren
   /// ihn zu ihrem Padding, damit die volle Breite scrollbar bleibt.
@@ -42,11 +50,11 @@ class AppLesebreiteBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      heightFactor: 1,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: AppLesebreite.breite),
+    return LayoutBuilder(
+      builder: (context, constraints) => Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: AppLesebreite.randFuer(constraints.maxWidth),
+        ),
         child: child,
       ),
     );

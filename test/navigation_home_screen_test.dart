@@ -35,9 +35,167 @@ import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
+import 'package:nami/demo/demo_services.dart';
+import 'package:nami/presentation/model/qualifikations_einstellungen_model.dart';
+import 'package:nami/presentation/screens/settings_qualifikationen_page.dart';
+import 'package:nami/presentation/widgets/app_seitenleiste.dart';
+import 'package:provider/single_child_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  group('Seitenleiste', () {
+    Future<void> pumpShell(
+      WidgetTester tester,
+      Size groesse, {
+      List<SingleChildWidget> extraProviders = const [],
+    }) async {
+      SharedPreferences.setMockInitialValues({});
+      tester.view.physicalSize = groesse;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        authModel: authModel,
+      );
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+          extraProviders: extraProviders,
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Scaffold(body: Text('Route ${settings.name}')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Finder inLeiste(String text) => find.descendant(
+      of: find.byType(AppSeitenleiste),
+      matching: find.text(text),
+    );
+
+    testWidgets('bleibt unter 840 pt bei der unteren Leiste', (tester) async {
+      await pumpShell(tester, const Size(744, 1133));
+
+      expect(find.byType(AppSeitenleiste), findsNothing);
+      expect(find.byType(BottomNavigationBar), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.settings));
+      await tester.pumpAndSettle();
+      expect(find.text('SCHNELLZUGRIFF'), findsOneWidget);
+    });
+
+    testWidgets('ersetzt ab 840 pt die untere Leiste', (tester) async {
+      await pumpShell(tester, const Size(1032, 1376));
+
+      expect(find.byType(BottomNavigationBar), findsNothing);
+      expect(find.byType(AppSeitenleiste), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(AppSeitenleiste)).width,
+        AppSeitenleiste.schmaleBreite,
+      );
+
+      await tester.tap(inLeiste('Statistiken'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StatisticsPage), findsOneWidget);
+
+      // Der Schnellzugriff steht in der Leiste, nicht in den Einstellungen.
+      await tester.tap(inLeiste('Einstellungen'));
+      await tester.pumpAndSettle();
+      expect(find.text('SCHNELLZUGRIFF'), findsNothing);
+      expect(inLeiste('Karte'), findsOneWidget);
+      expect(inLeiste('Qualifikationen'), findsOneWidget);
+    });
+
+    for (final groesse in const [Size(1032, 1376), Size(402, 874)]) {
+      testWidgets(
+        'Unterseiten oeffnen im Inhaltsbereich, die Navigation bleibt '
+        '(${groesse.width.toInt()} pt)',
+        (tester) async {
+          await pumpShell(tester, groesse);
+
+          unawaited(
+            NavigationHomeScreen.inhaltNavigator!.push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    Scaffold(appBar: AppBar(), body: const Text('Unterseite')),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(find.text('Unterseite'), findsOneWidget);
+          final seitenleiste = groesse.width >= AppSeitenleiste.ab;
+          expect(
+            find.byType(AppSeitenleiste),
+            seitenleiste ? findsOneWidget : findsNothing,
+          );
+          expect(
+            find.byType(BottomNavigationBar),
+            seitenleiste ? findsNothing : findsOneWidget,
+          );
+
+          // Ein Tipp auf den Bereich fuehrt zu dessen Startseite.
+          await tester.tap(find.byIcon(Icons.groups));
+          await tester.pumpAndSettle();
+          expect(find.text('Unterseite'), findsNothing);
+        },
+      );
+    }
+
+    testWidgets('ist ab 1200 pt breit mit Ueberschrift', (tester) async {
+      await pumpShell(tester, const Size(1376, 1032));
+
+      expect(
+        tester.getSize(find.byType(AppSeitenleiste)).width,
+        AppSeitenleiste.breiteBreite,
+      );
+      expect(inLeiste('Schnellzugriff'), findsOneWidget);
+    });
+
+    testWidgets(
+      'Schnellziel oeffnet neben der Leiste und bleibt beim Verkleinern offen',
+      (tester) async {
+        final quali = QualifikationsEinstellungenModel(
+          InMemoryQualifikationsEinstellungenRepository(),
+        );
+        await quali.load();
+        await pumpShell(
+          tester,
+          const Size(1032, 1376),
+          extraProviders: [
+            ChangeNotifierProvider<QualifikationsEinstellungenModel>.value(
+              value: quali,
+            ),
+          ],
+        );
+
+        await tester.tap(inLeiste('Qualifikationen'));
+        await tester.pumpAndSettle();
+        expect(find.byType(SettingsQualifikationenPage), findsOneWidget);
+        expect(find.byType(AppSeitenleiste), findsOneWidget);
+        expect(find.byType(BackButton), findsNothing);
+
+        // Duo zuklappen bzw. Split View: die Seite bleibt als Unterseite der
+        // Einstellungen offen, die untere Leiste bleibt sichtbar.
+        tester.view.physicalSize = const Size(402, 874);
+        await tester.pumpAndSettle();
+        expect(find.byType(AppSeitenleiste), findsNothing);
+        expect(find.byType(BottomNavigationBar), findsOneWidget);
+        expect(find.byType(SettingsQualifikationenPage), findsOneWidget);
+        expect(find.byType(BackButton), findsOneWidget);
+
+        // Wieder aufklappen: zurueck in die Seitenleiste, ohne Zurueck-Pfeil.
+        tester.view.physicalSize = const Size(1032, 1376);
+        await tester.pumpAndSettle();
+        expect(find.byType(AppSeitenleiste), findsOneWidget);
+        expect(find.byType(SettingsQualifikationenPage), findsOneWidget);
+        expect(find.byType(BackButton), findsNothing);
+      },
+    );
+  });
+
   testWidgets(
     'zeigt Mitglieder, Statistik und Stufenwechsel ohne AppBar, aber mit SafeArea',
     (tester) async {
@@ -890,6 +1048,8 @@ Widget _buildTestApp({
   required AuthSessionModel authModel,
   required ArbeitskontextModel arbeitskontextModel,
   AchievementService? achievementService,
+  List<SingleChildWidget> extraProviders = const [],
+  RouteFactory? onGenerateRoute,
 }) {
   return MultiProvider(
     providers: [
@@ -906,8 +1066,10 @@ Widget _buildTestApp({
             achievementService ??
             AchievementService(repository: InMemoryAchievementRepository()),
       ),
+      ...extraProviders,
     ],
     child: MaterialApp(
+      onGenerateRoute: onGenerateRoute,
       localizationsDelegates: [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

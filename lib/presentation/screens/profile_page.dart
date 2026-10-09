@@ -60,6 +60,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     final selectedLayer = await showModalBottomSheet<ArbeitskontextLayer>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) =>

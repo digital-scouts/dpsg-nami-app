@@ -37,6 +37,7 @@ import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
+import 'story_tab_shell.dart';
 
 Story memberPeoplePageLoadedStory() => Story(
   name: 'Mitglieder/Screens/Liste/Geladen',
@@ -71,7 +72,7 @@ class MemberPeopleStoryShell extends StatefulWidget {
     super.key,
     this.cached = const <Mitglied>[],
     this.readModel,
-    this.bottomNavigationBar,
+    this.navigationIndex,
     this.appearance,
     this.themeMode = ThemeMode.system,
     this.locale = const Locale('de'),
@@ -79,7 +80,9 @@ class MemberPeopleStoryShell extends StatefulWidget {
 
   final List<Mitglied> cached;
   final ArbeitskontextReadModel? readModel;
-  final Widget? bottomNavigationBar;
+
+  /// Tab der Navigation; `null` ohne Navigation.
+  final int? navigationIndex;
   final AppearanceSettings? appearance;
   final ThemeMode themeMode;
   final Locale locale;
@@ -182,13 +185,24 @@ class _MemberPeopleStoryShellState extends State<MemberPeopleStoryShell> {
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
             locale: widget.locale,
-            home: Scaffold(
-              // Wie in NavigationHomeScreen: die Shell liefert die SafeArea.
-              body: SupporterBackdrop(
-                background: widget.appearance?.background,
-                child: const SafeArea(bottom: false, child: MemberPeoplePage()),
-              ),
-              bottomNavigationBar: widget.bottomNavigationBar,
+            home: Builder(
+              builder: (context) {
+                // Wie in NavigationHomeScreen: die Shell liefert die SafeArea.
+                final body = SupporterBackdrop(
+                  background: widget.appearance?.background,
+                  child: const SafeArea(
+                    bottom: false,
+                    child: MemberPeoplePage(),
+                  ),
+                );
+                final index = widget.navigationIndex;
+                return index == null
+                    ? Scaffold(body: body)
+                    : StoryNavigationsScaffold(
+                        ausgewaehlt: index,
+                        body: (_, _) => body,
+                      );
+              },
             ),
           );
         },

@@ -16,6 +16,7 @@ Future<void> showMemberFilterSortSheet(
   FutureOr<void> Function(MemberFilterSortApplySummary summary)? onApplied,
 }) {
   return showModalBottomSheet<void>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -277,6 +278,7 @@ class _MemberFilterSortSheetState extends State<_MemberFilterSortSheet> {
 
   Future<void> _editGroup(MemberCustomFilterGroup group) async {
     final edited = await showModalBottomSheet<MemberCustomFilterGroup>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (editorContext) => _CustomGroupEditorSheet(
@@ -294,6 +296,7 @@ class _MemberFilterSortSheetState extends State<_MemberFilterSortSheet> {
 
   Future<void> _createGroup() async {
     final result = await showModalBottomSheet<MemberCustomFilterGroup>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (editorContext) =>
@@ -1423,6 +1426,7 @@ Future<T?> _showOptionPickerSheet<T>(
   required List<_SelectOption<T>> options,
 }) {
   return showModalBottomSheet<T>(
+    useRootNavigator: true,
     context: context,
     builder: (sheetContext) {
       final theme = Theme.of(sheetContext);

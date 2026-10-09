@@ -15,7 +15,6 @@ import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/screens/settings_appearance_page.dart';
 import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/theme/theme.dart';
-import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/services/app_icon_service.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
@@ -26,6 +25,7 @@ import '../bundesstatistik_story.dart';
 import '../member_people_page_story.dart';
 import '../settings_stufenwechsel_story.dart';
 import '../statistics_page_story.dart';
+import '../story_tab_shell.dart';
 import 'store_showcase_data.dart';
 
 /// Vollbild-Szenen fuer Store-Screenshots.
@@ -64,7 +64,7 @@ Story storeMitgliederStory() => Story(
     readModel: StoreShowcaseData.readModel(),
     appearance: storeShowcaseAppearance,
     themeMode: ThemeMode.light,
-    bottomNavigationBar: const AppBottomNavigation(currentIndex: 0),
+    navigationIndex: 0,
     locale: storeSceneLocale,
   ),
 );
@@ -150,7 +150,13 @@ Story storeErscheinungsbildDunkelStory() => Story(
 
 Story storeKarteStory() => Story(
   name: 'Store/Karte',
-  builder: (context) => const StoreSceneApp(home: SettingsMapPage()),
+  // Auf breiten Fenstern ein Ziel der Seitenleiste, sonst eigene Seite.
+  builder: (context) => StoreSceneApp(
+    home: StoryNavigationsScaffold(
+      ausgewaehlt: 4,
+      body: (_, seitenleiste) => SettingsMapPage(zeigeZurueck: !seitenleiste),
+    ),
+  ),
 );
 
 class _ErscheinungsbildScene extends StatelessWidget {

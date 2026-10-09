@@ -306,6 +306,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
   Future<void> _zeitraumWaehlen() async {
     final t = AppLocalizations.of(context);
     final gewaehlt = await showModalBottomSheet<LogZeitraumVorlage>(
+      useRootNavigator: true,
       context: context,
       showDragHandle: true,
       builder: (context) {
@@ -374,6 +375,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
             : _infos.first.zeitpunkt);
     var bis = _fensterFuer(_vorlage).bis ?? jetzt;
     final ergebnis = await showModalBottomSheet<LogZeitfenster>(
+      useRootNavigator: true,
       context: context,
       showDragHandle: true,
       builder: (context) => StatefulBuilder(
