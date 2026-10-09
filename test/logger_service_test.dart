@@ -473,4 +473,77 @@ void main() {
       });
     },
   );
+
+  group('Datenschutz im Log (#200)', () {
+    const settings = AppSettings(
+      themeMode: ThemeMode.system,
+      languageCode: 'de',
+      analyticsEnabled: true,
+    );
+
+    test('logError schreibt keine Kontaktdaten aus Fehlertexten', () async {
+      final tempDir = await Directory.systemTemp.createTemp('logger_pii');
+      final service = LoggerService(
+        settingsRepository: _FakeRepo(settings),
+        navigatorKey: GlobalKey<NavigatorState>(),
+        logsDirectoryProvider: () async => tempDir,
+        nowProvider: () => DateTime(2026, 4, 8, 12, 0, 0),
+      );
+
+      await service.logError(
+        'member_edit',
+        'speichern fehlgeschlagen',
+        error: StateError('E-Mail lena@example.org, Telefon 0170 1234567'),
+      );
+
+      final content = await File(
+        '${tempDir.path}/app-2026-04-08.log',
+      ).readAsString();
+      expect(content, contains('StateError'));
+      expect(content, isNot(contains('lena@example.org')));
+      expect(content, isNot(contains('1234567')));
+    });
+
+    test('trackRuntimeError sendet nur die bereinigte erste Zeile', () async {
+      Map<String, Object?>? gesendet;
+      final service = LoggerService(
+        settingsRepository: _FakeRepo(settings),
+        navigatorKey: GlobalKey<NavigatorState>(),
+        logFileProvider: () async =>
+            File('${(await Directory.systemTemp.createTemp('rt')).path}/a.log'),
+        wiredashEventHook: (name, props) async => gesendet = props,
+      );
+
+      await service.trackRuntimeError(
+        source: 'test',
+        error: StateError('Stamm Musterdorf: lena@example.org\nDetails'),
+      );
+
+      expect(gesendet?['exception'], isNot(contains('lena@example.org')));
+      expect(gesendet?['exception'], isNot(contains('Details')));
+      expect(gesendet?['error_type'], 'StateError');
+    });
+
+    test('kuerzt die heutige Logdatei, wenn sie allein zu gross ist', () async {
+      final tempDir = await Directory.systemTemp.createTemp('logger_gross');
+      final heute = File('${tempDir.path}/app-2026-04-08.log');
+      final zeile = '${'x' * 99}\n';
+      // 1,5 MB, das Limit ist ohne Env 1 MB.
+      await heute.writeAsString(zeile * 15000);
+      final service = LoggerService(
+        settingsRepository: _FakeRepo(settings),
+        navigatorKey: GlobalKey<NavigatorState>(),
+        logsDirectoryProvider: () async => tempDir,
+        nowProvider: () => DateTime(2026, 4, 8, 12, 0, 0),
+      );
+
+      await service.log('test', 'neu');
+
+      final groesse = await heute.length();
+      expect(groesse, lessThan(1024 * 1024));
+      final inhalt = await heute.readAsString();
+      expect(inhalt, startsWith('[2026-04-08 12:00:00] [warn] [logger]'));
+      expect(inhalt, contains('[info] [test] neu'));
+    });
+  });
 }

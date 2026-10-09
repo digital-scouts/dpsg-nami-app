@@ -28,7 +28,7 @@ Janneck Lange, privat, `dev@jannecklange.de`. Es gibt keinen Datenschutzbeauftra
 | Zweck | Fehler und Wünsche erfahren, App verbessern |
 | Rechtsgrundlage | Feedback und Umfrage: Handlung der Nutzenden, berechtigtes Interesse (lit. f). Technischer Ping des SDK: berechtigtes Interesse (lit. f, § 25 Abs. 2 TDDDG `[prüfen]`). Nutzungsereignisse und Fehlerberichte: Einwilligung (lit. a, § 25 Abs. 1 TDDDG), Vorgabe aus. |
 | Betroffene | Nutzende; bei Screenshots auch Mitglieder, die darauf zu sehen sind |
-| Daten | Ping: App-Nutzungs-ID des SDK, App-Version und Build, Bundle-ID, Betriebssystem und Version, Sprache. Feedback: Text, optional E-Mail und Screenshots, Gerätemetadaten. Ereignisse: Ereignisname, Layer-IDs und -Namen, Fehlertexte, Stacktraces. |
+| Daten | Ping: App-Nutzungs-ID des SDK, App-Version und Build, Bundle-ID, Betriebssystem und Version, Sprache. Feedback: Text, optional E-Mail und Screenshots, Gerätemetadaten. Ereignisse: Ereignisname, Layer-IDs, bereinigte erste Zeile von Fehlertexten (ohne E-Mail, Telefon, IBAN, Tokens), Stacktraces. |
 | Empfänger | Wiredash GmbH, Hosting auf Google Cloud Platform; AV-Vertrag in den Projekteinstellungen von Wiredash `[prüfen: abgeschlossen?]` |
 | Drittland | USA möglich (Google Cloud), laut Datenschutzerklärung von Wiredash |
 | Löschfrist | Nach den Vorgaben von Wiredash `[prüfen]`; Feedback löscht der Betreiber nach Bearbeitung `[festlegen]` |
@@ -93,6 +93,12 @@ Janneck Lange, privat, `dev@jannecklange.de`. Es gibt keinen Datenschutzbeauftra
 - Mitgliederdaten liegen verschlüsselt auf dem Gerät (Hive-Boxen mit Schlüssel im Keychain bzw. Keystore, nur dieses Gerät) und werden beim Abmelden gelöscht.
 - Optionale App-Sperre per Face ID oder Fingerabdruck.
 - Traffic-Log nur mit Methode, Status, Quelle und URI, ohne Inhalte; Logs werden nach sieben Tagen gelöscht.
+- App-Log und Ereignisse laufen durch `LogSanitizer`: E-Mail-Adressen, Telefonnummern, IBANs und Tokens werden ersetzt. Layer-Namen stehen weder im Log noch in Ereignissen. Die heutige Logdatei wird gekürzt, wenn sie allein das Größenlimit überschreitet.
+
+### Bewusst nicht umgesetzt
+
+- **Zwischenablage nicht automatisch leeren (#200):** Kopierte Kontaktdaten bleiben in der Zwischenablage. iOS und Android zeigen beim Einfügen einen Hinweis bzw. leeren sie selbst nach einiger Zeit. Ein eigenes Leeren wirkt nur, solange die App läuft, und würde Inhalte überschreiben, die die Person inzwischen selbst kopiert hat.
+- **Numerische IDs im lokalen Log:** `person_id` und Layer-IDs bleiben im App-Log, weil sie für die Fehlersuche nötig sind und ohnehin in den Adressen des Traffic-Logs stehen. Sie verlassen das Gerät nur, wenn die Person Logs selbst teilt.
 
 ## Privacy-Manifest (iOS)
 
