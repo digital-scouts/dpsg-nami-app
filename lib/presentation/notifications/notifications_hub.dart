@@ -56,13 +56,12 @@ class NotificationsHub {
 
     if (authModel.hasRemoteAccessIssue) {
       messages.add(_buildHitobitoIssueNotification(authModel));
+    }
 
-      final remaining = authModel.remainingUntilRelogin;
-      if (remaining != null &&
-          remaining > Duration.zero &&
-          remaining <= const Duration(days: 3)) {
-        messages.add(_buildDataExpirySoonNotification(remaining));
-      }
+    // Die Warnung kommt vorausschauend, auch ohne fehlgeschlagenen Abruf.
+    final remaining = authModel.remainingUntilRelogin;
+    if (authModel.isDataExpirySoon && remaining != null) {
+      messages.add(_buildDataExpirySoonNotification(remaining));
     }
 
     if (unresolvedCount > 0) {
@@ -343,6 +342,10 @@ class NotificationsHub {
     );
   }
 
+  static String _expiryBody(AppLocalizations t, int days) => days == 1
+      ? t.t('ablauf_push_text_eins')
+      : t.t('ablauf_push_text_mehr', {'n': days});
+
   static AppHubNotification _buildDataExpirySoonNotification(
     Duration remaining,
   ) {
@@ -361,8 +364,8 @@ class NotificationsHub {
         en: en.t('settings_data_expiry_soon_title'),
       ),
       body: LocalizedString(
-        de: de.t('settings_data_expiry_soon_body', {'days': daysRemaining}),
-        en: en.t('settings_data_expiry_soon_body', {'days': daysRemaining}),
+        de: _expiryBody(de, daysRemaining),
+        en: _expiryBody(en, daysRemaining),
       ),
       ackable: false,
     );

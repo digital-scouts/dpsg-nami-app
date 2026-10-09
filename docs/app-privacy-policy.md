@@ -26,7 +26,7 @@ Die App wird privat und ehrenamtlich entwickelt. Sie ist kein Angebot der DPSG u
 
 Nach der Anmeldung lädt die App über die Schnittstelle der Mitgliederverwaltung der DPSG (Hitobito) die Daten, die du mit deinem Zugang auch im Web sehen darfst. Änderungen schreibt sie mit deinem Zugang dorthin zurück. Verantwortlich für diese Mitgliederdaten ist die DPSG. Fragen und Anträge dazu richtest du an die DPSG.
 
-Die App speichert die Daten verschlüsselt auf dem Gerät, damit sie auch offline nutzbar sind. Beim Abmelden werden sie gelöscht, ebenso wenn sie 90 Tage lang nicht aktualisiert wurden. Der Entwickler erhält keine Mitgliederdaten aus Hitobito.
+Die App speichert die Daten verschlüsselt auf dem Gerät, damit sie auch offline nutzbar sind. Beim Abmelden werden sie gelöscht, ebenso wenn sie 60 Tage lang nicht aktualisiert wurden. Die Frist beginnt mit dem ersten Laden nach der Anmeldung und mit jeder erfolgreichen Aktualisierung. Sieben Tage vorher weist dich die App darauf hin. Der Entwickler erhält keine Mitgliederdaten aus Hitobito.
 
 ## Daten nur auf deinem Gerät
 

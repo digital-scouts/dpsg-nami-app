@@ -200,11 +200,15 @@ class HitobitoAuthEnv {
   /// Entsperren und beim Zurueckkehren, auch ohne faelligen Sync.
   static const Duration sitzungAuffrischenNach = Duration(hours: 12);
 
+  /// So lange vor dem Datenablauf warnen Hinweis und Mitteilungen, auch wenn
+  /// der Abruf nicht fehlschlaegt.
+  static const Duration ablaufWarnung = Duration(days: 7);
+
   static Duration get maxDataAge {
     final daysRaw = _env('HITOBITO_DATA_MAX_AGE_DAYS');
     final days = int.tryParse(daysRaw ?? '');
     if (days == null || days <= 0) {
-      return const Duration(days: 90);
+      return const Duration(days: 60);
     }
     return Duration(days: days);
   }

@@ -41,7 +41,7 @@ Die Sitzung bei Hitobito ist abgelaufen. Deine Daten bleiben erhalten. <span cla
 
 ## Meine Daten sind weg
 
-Die App löscht die Mitgliederdaten beim Abmelden und wenn sie 90 Tage lang nicht aktualisiert wurden. Nach der nächsten Anmeldung lädt sie alles neu.
+Die App löscht die Mitgliederdaten beim Abmelden und wenn sie 60 Tage lang nicht aktualisiert wurden. Nach der nächsten Anmeldung lädt sie alles neu.
 
 ## Kann ich Stufenwechsel oder Rollen in der App eintragen?
 

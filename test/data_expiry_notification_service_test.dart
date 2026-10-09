@@ -71,6 +71,20 @@ void main() {
     expect(plan[2].text, contains('innerhalb von 1 Tag erneut'));
   });
 
+  test('plant weit im Voraus 7, 3, 2 und 1 Tag vor dem Ablauf', () async {
+    await aktualisiere(DateTime(2026, 12, 9, 12));
+
+    final plan = mitteilungen.geplant.values.toList();
+    expect(plan.map((m) => m.zeitpunkt), [
+      DateTime(2026, 12, 3, 9),
+      DateTime(2026, 12, 7, 9),
+      DateTime(2026, 12, 8, 9),
+      DateTime(2026, 12, 9, 9),
+    ]);
+    expect(plan.first.text, contains('innerhalb von 7 Tagen'));
+    expect(plan.last.text, contains('innerhalb von 1 Tag erneut'));
+  });
+
   test('plant nichts nach dem Ablauf und ohne Ablauf', () async {
     await aktualisiere(DateTime(2026, 10, 13, 12));
     await aktualisiere(null);

@@ -639,6 +639,21 @@ Future<void> _startApp({
   authModel.addListener(syncSitzungsErinnerung);
   appSettingsModel.addListener(syncSitzungsErinnerung);
 
+  // Nach der Anmeldung startet das erste Laden die Aufbewahrungsfrist, auch
+  // bevor ein Sync den Stand vermerkt.
+  void startRetentionAfterFirstLoad() {
+    if (isDemo ||
+        authModel.lastSensitiveSyncAt != null ||
+        arbeitskontextModel.readModel == null ||
+        arbeitskontextModel.isLoading ||
+        arbeitskontextModel.isLoadingRoles) {
+      return;
+    }
+    unawaited(authModel.startRetentionAfterFirstLoad());
+  }
+
+  arbeitskontextModel.addListener(startRetentionAfterFirstLoad);
+
   // Beim Zurueckkehren in die App erneut abgleichen: wiederholt eine
   // fehlgeschlagene Planung und beruecksichtigt Zeitzonenwechsel. Ohne
   // Aenderung des Stands passiert nichts.
@@ -1031,16 +1046,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       // Demo-Daten laufen nicht ab.
       return;
     }
-    final remaining = _authModel.remainingUntilRelogin;
-    final isActive =
-        _authModel.hasRemoteAccessIssue &&
-        remaining != null &&
-        remaining > Duration.zero &&
-        remaining <= const Duration(days: 3);
-
     unawaited(
       _dataExpiryNotificationService.updateExpiryReminder(
-        ablauf: isActive ? DateTime.now().add(remaining) : null,
+        ablauf: _authModel.dataExpiresAt,
         pushErlaubt: _appSettingsModel.notificationsEnabled,
         sprache: _appSettingsModel.languageCode,
       ),
@@ -1502,6 +1510,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       authModel.onAppResumed();
       _notificationsCubit?.load();
       _pendingSync.resume();
+      _syncDataExpiryReminder();
     } else if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {

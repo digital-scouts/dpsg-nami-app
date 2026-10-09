@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:nami/data/achievements/shared_prefs_achievement_repository.dart';
 import 'package:nami/data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
@@ -2495,6 +2496,74 @@ void main() {
 
         expect(t.model.state, AuthState.signedIn);
       });
+    });
+  });
+
+  group('Aufbewahrungsfrist', () {
+    var jetzt = DateTime(2026, 10, 1, 12);
+
+    Future<AuthSessionModel> angemeldet() async {
+      final model = AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: DateTime(2026, 10, 1),
+          ),
+          profileToReturn: const AuthProfile(namiId: 34, language: 'de'),
+        ),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 60),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => jetzt,
+        ),
+        logger: _createLogger(),
+      );
+      await model.signIn();
+      return model;
+    }
+
+    setUp(() => jetzt = DateTime(2026, 10, 1, 12));
+
+    test('das erste Laden nach der Anmeldung startet die Frist', () async {
+      final model = await angemeldet();
+      expect(model.dataExpiresAt, isNull);
+
+      await model.startRetentionAfterFirstLoad();
+      final ende = DateTime(2026, 10, 1, 12).add(const Duration(days: 60));
+      expect(model.dataExpiresAt, ende);
+
+      // Ein spaeterer Aufruf verschiebt die Frist nicht.
+      jetzt = DateTime(2026, 10, 5, 12);
+      await model.startRetentionAfterFirstLoad();
+      expect(model.dataExpiresAt, ende);
+    });
+
+    test('warnt sieben Tage vor dem Ablauf, auch ohne Fehler', () async {
+      final model = await angemeldet();
+      await model.markSensitiveDataSynced();
+      expect(model.hasRemoteAccessIssue, isFalse);
+
+      jetzt = DateTime(2026, 11, 22, 12);
+      expect(model.isDataExpirySoon, isFalse);
+
+      jetzt = DateTime(2026, 11, 24, 12);
+      expect(model.isDataExpirySoon, isTrue);
+      expect(
+        NotificationsHub.buildInternal(
+          authModel: model,
+          unresolvedCount: 0,
+          updateInfo: null,
+        ).map((m) => m.id),
+        contains('data-expiry-soon'),
+      );
+
+      jetzt = DateTime(2026, 12, 1, 12);
+      expect(model.isDataExpirySoon, isFalse);
     });
   });
 }

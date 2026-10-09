@@ -9,7 +9,7 @@ void main() {
     final config = HitobitoAuthEnv.authConfig;
     expect(config.isConfigured, isFalse);
     expect(config.scopeString, HitobitoAuthConfig.defaultScopeString);
-    expect(HitobitoAuthEnv.maxDataAge, const Duration(days: 90));
+    expect(HitobitoAuthEnv.maxDataAge, const Duration(days: 60));
     expect(HitobitoAuthEnv.refreshInterval, const Duration(hours: 24));
     expect(HitobitoAuthEnv.appLockTimeout, const Duration(seconds: 60));
   });
