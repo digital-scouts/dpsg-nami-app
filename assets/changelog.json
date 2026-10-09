@@ -142,7 +142,8 @@
         "Mit eingeschränkten mobilen Daten bleibt die Anmeldung auch bei Nutzung im Mobilfunk erhalten.",
         "Beendet das Gerät die App während der Anmeldung, erklärt sie beim nächsten Start den Grund.",
         "Meldet man sich nach abgelaufener Anmeldung mit einem anderen Konto an, bleiben die gespeicherten Daten und vorgemerkten Änderungen des bisherigen Kontos erhalten.",
-        "Nach dem Abmelden zeigt die App wieder die Mitgliederliste mit Anmeldung und Demo, statt auf dem Profil zu bleiben."
+        "Nach dem Abmelden zeigt die App wieder die Mitgliederliste mit Anmeldung und Demo, statt auf dem Profil zu bleiben.",
+        "Beim Bearbeiten von Mitgliedern führen leere Angaben nicht mehr zu Scheinkonflikten, „divers“ wird richtig angezeigt, und eine gespeicherte Änderung wird nicht mehr ein zweites Mal vorgemerkt."
       ]
     }
   ]
