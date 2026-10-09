@@ -335,6 +335,7 @@ class QualifikationEinstellungenPage extends StatelessWidget {
   Future<PersonenkreisRegelTyp?> _waehleTyp(BuildContext context) {
     final t = AppLocalizations.of(context);
     return showModalBottomSheet<PersonenkreisRegelTyp>(
+      useRootNavigator: true,
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
@@ -361,6 +362,7 @@ class QualifikationEinstellungenPage extends StatelessWidget {
         ).toLowerCase().compareTo(anzeigenameFuerErinnerung(b).toLowerCase()),
       );
     showModalBottomSheet<void>(
+      useRootNavigator: true,
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

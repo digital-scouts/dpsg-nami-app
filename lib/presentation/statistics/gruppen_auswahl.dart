@@ -17,6 +17,7 @@ Future<int?> zeigeGruppenAuswahl(
   Stufe? nurStufe,
 }) {
   return showModalBottomSheet<int>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     showDragHandle: true,

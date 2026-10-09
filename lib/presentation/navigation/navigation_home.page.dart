@@ -35,6 +35,17 @@ import 'package:provider/provider.dart';
 class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({super.key});
 
+  /// Navigator des Inhaltsbereichs, solange die Shell sichtbar ist.
+  /// Unterseiten oeffnen darin neben der Seitenleiste bzw. ueber der unteren
+  /// Leiste, die dabei sichtbar bleiben.
+  static NavigatorState? get inhaltNavigator =>
+      _NavigationHomeScreenState._aktiv?._inhaltKey.currentState;
+
+  /// Schliesst alle Unterseiten im Inhaltsbereich, z. B. nach Modus-Wechsel
+  /// oder Reset.
+  static void zurueckZumHauptbereich() =>
+      inhaltNavigator?.popUntil((route) => route.isFirst);
+
   @override
   State<NavigationHomeScreen> createState() => _NavigationHomeScreenState();
 }
@@ -57,16 +68,54 @@ class _Schnellziel {
   final WidgetBuilder seite;
 }
 
+/// Merkt sich die Routen des Inhalts-Navigators, damit die Shell beim Auf-
+/// und Zuklappen Schnellziele zwischen Seitenleiste und Unterseite verschieben
+/// kann.
+class _StapelBeobachter extends NavigatorObserver {
+  final List<Route<dynamic>> stapel = [];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      stapel.add(route);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      stapel.remove(route);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      stapel.remove(route);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    final i = oldRoute == null ? -1 : stapel.indexOf(oldRoute);
+    if (i >= 0 && newRoute != null) {
+      stapel[i] = newRoute;
+    }
+  }
+}
+
 class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
+  static _NavigationHomeScreenState? _aktiv;
+
   /// 0-3: Hauptbereiche, ab 4: Schnellziele der Seitenleiste.
   int _index = 0;
   NamiAiAccessDecision _namiAi = const NamiAiAccessDecision(
     state: NamiAiAccessState.hidden,
   );
+  final GlobalKey<NavigatorState> _inhaltKey = GlobalKey<NavigatorState>(
+    debugLabel: 'shell-inhalt',
+  );
+  final _StapelBeobachter _stapel = _StapelBeobachter();
+  AppNavigationLoggingObserver? _routenLog;
+
+  /// Ob im letzten Aufbau die Seitenleiste sichtbar war.
+  bool? _warSeitenleiste;
 
   @override
   void initState() {
     super.initState();
+    _aktiv = this;
     unawaited(_ladeNamiAiFreigabe());
   }
 
@@ -91,6 +140,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
   @override
   void dispose() {
+    if (identical(_aktiv, this)) {
+      _aktiv = null;
+    }
     _syncHinweisTimer?.cancel();
     super.dispose();
   }
@@ -131,34 +183,21 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
     final urgentNotification = _currentUrgentNotification(context);
-    if (authModel.state == AuthState.signedOut && _index != 0) {
+    if (authModel.state == AuthState.signedOut &&
+        (_index != 0 || _stapel.stapel.length > 1)) {
       // Nach dem Abmelden zeigt die Mitgliederliste den Anmeldebildschirm,
       // statt dass die Person auf einem leeren Tab zurueckbleibt.
       _index = 0;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _inhaltKey.currentState?.popUntil((route) => route.isFirst),
+      );
     }
     final t = AppLocalizations.of(context);
     final seitenleiste = AppSeitenleiste.sichtbar(
       MediaQuery.sizeOf(context).width,
     );
     final schnellziele = _schnellziele(context, t);
-    if (_index >= _tabIds.length) {
-      final ziel = _index - _tabIds.length < schnellziele.length
-          ? schnellziele[_index - _tabIds.length]
-          : null;
-      if (!seitenleiste || ziel == null) {
-        // Fenster zu schmal (Duo zugeklappt, Split View) oder Ziel nicht mehr
-        // verfuegbar: zurueck in die Einstellungen, die offene Seite bleibt
-        // als eigene Seite erhalten.
-        _index = 3;
-        if (ziel != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              Navigator.pushNamed(context, ziel.route);
-            }
-          });
-        }
-      }
-    }
+    _passeAnFensterAn(seitenleiste, schnellziele);
     Widget body;
     switch (_index) {
       case 0:
@@ -237,6 +276,29 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
             showStatusBanners: _index != 3,
           );
 
+    _routenLog ??= AppNavigationLoggingObserver(
+      logger: context.read<LoggerService>(),
+    );
+    final hauptbereiche = AppBottomNavigation.hauptbereiche(t);
+    // Unterseiten oeffnen im Inhaltsbereich, Seitenleiste und untere Leiste
+    // bleiben sichtbar. Zurueck (Android) schliesst zuerst die Unterseite.
+    final inhaltsbereich = NavigatorPopHandler<Object?>(
+      onPopWithResult: (_) => _inhaltKey.currentState?.maybePop(),
+      child: Navigator(
+        key: _inhaltKey,
+        observers: [_stapel, _routenLog!],
+        pages: [
+          MaterialPage<void>(
+            key: const ValueKey('hauptbereich'),
+            name: Navigator.defaultRouteName,
+            child: inhalt,
+          ),
+        ],
+        onDidRemovePage: (_) {},
+        onGenerateRoute: onGenerateRoute,
+      ),
+    );
+
     return Scaffold(
       // Der Inhalt behaelt seinen Zustand, wenn die Seitenleiste beim Auf-
       // oder Zuklappen erscheint oder verschwindet.
@@ -244,14 +306,15 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         children: [
           if (seitenleiste)
             AppSeitenleiste(
-              hauptbereiche: AppBottomNavigation.hauptbereiche(t),
+              oben: hauptbereiche.sublist(0, 3),
               schnellzugriff: [for (final z in schnellziele) z.eintrag],
+              unten: hauptbereiche.sublist(3),
               ausgewaehlt: _index,
               breit:
                   MediaQuery.sizeOf(context).width >= AppSeitenleiste.breitAb,
               onAuswahl: (i) => _wechsle(i, schnellziele),
             ),
-          Expanded(key: const ValueKey('shell-inhalt'), child: inhalt),
+          Expanded(key: const ValueKey('shell-inhalt'), child: inhaltsbereich),
         ],
       ),
       bottomNavigationBar: seitenleiste
@@ -261,6 +324,47 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               onTap: (i) => _wechsle(i, schnellziele),
             ),
     );
+  }
+
+  /// Verschiebt beim Auf- und Zuklappen (Duo, Split View) ein Schnellziel
+  /// zwischen Seitenleiste und Unterseite der Einstellungen.
+  void _passeAnFensterAn(bool seitenleiste, List<_Schnellziel> schnellziele) {
+    final war = _warSeitenleiste;
+    _warSeitenleiste = seitenleiste;
+    if (_index >= _tabIds.length) {
+      final i = _index - _tabIds.length;
+      final ziel = i < schnellziele.length ? schnellziele[i] : null;
+      if (!seitenleiste || ziel == null) {
+        // Ohne Seitenleiste gibt es das Ziel nur als Unterseite der
+        // Einstellungen; ist es weggefallen, bleiben die Einstellungen.
+        _index = 3;
+        if (ziel != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final navigator = _inhaltKey.currentState;
+            navigator?.popUntil((route) => route.isFirst);
+            navigator?.pushNamed(ziel.route);
+          });
+        }
+      }
+      return;
+    }
+    if (war == false && seitenleiste && _index == 3) {
+      // Liegt in den Einstellungen nur ein Schnellziel offen, wird es wieder
+      // ein Ziel der Seitenleiste.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final stapel = _stapel.stapel;
+        if (!mounted || stapel.length != 2 || _index != 3) {
+          return;
+        }
+        final name = stapel.last.settings.name;
+        final i = schnellziele.indexWhere((z) => z.route == name);
+        if (i < 0) {
+          return;
+        }
+        _inhaltKey.currentState?.removeRoute(stapel.last);
+        setState(() => _index = _tabIds.length + i);
+      });
+    }
   }
 
   /// Karte, Qualifikationen und NaMi AI (sofern sichtbar), wie im
@@ -274,6 +378,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         eintrag: AppSeitenleisteEintrag(
           icon: Icons.map_outlined,
           label: t.t('settings_map'),
+          ziel: _tabIds.length,
         ),
         route: AppRoutes.settingsMap,
         seite: (_) => const SettingsMapPage(zeigeZurueck: false),
@@ -283,6 +388,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         eintrag: AppSeitenleisteEintrag(
           icon: Icons.verified_outlined,
           label: t.t('quali_titel'),
+          ziel: _tabIds.length + 1,
           gesperrt: qualiGesperrt,
         ),
         route: AppRoutes.settingsQualifikationen,
@@ -291,9 +397,10 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       if (!_namiAi.isHidden)
         _Schnellziel(
           id: 'nami_ai',
-          eintrag: const AppSeitenleisteEintrag(
+          eintrag: AppSeitenleisteEintrag(
             icon: Icons.auto_awesome,
             label: 'NaMi AI',
+            ziel: _tabIds.length + 2,
           ),
           route: _namiAi.isEnabled
               ? AppRoutes.namiAiChat
@@ -311,6 +418,8 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       : schnellziele[index - _tabIds.length].id;
 
   void _wechsle(int i, List<_Schnellziel> schnellziele) {
+    // Ein Tipp auf einen Bereich fuehrt immer zu dessen Startseite.
+    _inhaltKey.currentState?.popUntil((route) => route.isFirst);
     if (i == _index) {
       return;
     }

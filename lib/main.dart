@@ -90,6 +90,7 @@ import 'presentation/model/qualifikations_einstellungen_model.dart';
 import 'presentation/model/statistik_kacheln_model.dart';
 import 'presentation/model/urgent_notification_model.dart';
 import 'presentation/navigation/app_router.dart';
+import 'presentation/navigation/navigation_home.page.dart';
 import 'presentation/notifications/app_snackbar.dart';
 import 'services/app_icon_service.dart';
 import 'services/achievement_service.dart';
@@ -750,6 +751,7 @@ Future<void> _startApp({
         ?..hideCurrentSnackBar()
         ..hideCurrentMaterialBanner();
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      NavigationHomeScreen.zurueckZumHauptbereich();
       if (isDemo) {
         await authModel.logout();
       }
@@ -1161,7 +1163,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           await appSettings.setThemeMode(mode);
         },
         onRechtliches: () =>
-            navigatorKey.currentState?.pushNamed(AppRoutes.settingsRechtliches),
+            (NavigationHomeScreen.inhaltNavigator ?? navigatorKey.currentState)
+                ?.pushNamed(AppRoutes.settingsRechtliches),
         // Android kennt keinen einheitlichen Link in die App-Einstellungen.
         onSystemEinstellungen: defaultTargetPlatform == TargetPlatform.iOS
             ? () => launchUrl(Uri.parse('app-settings:'))
@@ -1409,7 +1412,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         definition: unlock.definition,
         tier: unlock.tier,
         onShowAll: () =>
-            navigatorKey.currentState?.pushNamed(AppRoutes.achievements),
+            (NavigationHomeScreen.inhaltNavigator ?? navigatorKey.currentState)
+                ?.pushNamed(AppRoutes.achievements),
       ),
     );
   }
@@ -1420,6 +1424,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ?..hideCurrentSnackBar()
       ..hideCurrentMaterialBanner();
     navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    NavigationHomeScreen.zurueckZumHauptbereich();
 
     _authMaintenanceTimer?.cancel();
     await _notificationsSubscription?.cancel();

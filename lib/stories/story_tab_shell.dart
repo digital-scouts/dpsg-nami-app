@@ -185,22 +185,26 @@ class StoryNavigationsScaffold extends StatelessWidget {
     final t = AppLocalizations.of(context);
     final breite = MediaQuery.sizeOf(context).width;
     final seitenleiste = AppSeitenleiste.sichtbar(breite);
+    final hauptbereiche = AppBottomNavigation.hauptbereiche(t);
     return Scaffold(
       body: Row(
         children: [
           if (seitenleiste)
             AppSeitenleiste(
-              hauptbereiche: AppBottomNavigation.hauptbereiche(t),
+              oben: hauptbereiche.sublist(0, 3),
               schnellzugriff: [
                 AppSeitenleisteEintrag(
                   icon: Icons.map_outlined,
                   label: t.t('settings_map'),
+                  ziel: 4,
                 ),
                 AppSeitenleisteEintrag(
                   icon: Icons.verified_outlined,
                   label: t.t('quali_titel'),
+                  ziel: 5,
                 ),
               ],
+              unten: hauptbereiche.sublist(3),
               ausgewaehlt: ausgewaehlt,
               breit: breite >= AppSeitenleiste.breitAb,
               onAuswahl: (_) {},

@@ -126,7 +126,8 @@
         "Die gesperrte Qualifikationen-Übersicht zeigt, ob sie dir mit deinen Rechten etwas bringt.",
         "Erinnerung, bevor die Hitobito-Anmeldung nach einer Woche ohne Nutzung abläuft.",
         "Auf dem iPad und aufklappbaren Smartphones stehen Listen und Mitgliedsdetails in angenehmer Lesebreite statt über den ganzen Bildschirm.",
-        "Auf großen Bildschirmen wie dem iPad im Querformat sitzt die Navigation am linken Rand, zusammen mit Karte, Qualifikationen und NaMi AI."
+        "Auf großen Bildschirmen wie dem iPad im Querformat sitzt die Navigation am linken Rand, zusammen mit Karte, Qualifikationen und NaMi AI.",
+        "Die Navigationsleiste bleibt auch auf Unterseiten wie den Mitgliedsdetails sichtbar."
       ],
       "bugFixes": [
         "Mit reinem Leserecht auf deine Gruppe zeigt die App fehlende Rollen, Qualifikationen und Führungszeugnisse anderer als „Keine Berechtigung“ oder mit Hinweis, statt sie als leer oder 0 anzuzeigen.",

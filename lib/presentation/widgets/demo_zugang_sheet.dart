@@ -30,6 +30,7 @@ class DemoZugangSheet extends StatelessWidget {
 
   static Future<DemoZugang?> show(BuildContext context) {
     return showModalBottomSheet<DemoZugang>(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (_) =>

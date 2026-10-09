@@ -5,28 +5,33 @@ class AppSeitenleisteEintrag {
   const AppSeitenleisteEintrag({
     required this.icon,
     required this.label,
+    required this.ziel,
     this.gesperrt = false,
   });
 
   final IconData icon;
   final String label;
 
+  /// Index des Ziels in der Shell, z. B. 0-3 fuer die Hauptbereiche.
+  final int ziel;
+
   /// Zeigt ein Schloss am Symbol, z. B. fuer Supporter-Funktionen.
   final bool gesperrt;
 }
 
 /// Navigation am linken Rand fuer breite Fenster (Duo aufgeklappt, iPad quer,
-/// iPad 13" hoch). Oben die Hauptbereiche wie in der unteren Leiste, mit
-/// Abstand darunter der Schnellzugriff. Schmal mit Beschriftung unter dem
-/// Symbol, ab [breitAb] breit mit Text daneben. Ohne eigene Flaeche, direkt
-/// auf dem Seitenhintergrund.
+/// iPad 13" hoch). Oben die Hauptbereiche, mit Abstand darunter der
+/// Schnellzugriff, am unteren Rand die Einstellungen. Schmal mit Beschriftung
+/// unter dem Symbol, ab [breitAb] breit mit Text daneben. Ohne eigene
+/// Flaeche, direkt auf dem Seitenhintergrund.
 ///
 /// Entscheidung: design/entscheidung/2026-10-09-responsive-navigation.md
 class AppSeitenleiste extends StatelessWidget {
   const AppSeitenleiste({
     super.key,
-    required this.hauptbereiche,
+    required this.oben,
     required this.schnellzugriff,
+    required this.unten,
     required this.ausgewaehlt,
     required this.onAuswahl,
     this.breit = false,
@@ -44,11 +49,13 @@ class AppSeitenleiste extends StatelessWidget {
 
   static bool sichtbar(double fensterbreite) => fensterbreite >= ab;
 
-  final List<AppSeitenleisteEintrag> hauptbereiche;
+  final List<AppSeitenleisteEintrag> oben;
   final List<AppSeitenleisteEintrag> schnellzugriff;
 
-  /// Index ueber beide Listen: erst die Hauptbereiche, dann der
-  /// Schnellzugriff.
+  /// Am unteren Rand, z. B. die Einstellungen.
+  final List<AppSeitenleisteEintrag> unten;
+
+  /// [AppSeitenleisteEintrag.ziel] des gewaehlten Eintrags.
   final int ausgewaehlt;
   final ValueChanged<int> onAuswahl;
   final bool breit;
@@ -56,58 +63,67 @@ class AppSeitenleiste extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    Widget eintrag(AppSeitenleisteEintrag e, int index) => _Eintrag(
+    Widget eintrag(AppSeitenleisteEintrag e) => _Eintrag(
       eintrag: e,
-      ausgewaehlt: index == ausgewaehlt,
+      ausgewaehlt: e.ziel == ausgewaehlt,
       breit: breit,
-      onTap: () => onAuswahl(index),
+      onTap: () => onAuswahl(e.ziel),
     );
+    final ausrichtung = breit
+        ? CrossAxisAlignment.stretch
+        : CrossAxisAlignment.center;
+    final innen = EdgeInsets.symmetric(horizontal: breit ? 12 : 4);
     return SafeArea(
       right: false,
       child: SizedBox(
         width: breit ? breiteBreite : schmaleBreite,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: breit ? 12 : 4,
-              vertical: 16,
-            ),
-            child: Column(
-              crossAxisAlignment: breit
-                  ? CrossAxisAlignment.stretch
-                  : CrossAxisAlignment.center,
-              children: [
-                if (breit)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
-                    child: Text(
-                      'NaMi',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                for (final (i, e) in hauptbereiche.indexed) eintrag(e, i),
-                if (schnellzugriff.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  if (breit)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
-                      child: Text(
-                        'Schnellzugriff',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: innen.copyWith(top: 16, bottom: 16),
+                child: Column(
+                  crossAxisAlignment: ausrichtung,
+                  children: [
+                    if (breit)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
+                        child: Text(
+                          'NaMi',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
-                  for (final (i, e) in schnellzugriff.indexed)
-                    eintrag(e, hauptbereiche.length + i),
-                ],
-              ],
+                    for (final e in oben) eintrag(e),
+                    if (schnellzugriff.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      if (breit)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+                          child: Text(
+                            'Schnellzugriff',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      for (final e in schnellzugriff) eintrag(e),
+                    ],
+                  ],
+                ),
+              ),
             ),
-          ),
+            if (unten.isNotEmpty)
+              Padding(
+                padding: innen.copyWith(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: ausrichtung,
+                  children: [for (final e in unten) eintrag(e)],
+                ),
+              ),
+          ],
         ),
       ),
     );

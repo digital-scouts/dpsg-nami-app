@@ -24,6 +24,13 @@ Zusätzliche Vorgaben aus den Kommentaren:
 
 - Was bisher in den Einstellungen unter „Schnellzugriff“ stand, kommt mit in die Seitenleiste (Anlass für Runde 2).
 
+Nachträge nach Durchsicht auf dem Gerät (2026-10-09):
+
+- Die Einstellungen stehen am unteren Rand der Seitenleiste.
+- Die Seitenleiste bleibt immer sichtbar. Unterseiten (Mitgliedsdetail, Einstellungsseiten, Erfolge …) öffnen im Inhaltsbereich daneben. Bottom Sheets und Dialoge liegen weiter über allem.
+- Auf schmalen Fenstern bleibt die untere Leiste auch auf Unterseiten sichtbar, wie in iOS-Apps üblich. Ein Tipp auf einen Bereich führt zu dessen Startseite.
+- Beim Zuklappen des Duo wird ein offenes Schnellziel zur Unterseite der Einstellungen, beim Aufklappen wieder zum Ziel der Seitenleiste.
+
 ## Abgelehnt
 
 | Frage | Variante | Grund |
@@ -38,4 +45,4 @@ Zusätzliche Vorgaben aus den Kommentaren:
 
 ## Offen
 
-- Liste und Detail nebeneinander folgen in Etappe 3.
+- Profil in der Seitenleiste, Kopf der Qualifikationen sowie Liste und Detail nebeneinander für Mitglieder und Einstellungen folgen mit eigener Runde.

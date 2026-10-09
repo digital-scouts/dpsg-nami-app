@@ -16,6 +16,8 @@
 | Inhaltsbreite | B2 · 720 pt | Listen und Karten sind höchstens 720 pt breit (inklusive 16 pt Innenabstand) und stehen mittig. Auf dem iPad mini hoch (744) ist das fast die volle Breite, auf dem Duo bleiben etwa 75 pt Rand je Seite. |
 | Kopf | H3 · Kopf als Block | Der Kopf der Hauptseiten samt Illustration ist genauso breit wie der Inhalt, steht mittig und ist unten abgerundet. Daneben sieht man die Hintergrundfarbe. Auf schmalen Fenstern bleibt der Kopf randlos wie bisher. |
 
+Nachtrag nach Durchsicht auf dem Gerät (2026-10-09): Das aufgeklappte Duo soll neben der Seitenleiste noch die volle Breite nutzen. Die Lesebreite ist deshalb **800 pt**. Begrenzt wird erst, wenn je Seite mindestens 24 pt Rand bleiben (ab 848 pt), sonst bleiben Inhalt und Kopf randlos. Ohne Block reicht der Kopfhintergrund bis an beide Ränder, auch in den Systembereich rechts beim Duo.
+
 Zusätzliche Vorgaben:
 
 - Maßgeblich ist die Fensterbreite, nicht das Gerät. Das gilt auch für Split View und Stage Manager.

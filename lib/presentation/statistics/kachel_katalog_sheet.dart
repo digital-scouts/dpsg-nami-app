@@ -39,6 +39,7 @@ Future<KatalogAuswahl?> zeigeKachelKatalog(
   required String Function() neueId,
 }) {
   return showModalBottomSheet<KatalogAuswahl>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -62,6 +63,7 @@ Future<EigeneKachel?> zeigeEigeneKachelEditor(
   required String Function() neueId,
 }) {
   return showModalBottomSheet<EigeneKachel>(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     useSafeArea: true,

@@ -109,6 +109,41 @@ void main() {
       expect(inLeiste('Qualifikationen'), findsOneWidget);
     });
 
+    for (final groesse in const [Size(1032, 1376), Size(402, 874)]) {
+      testWidgets(
+        'Unterseiten oeffnen im Inhaltsbereich, die Navigation bleibt '
+        '(${groesse.width.toInt()} pt)',
+        (tester) async {
+          await pumpShell(tester, groesse);
+
+          unawaited(
+            NavigationHomeScreen.inhaltNavigator!.push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    Scaffold(appBar: AppBar(), body: const Text('Unterseite')),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(find.text('Unterseite'), findsOneWidget);
+          final seitenleiste = groesse.width >= AppSeitenleiste.ab;
+          expect(
+            find.byType(AppSeitenleiste),
+            seitenleiste ? findsOneWidget : findsNothing,
+          );
+          expect(
+            find.byType(BottomNavigationBar),
+            seitenleiste ? findsNothing : findsOneWidget,
+          );
+
+          // Ein Tipp auf den Bereich fuehrt zu dessen Startseite.
+          await tester.tap(find.byIcon(Icons.groups));
+          await tester.pumpAndSettle();
+          expect(find.text('Unterseite'), findsNothing);
+        },
+      );
+    }
+
     testWidgets('ist ab 1200 pt breit mit Ueberschrift', (tester) async {
       await pumpShell(tester, const Size(1376, 1032));
 
@@ -142,11 +177,21 @@ void main() {
         expect(find.byType(AppSeitenleiste), findsOneWidget);
         expect(find.byType(BackButton), findsNothing);
 
-        // Duo zuklappen bzw. Split View: die Seite wandert in eine Route.
+        // Duo zuklappen bzw. Split View: die Seite bleibt als Unterseite der
+        // Einstellungen offen, die untere Leiste bleibt sichtbar.
         tester.view.physicalSize = const Size(402, 874);
         await tester.pumpAndSettle();
         expect(find.byType(AppSeitenleiste), findsNothing);
-        expect(find.text('Route /settings/qualifikationen'), findsOneWidget);
+        expect(find.byType(BottomNavigationBar), findsOneWidget);
+        expect(find.byType(SettingsQualifikationenPage), findsOneWidget);
+        expect(find.byType(BackButton), findsOneWidget);
+
+        // Wieder aufklappen: zurueck in die Seitenleiste, ohne Zurueck-Pfeil.
+        tester.view.physicalSize = const Size(1032, 1376);
+        await tester.pumpAndSettle();
+        expect(find.byType(AppSeitenleiste), findsOneWidget);
+        expect(find.byType(SettingsQualifikationenPage), findsOneWidget);
+        expect(find.byType(BackButton), findsNothing);
       },
     );
   });
