@@ -64,6 +64,59 @@ $nami-woe: #ff6400;
   }
 }
 
+// iPad und aufgeklapptes iPhone Duo, Rahmen wie .phone.
+// Entscheidung: design/entscheidung/2026-10-09-handbuch-geraete.md
+.tablet,
+.duo {
+  position: relative;
+  width: 100%;
+  padding: 8px;
+  border-radius: 22px;
+  background: #0d0e11;
+  box-shadow: 0 18px 44px rgba(0, 48, 86, 0.18), 0 0 0 1.5px #3a3d44 inset;
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 14px;
+  }
+}
+
+.duo.gross {
+  max-width: 640px;
+  margin: 1.25rem 0 1.5rem;
+}
+
+// Reihe über Geräte: Breite nach Seitenverhältnis, damit die Bilder gleich hoch wirken.
+.shots.geraete {
+  align-items: flex-end;
+
+  figure {
+    max-width: none;
+  }
+}
+
+.shots.geraete .phone {
+  max-width: none;
+}
+
+.shots.geraete .phone-figur {
+  flex: 0.46 1 0;
+  min-width: 110px;
+}
+
+.shots.geraete .tablet-figur {
+  flex: 0.75 1 0;
+  min-width: 170px;
+}
+
+.shots.geraete .duo-figur {
+  flex: 1.42 1 0;
+  min-width: 300px;
+  max-width: 440px;
+}
+
 // Verweis im Text auf ein nummeriertes Bild.
 .ref {
   display: inline-grid;

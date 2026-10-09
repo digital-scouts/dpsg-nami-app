@@ -161,7 +161,6 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 
 - `feature/member-edit-felder` mergen, sobald der Hitobito-PR mit den Label-IDs durch ist.
 - (#215) Den 1.0.0-Eintrag in `assets/changelog.json` auf den tatsächlichen Umfang bringen.
-- (#215) `README.md` korrigieren: „Mitglieder erstellen“ beschreibt den Altstand.
 - (#215) Crash-Reporting entscheiden.
 - Antwort der DPSG zu Datenschutzrollen, OAuth-Client samt Review-Zugang für Apple/Google sowie Name, Lilie und Stufensymbolen einholen (A-84, A-59, A-64); danach über DSFA für die Geokodierung entscheiden (`specs/datenschutz/dsfa-schwellwert.md`).
 - Impressum: ladungsfähige Anschrift ergänzen, spätestens bevor Supporter-Käufe live gehen (§ 5 DDG).

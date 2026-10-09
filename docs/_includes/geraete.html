@@ -1,0 +1,21 @@
+{%- comment -%}
+  Screenshot-Reihe über Geräte hinweg (iPhone, iPad, iPhone Duo), die Bilder
+  werden etwa gleich hoch. Nummerierung ab start (Standard 1).
+  Nutzung: {% include geraete.html items="phone:screens/mitglieder:iPhone|tablet:geraete/ipad_mitglieder:iPad|duo:geraete/duo_mitglieder:iPhone Duo" start=1 %}
+  Bilder liegen unter assets/img/<pfad>.jpg. Die Bilder unter assets/img/geraete/
+  entstehen aus den Store-Rohscreens (Skill doku-abgleich).
+{%- endcomment -%}
+{%- assign start = include.start | default: 1 -%}
+<div class="shots geraete">
+{%- assign eintraege = include.items | split: "|" -%}
+{%- for eintrag in eintraege -%}
+  {%- assign teile = eintrag | split: ":" -%}
+  {%- assign art = teile[0] | strip -%}
+  {%- assign bild = teile[1] | strip -%}
+  {%- assign text = teile[2] | strip -%}
+  <figure class="{{ art }}-figur">
+    <div class="{{ art }}"><img src="{{ '/assets/img/' | append: bild | append: '.jpg' | relative_url }}" alt="{{ text }}" loading="lazy"></div>
+    <figcaption><i class="ref">{{ forloop.index0 | plus: start }}</i>{{ text }}</figcaption>
+  </figure>
+{%- endfor -%}
+</div>
