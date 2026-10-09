@@ -255,6 +255,33 @@ void main() {
       expect(plan.mergedMitglied.gender, isNull);
     });
 
+    test('behandelt leeres und fehlendes Geschlecht als gleich', () {
+      final basis = _basis().copyWith(genderLoeschen: true);
+      final ziel = basis.copyWith(gender: '');
+      final remote = basis.copyWith(gender: 'm');
+
+      final plan = _resolve(basis: basis, ziel: ziel, remote: remote);
+
+      expect(plan.items, isEmpty);
+      expect(plan.mergedMitglied.gender, 'm');
+    });
+
+    test('wertet eine Bezeichnung der Hauptadresse nicht als Aenderung', () {
+      final basis = _basis();
+      final ziel = basis.copyWith(
+        adressen: <MitgliedKontaktAdresse>[
+          _hauptadresse.copyWith(label: 'Zuhause'),
+          _zusatzadresse,
+        ],
+      );
+      final remote = _withPrimaryAddress(basis, 'Neue Strasse');
+
+      final plan = _resolve(basis: basis, ziel: ziel, remote: remote);
+
+      expect(plan.items, isEmpty);
+      expect(plan.mergedMitglied.primaryAddress?.street, 'Neue Strasse');
+    });
+
     test('uebernimmt nicht gemergte Felder wie updatedAt vom Remote-Stand', () {
       final basis = _basis();
       final remote = basis.copyWith(

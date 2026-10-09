@@ -132,6 +132,8 @@
         "Die Qualifikationen-Übersicht zeigt oben, wie viele Personen mit Rolle unvollständig sind."
       ],
       "bugFixes": [
+        "Ein Wechsel der Ebene während eines laufenden Abgleichs wird nicht mehr still verworfen, sondern danach ausgeführt. Ein gerade gespeichertes Mitglied wird von einem älteren Abgleich nicht mehr überschrieben.",
+        "Die bundesweite Statistik sendet nach einem Wechsel des Stamms während des Abgleichs nichts mehr ohne Einwilligung für den neuen Stamm.",
         "Mit reinem Leserecht auf deine Gruppe zeigt die App fehlende Rollen, Qualifikationen und Führungszeugnisse anderer als „Keine Berechtigung“ oder mit Hinweis, statt sie als leer oder 0 anzuzeigen.",
         "Wer am Bundesvergleich teilnimmt, aber keine eigenen Zahlen sieht, bekommt den Vergleich trotzdem angezeigt.",
         "Der Bundesvergleich ist besser gegen Rückschlüsse auf einzelne Stämme geschützt: Er aktualisiert sich wöchentlich, zeigt die Zahl der Stämme nur noch ungefähr und lässt sehr kleine Gruppen außen vor.",
@@ -143,7 +145,8 @@
         "Beendet das Gerät die App während der Anmeldung, erklärt sie beim nächsten Start den Grund.",
         "Meldet man sich nach abgelaufener Anmeldung mit einem anderen Konto an, bleiben die gespeicherten Daten und vorgemerkten Änderungen des bisherigen Kontos erhalten.",
         "Nach dem Abmelden zeigt die App wieder die Mitgliederliste mit Anmeldung und Demo, statt auf dem Profil zu bleiben.",
-        "Texte und Meldungen schreiben Umlaute richtig, und die Mitgliederliste zeigt „vor 1 Minute“ statt „vor 1 Minuten“."
+        "Texte und Meldungen schreiben Umlaute richtig, und die Mitgliederliste zeigt „vor 1 Minute“ statt „vor 1 Minuten“.",
+        "Beim Bearbeiten von Mitgliedern führen leere Angaben nicht mehr zu Scheinkonflikten, „divers“ wird richtig angezeigt, und eine gespeicherte Änderung wird nicht mehr ein zweites Mal vorgemerkt."
       ]
     }
   ]

@@ -183,6 +183,12 @@ class ArbeitskontextModel extends ChangeNotifier {
   // syncVollstaendig() auch beim Warten auf einen fremden Durchlauf dessen
   // Ausgang kennt.
   _SyncLauf? _letzterLauf;
+  // Lokal gespeicherte Mitglieder mit fortlaufender Nummer. Ein Sync, der vor
+  // dem Speichern gestartet ist, liefert fuer sie einen aelteren Serverstand
+  // und darf sie deshalb nicht ueberschreiben.
+  int _lokaleSchreibNr = 0;
+  final Map<String, ({int nr, Mitglied mitglied})> _lokaleSchreibstaende =
+      <String, ({int nr, Mitglied mitglied})>{};
   // Nur waehrend des initialen Ladevorgangs (initializeForProfile ohne
   // Cache-Treffer) gesetzt, damit die UI dem Nutzer zeigen kann, welcher von
   // mehreren Schritten gerade laeuft. Hintergrund-Refreshes beeinflussen
@@ -441,6 +447,11 @@ class ArbeitskontextModel extends ChangeNotifier {
   /// Verlauf; der Schreibpfad liefert keine. Deshalb bleiben die vorhandenen
   /// Rollen erhalten.
   Future<void> ersetzeMitglied(Mitglied mitglied) async {
+    _lokaleSchreibNr += 1;
+    _lokaleSchreibstaende[mitglied.mitgliedsnummer] = (
+      nr: _lokaleSchreibNr,
+      mitglied: mitglied,
+    );
     final readModel = _readModel;
     if (readModel == null) {
       return;
@@ -457,6 +468,31 @@ class ArbeitskontextModel extends ChangeNotifier {
     _readModel = readModel.copyWith(mitglieder: nextMitglieder);
     await _localRepository.saveCached(_readModel!);
     notifyListeners();
+  }
+
+  /// Uebernimmt Mitglieder, die nach [seit] lokal gespeichert wurden, in ein
+  /// Sync-Ergebnis. Die Rollen kommen weiter aus dem Sync.
+  ArbeitskontextReadModel _mitNeuerenLokalenStaenden(
+    ArbeitskontextReadModel readModel, {
+    required int seit,
+  }) {
+    final neuere = <String, Mitglied>{
+      for (final eintrag in _lokaleSchreibstaende.entries)
+        if (eintrag.value.nr > seit) eintrag.key: eintrag.value.mitglied,
+    };
+    if (neuere.isEmpty) {
+      return readModel;
+    }
+    return readModel.copyWith(
+      mitglieder: readModel.mitglieder
+          .map((synchronisiert) {
+            final lokal = neuere[synchronisiert.mitgliedsnummer];
+            return lokal == null
+                ? synchronisiert
+                : lokal.copyWith(roles: synchronisiert.roles);
+          })
+          .toList(growable: false),
+    );
   }
 
   Future<void> syncForAuth({
@@ -885,6 +921,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     required bool scheduleRolesPreload,
   }) async {
     final generation = _generation;
+    final schreibNrBeiStart = _lokaleSchreibNr;
     final previousStatus = _status;
     // Stand vor dem Sync: Scheitert der Durchlauf, wird der zwischendurch
     // gemischte Teilstand (_applyProgressReadModel) wieder verworfen.
@@ -966,7 +1003,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       // zeigen.
       _isLoadingRoles = true;
       notifyListeners();
-      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final geladen = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_refresh_read_model',
         session: session,
         allowMobileDataOverride: allowMobileDataOverride,
@@ -980,7 +1017,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       if (!_isCurrent(generation)) {
         return;
       }
-      if (readModel == null) {
+      if (geladen == null) {
         await _logger.log(
           'arbeitskontext',
           'Arbeitskontext-Refresh abgebrochen: '
@@ -996,6 +1033,10 @@ class ArbeitskontextModel extends ChangeNotifier {
         _status = previousStatus;
         return;
       }
+      final readModel = _mitNeuerenLokalenStaenden(
+        geladen,
+        seit: schreibNrBeiStart,
+      );
       await _localRepository.saveCached(readModel);
       if (!_isCurrent(generation)) {
         return;
@@ -1123,6 +1164,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     required bool allowMobileDataOverride,
   }) async {
     final generation = _generation;
+    final schreibNrBeiStart = _lokaleSchreibNr;
     _isLoadingRoles = true;
     if (surfaceErrors) {
       _errorMessage = null;
@@ -1130,7 +1172,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final geladen = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_load_roles',
         session: session,
         allowMobileDataOverride: allowMobileDataOverride,
@@ -1144,7 +1186,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       }
       // Ohne Ergebnis bleibt das bisherige Read-Model stehen, statt die
       // Liste trotz Cache zu leeren.
-      if (readModel == null) {
+      if (geladen == null) {
         await _logger.log(
           'arbeitskontext',
           'Roles-Nachladen abgebrochen: Remote-Zugriff lieferte kein '
@@ -1152,6 +1194,16 @@ class ArbeitskontextModel extends ChangeNotifier {
         );
         return false;
       }
+      // Die Rollen gehoeren zum Layer beim Start; ist inzwischen ein anderer
+      // aktiv, wuerden sie ihn mit dem alten ueberschreiben.
+      if (_readModel?.arbeitskontext.aktiverLayer.id !=
+          currentReadModel.arbeitskontext.aktiverLayer.id) {
+        return false;
+      }
+      final readModel = _mitNeuerenLokalenStaenden(
+        geladen,
+        seit: schreibNrBeiStart,
+      );
       await _localRepository.saveCached(readModel);
       if (!_isCurrent(generation)) {
         return false;
@@ -1188,6 +1240,51 @@ class ArbeitskontextModel extends ChangeNotifier {
     required AuthSession? session,
     required AuthProfile? profile,
   }) async {
+    if (_isSwitchingLayer) {
+      await _logger.logWarn(
+        'arbeitskontext',
+        'layer switch rejected reason=switch_in_progress target=${targetLayer.id}',
+      );
+      return false;
+    }
+    // Ein laufender Sync oder ein Rollen-Nachladen wuerde den neuen Layer
+    // sonst mit Daten des alten ueberschreiben. Erst abwarten, dann gegen den
+    // dann aktuellen Kontext pruefen.
+    Future<Object?>? zuletzt;
+    while (true) {
+      final Future<Object?>? laufend = _syncInFlight ?? _rolesInFlight;
+      if (laufend == null || identical(laufend, zuletzt)) {
+        break;
+      }
+      zuletzt = laufend;
+      await laufend;
+    }
+    if (_isSwitchingLayer) {
+      return false;
+    }
+
+    // Waehrend des Wechsels warten Refresh und Rollen-Nachladen auf ihn.
+    final operation = _runSwitchToLayer(
+      targetLayer: targetLayer,
+      session: session,
+      profile: profile,
+    );
+    final fuerWartende = operation.then<void>((_) {});
+    _syncInFlight = fuerWartende;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_syncInFlight, fuerWartende)) {
+        _syncInFlight = null;
+      }
+    }
+  }
+
+  Future<bool> _runSwitchToLayer({
+    required ArbeitskontextLayer targetLayer,
+    required AuthSession? session,
+    required AuthProfile? profile,
+  }) async {
     final current = _arbeitskontext;
     if (current == null || session == null || profile == null) {
       await _logger.logWarn(
@@ -1197,10 +1294,6 @@ class ArbeitskontextModel extends ChangeNotifier {
       _errorMessage =
           'Der Arbeitskontext kann ohne gültige Sitzung nicht gewechselt werden.';
       notifyListeners();
-      return false;
-    }
-
-    if (_isSynchronizing || _isSwitchingLayer) {
       return false;
     }
 
@@ -1237,6 +1330,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     );
 
     final generation = _generation;
+    final schreibNrBeiStart = _lokaleSchreibNr;
     _session = session;
     _isSwitchingLayer = true;
     _errorMessage = null;
@@ -1250,7 +1344,14 @@ class ArbeitskontextModel extends ChangeNotifier {
             action: (activeSession) =>
                 _groupsService.fetchAccessibleGroups(activeSession.accessToken),
           );
-      if (!_isCurrent(generation) || accessibleGroups == null) {
+      if (!_isCurrent(generation)) {
+        return false;
+      }
+      if (accessibleGroups == null) {
+        _letzterLauf = _SyncLauf.fehlgeschlagen(
+          const ArbeitskontextSyncOhneErgebnisException('switch_layer_groups'),
+          StackTrace.current,
+        );
         return false;
       }
       final nextArbeitskontext = _buildArbeitskontextForTargetLayer(
@@ -1269,10 +1370,14 @@ class ArbeitskontextModel extends ChangeNotifier {
             'reason': 'target_not_resolvable',
           },
         );
+        _letzterLauf = _SyncLauf.fehlgeschlagen(
+          const ArbeitskontextSyncOhneErgebnisException('switch_layer_target'),
+          StackTrace.current,
+        );
         await _enterUnauthorizedState(generation);
         return false;
       }
-      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final geladen = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_switch_layer_read_model',
         session: session,
         action: (activeSession) => _readModelRepository.refresh(
@@ -1284,10 +1389,18 @@ class ArbeitskontextModel extends ChangeNotifier {
       if (!_isCurrent(generation)) {
         return false;
       }
-      if (readModel == null) {
+      if (geladen == null) {
         // Der bisherige Layer bleibt mit seinen Daten stehen.
+        _letzterLauf = _SyncLauf.fehlgeschlagen(
+          const ArbeitskontextSyncOhneErgebnisException('switch_layer'),
+          StackTrace.current,
+        );
         return false;
       }
+      final readModel = _mitNeuerenLokalenStaenden(
+        geladen,
+        seit: schreibNrBeiStart,
+      );
       await _localRepository.saveCached(readModel);
       if (!_isCurrent(generation)) {
         return false;
@@ -1296,6 +1409,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _arbeitskontext = readModel.arbeitskontext;
       _status = ArbeitskontextStatus.ready;
       _errorMessage = null;
+      _letzterLauf = const _SyncLauf.remote();
       if (_arbeitskontext != null) {
         await _logger.logInfo(
           'arbeitskontext',
@@ -1333,6 +1447,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'error_type': error.runtimeType.toString(),
         },
       );
+      _letzterLauf = _SyncLauf.fehlgeschlagen(error, stack);
       _errorMessage = layerSwitchFailedMessage;
       return false;
     } finally {
@@ -1348,6 +1463,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     _generation += 1;
     _syncInFlight = null;
     _rolesInFlight = null;
+    _lokaleSchreibstaende.clear();
     final hadState =
         _status != ArbeitskontextStatus.initial ||
         _arbeitskontext != null ||
