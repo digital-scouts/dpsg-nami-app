@@ -70,3 +70,4 @@ Sind Mitteilungen erlaubt, erinnert die App einen Tag vorher daran, sie kurz zu 
 | App-Sperre mit Face ID oder Fingerabdruck | Einstellungen → App-Einstellungen |
 | Erfolge mit Abzeichen von Bronze bis Diamant | Profil → Erfolge |
 | Hell, dunkel, Farbpaletten, App-Icon | Einstellungen → Erscheinungsbild |
+| Sprache Deutsch oder Englisch | Einstellungen → App-Einstellungen |

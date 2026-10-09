@@ -32,7 +32,7 @@ Version 1.0 erscheint Anfang 2027, in den Stores liegt bis dahin noch die Vorgä
 - **Stufenwechsel:** Vorschlag zum Stichtag mit eigenen Altersgrenzen.
 - **Qualifikationen:** Führungszeugnis, Prävention und Erste Hilfe im Blick, mit Erinnerungen.
 - **Arbeitskontext:** zwischen Stamm, Bezirk und weiteren Ebenen wechseln, passend zu den Rechten in Hitobito.
-- **Außerdem:** Geburtstagserinnerungen, Karte aller Stämme, App-Sperre, Erfolge, Hell und Dunkel, Demo ohne Login.
+- **Außerdem:** Geburtstagserinnerungen, Karte aller Stämme, App-Sperre, Erfolge, Hell und Dunkel, Deutsch und Englisch, Demo ohne Login.
 
 Mehr dazu in der [Funktionsübersicht](https://digital-scouts.github.io/dpsg-nami-app/), im [Handbuch](https://digital-scouts.github.io/dpsg-nami-app/handbuch/) und unter [Technik](https://digital-scouts.github.io/dpsg-nami-app/technik/).
 

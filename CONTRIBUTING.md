@@ -91,6 +91,8 @@ Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 
 - [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) validiert Pull Requests nach `develop` und `master` mit Versionscheck, Formatierung, Analyse und Tests.
 - [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) baut ein Android App Bundle und deployed es nach Pushes auf `develop`, nach gemergten Pull Requests auf `master` oder manuell in den internen Play-Track. Die `.env` entsteht aus [.env.example](.env.example): Wiredash, Geoapify und Hitobito kommen wie in Xcode Cloud nur aus CI (Secrets `PROD_WIREDASH_SECRET`, `PROD_WIREDASH_PROJECT_ID`, `GEOAPIFY_KEY`, `HITOBITO_OAUTH_CLIENT_SECRET`; Variablen `HITOBITO_BASE_URL`, `HITOBITO_OAUTH_CLIENT_ID`, `HITOBITO_OAUTH_REDIRECT_URI`) und erzeugen bei fehlenden Werten eine Warnung. Alle übrigen Keys übernehmen den Default aus `.env.example`; die Repository-Variablen `STATS_SERVER_URL` und `SUPPORTER_STORE_ENABLED` überschreiben ihn optional.
+- [server-status.yml](.github/workflows/server-status.yml) prüft täglich Erreichbarkeit, Zertifikat und Backup-Alter des Statistikservers und meldet Probleme als Issue.
+- [rotation-erinnerung.yml](.github/workflows/rotation-erinnerung.yml) legt vierteljährlich ein Issue zur Prüfung der Schlüssel-Rotation an, sofern keines offen ist.
 - [create-github-release.yml](.github/workflows/create-github-release.yml) erstellt nach gemergten Pull Requests auf `master` oder manuell einen GitHub Release auf Basis der Version aus [pubspec.yaml](pubspec.yaml) und der Eintraege aus [assets/changelog.json](assets/changelog.json).
 
 Die Workflows laufen nur für den Bereich, der sich geändert hat:
@@ -161,6 +163,8 @@ python3 -m venv .venv
 ./.venv/bin/python tool/convert_bistum_shapefile.py --simplify-percent 15
 ```
 
+Stammstandorte lädt die App zur Laufzeit aus der DPSG-Stammessuche und speichert sie zwischen. Solange noch kein Abruf gespeichert ist, nutzt sie das Asset [assets/maps/stamm_markers.json](assets/maps/stamm_markers.json), das `dart run tool/export_stamm_markers.dart` neu erzeugt.
+
 Die aktuell eingebundene Kartenansicht kombiniert generalisierte Bistumsgrenzen als fachliche Näherung für DPSG-Diözesen mit Stammstandorten aus dem Store-Locator-Pfad. Beim Auswählen eines Stammes oder einer Diözese zeigt die Karte den Namen und, sofern gepflegt, einen direkten Website-Link an. Weitere Kartenebenen bauen künftig auf demselben GeoJSON-basierten Laufzeitpfad auf.
 
 ## Dokumentation
@@ -169,7 +173,7 @@ Die aktuell eingebundene Kartenansicht kombiniert generalisierte Bistumsgrenzen 
 - [docs/](docs/) ist die GitHub-Pages-Seite: Funktionsübersicht (`index.html`), Handbuch (`docs/handbuch/`), Technik (`docs/technik/`) und Rechtliches. Lokal ansehen mit `cd docs && bundle exec jekyll serve`.
 - [assets/changelog.json](assets/changelog.json) enthält die Neuerungen je Version, die die App anzeigt.
 
-Bei Änderungen am Verhalten werden die passende Handbuch- oder Technikseite und der Changelog im selben PR gepflegt.
+Changelog und `specs/` werden im selben PR wie die Änderung gepflegt. README, CONTRIBUTING und `docs/` zieht der Claude-Skill `doku-abgleich` (`.claude/skills/doku-abgleich/`) gebündelt beim Versionswechsel oder auf Anfrage nach; bis zu welchem Commit das geschehen ist, hält der Skill in `docs/_data/doku_stand.yml` fest.
 
 ### Dokumentationsstil
 

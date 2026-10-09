@@ -16,7 +16,7 @@ Ein Durchlauf bringt Texte und Bilder beider Stores auf den Stand der App: Besta
 - Was hat sich seit den letzten Rohscreens geändert?
   `git log --oneline $(git log -1 --format=%H -- assets/workfiles/store/raw/) -- lib/stories/store/ lib/presentation/`
   Betroffene Szenen zuordnen (Szene → Screen siehe `lib/stories/store/store_scenes_story.dart`).
-- Neue oder entfallene Funktionen mit `README.md` und `docs/index.html` abgleichen.
+- Neue oder entfallene Funktionen aus dem Changelog ableiten. `README.md` und `docs/index.html` zieht danach der Skill `doku-abgleich` nach.
 - Dem Nutzer kurz zusammenfassen: veraltete Szenen, neue Funktionen, ob eine Feedbackrunde ansteht.
 
 ## 1. Feedbackrunde
@@ -99,6 +99,6 @@ bundle exec fastlane android store_check
 ## 7. Nacharbeiten
 
 - README-Bilder: `for i in 1 2 3 5; do sips -s format jpeg -s formatOptions 85 --resampleWidth 440 assets/workfiles/store/out/de/iphone/iphone-0$i-*.png --out docs/assets/img/store/iphone-$i.jpg; done`
-- Haben sich `Store/`-Szenen geändert, auch die Handbuch-Bilder neu erzeugen (`--set docs`), weil das Handbuch sie mitnutzt.
+- Danach den Skill `doku-abgleich` ausführen. Er erzeugt die Handbuch-Bilder neu, die die `Store/`-Szenen mitnutzen.
 - Versioniert werden `content.js`, `raw/`, geänderte Szenen und ggf. die Entscheidung. `out/` und `fastlane/build/` nicht.
 - Store-Texte und -Bilder sind keine App-Änderung: kein Eintrag in `assets/changelog.json`.
