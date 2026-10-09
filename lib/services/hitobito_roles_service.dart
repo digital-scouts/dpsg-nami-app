@@ -81,7 +81,7 @@ class HitobitoRolesService {
       final data = decoded['data'];
       if (data is! List) {
         throw const HitobitoRolesException(
-          'Roles-Antwort enthaelt keine gueltige Datensammlung.',
+          'Roles-Antwort enthält keine gültige Datensammlung.',
         );
       }
 
@@ -169,7 +169,7 @@ class HitobitoRolesService {
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoRolesException(
-        'Roles-Antwort hat ein ungueltiges Format.',
+        'Roles-Antwort hat ein ungültiges Format.',
       );
     }
     return decoded;
@@ -222,7 +222,7 @@ class HitobitoRolesService {
     final groupId = _toNullableInt(attributesMap['group_id']);
     if (id <= 0 || groupId == null) {
       throw const HitobitoRolesException(
-        'Roles-Antwort enthaelt einen ungueltigen Role-Eintrag.',
+        'Roles-Antwort enthält einen ungültigen Role-Eintrag.',
       );
     }
 

@@ -227,6 +227,25 @@ class BundesstatistikModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Vergisst nach einem App-Reset alles im Speicher, vor allem die
+  /// Einwilligungen. Sonst schriebe das naechste Speichern sie zurueck.
+  void zuruecksetzen() {
+    _teilnahme = BundesstatistikTeilnahme.leer;
+    _personId = null;
+    _readModel = null;
+    _abdeckung = null;
+    _datenstand = null;
+    _hierarchie = null;
+    _eigeneKennzahlen = null;
+    _aggregat = null;
+    _aggregatGeladenAm = null;
+    _nichtTeilnehmend = false;
+    _letzterFehler = null;
+    _installationsId = null;
+    _syncErneutAngefordert = false;
+    notifyListeners();
+  }
+
   /// Wird bei Aenderungen an Anmeldung oder Arbeitskontext aufgerufen.
   Future<void> aktualisiereKontext({
     required String? personId,
@@ -390,6 +409,14 @@ class BundesstatistikModel extends ChangeNotifier {
     if (hierarchie == null || eigene == null) {
       return;
     }
+    // Waehrend des Syncs kann der Stamm gewechselt oder die Einwilligung
+    // widerrufen worden sein. Bis zum Senden folgt kein await mehr, deshalb
+    // gilt diese Pruefung fuer genau den Stamm, der gesendet wird.
+    final personId = _personId;
+    if (personId == null ||
+        !_teilnahme.hatEinwilligungFuer(personId, hierarchie.stammId)) {
+      return;
+    }
     // Die Absicht zu teilen reicht: Ohne plausible Zahlen geht eine Teilnahme
     // ohne Werte raus. Ohne Stufengruppen gibt es nicht einmal eine Struktur.
     final kennzahlen = eigene.istPlausibel
@@ -465,8 +492,15 @@ class BundesstatistikModel extends ChangeNotifier {
     InstallationCredentials credentials, {
     bool nachsendenErlaubt = true,
   }) async {
+    final personId = _personId;
     try {
-      _aggregat = await _repository.ladeBundesaggregat(credentials);
+      final aggregat = await _repository.ladeBundesaggregat(credentials);
+      // Hat sich die Person inzwischen geaendert oder die Einwilligung
+      // zurueckgezogen, gehoert das Ergebnis nicht mehr in die Anzeige.
+      if (_personId != personId || !hatEinwilligung) {
+        return;
+      }
+      _aggregat = aggregat;
       _aggregatGeladenAm = _now();
       _nichtTeilnehmend = false;
     } on BundesstatistikException catch (error) {

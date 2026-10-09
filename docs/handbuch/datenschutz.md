@@ -52,7 +52,8 @@ Unter Einstellungen → <span class="ui">Impressum & Datenschutz</span> fasst di
 |:--|:--|
 | Mitgliederdaten aus Hitobito | beim Abmelden und nach 90 Tagen ohne Aktualisierung |
 | Erinnerungen für Geburtstage, Qualifikationen und das Ende der Anmeldung | beim Abmelden und beim Zurücksetzen |
-| Statistik-Verlauf und Kachel-Einstellungen | beim Zurücksetzen der App |
+| Statistik-Verlauf | beim Abmelden, Kontowechsel oder Datenablauf |
+| Kachel-Einstellungen | beim Zurücksetzen der App |
 | Erfolge | beim Zurücksetzen der App |
 | App- und Netzwerkprotokoll | nach sieben Tagen |
 

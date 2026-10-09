@@ -662,6 +662,40 @@ void main() {
     expect(button.onPressed, isNotNull);
   });
 
+  testWidgets('deaktiviert den Bearbeiten-Button ohne Schreibrecht', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_read'],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final button = tester.widget<IconButton>(
+      find.byKey(const Key('member-detail-edit')),
+    );
+    expect(button.onPressed, isNull);
+  });
+
   testWidgets('zeigt den Pending-Hinweis fuer das passende Mitglied', (
     tester,
   ) async {

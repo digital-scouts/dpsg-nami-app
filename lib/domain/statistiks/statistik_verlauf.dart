@@ -90,6 +90,10 @@ abstract class StatistikVerlaufRepository {
     int layerId,
     List<StatistikVerlaufEintrag> eintraege,
   );
+
+  /// Entfernt den Verlauf aller Layer, z. B. beim Abmelden oder
+  /// Kontowechsel: Er gehört zu den Daten der angemeldeten Person.
+  Future<void> clearAll();
 }
 
 /// Hält einmal je Monat die Summen fest; ältere Monate als [maxMonate]

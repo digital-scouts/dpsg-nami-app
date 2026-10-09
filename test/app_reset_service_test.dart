@@ -100,6 +100,42 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getKeys(), isEmpty);
   });
+
+  test(
+    'laeuft nach einem gescheiterten Schritt weiter und meldet ihn',
+    () async {
+      var legacyCleared = false;
+      var logsCleared = false;
+      final service = AppResetService(
+        authSessionRepository: _FakeAuthSessionRepository(),
+        sensitiveStorageService: _FakeSensitiveStorageService(
+          purgeError: StateError('keychain'),
+        ),
+        clearLegacyData: () async => legacyCleared = true,
+        clearLogs: () async => logsCleared = true,
+      );
+
+      final ergebnis = await service.resetAllData();
+
+      expect(ergebnis.vollstaendig, isFalse);
+      expect(ergebnis.fehlgeschlagen, <String>['sensitive_data']);
+      expect(legacyCleared, isTrue);
+      expect(logsCleared, isTrue);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getKeys(), isEmpty);
+    },
+  );
+
+  test('meldet einen vollstaendigen Reset', () async {
+    final service = AppResetService(
+      authSessionRepository: _FakeAuthSessionRepository(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+    );
+
+    final ergebnis = await service.resetAllData(clearLogFile: false);
+
+    expect(ergebnis.vollstaendig, isTrue);
+  });
 }
 
 class _FakeAuthSessionRepository implements AuthSessionRepository {
@@ -118,10 +154,17 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
 }
 
 class _FakeSensitiveStorageService extends SensitiveStorageService {
+  _FakeSensitiveStorageService({this.purgeError});
+
+  final Object? purgeError;
   bool purgeCalled = false;
 
   @override
   Future<void> purgeSensitiveData() async {
     purgeCalled = true;
+    final error = purgeError;
+    if (error != null) {
+      throw error;
+    }
   }
 }

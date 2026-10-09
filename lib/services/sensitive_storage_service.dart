@@ -17,7 +17,7 @@ class SensitiveSessionEndedException implements Exception {
 
   @override
   String toString() =>
-      'SensitiveSessionEndedException: keine offene Sitzung fuer $boxName';
+      'SensitiveSessionEndedException: keine offene Sitzung für $boxName';
 }
 
 class SensitiveStorageService {

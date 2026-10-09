@@ -295,7 +295,7 @@ class AppLocalizations {
       'legal_r_logmail_retention': 'bis die Fehlersuche abgeschlossen ist',
       'legal_device_title': 'Auf deinem Gerät',
       'legal_device_body':
-          'Mitgliederdaten liegen verschlüsselt auf deinem Gerät und werden beim Abmelden gelöscht, ebenso nach 90 Tagen ohne Aktualisierung. Erfolge und der Statistik-Verlauf bleiben bis zum Zurücksetzen der App, Protokolle sieben Tage.',
+          'Mitgliederdaten liegen verschlüsselt auf deinem Gerät und werden beim Abmelden gelöscht, ebenso nach 90 Tagen ohne Aktualisierung. Der Statistik-Verlauf wird beim Abmelden und Kontowechsel gelöscht, Erfolge bleiben bis zum Zurücksetzen der App, Protokolle sieben Tage.',
       'legal_rights_title': 'Deine Rechte',
       'legal_rights_intro': 'Du kannst jederzeit verlangen:',
       'legal_rights_list':
@@ -411,6 +411,28 @@ class AppLocalizations {
       'acknowledge': 'Bestätigen',
       'update_available_title': 'Update verfügbar',
       'update_available_body': 'Es ist eine neuere Version der App verfügbar.',
+      'security_update_title': 'Sicherheitsupdate erforderlich',
+      'security_update_body':
+          'In dieser Version steckt eine Sicherheitslücke. Das Update behebt sie.',
+      'security_update_betrifft': 'Betrifft: {text}',
+      'security_update_rest':
+          'Du kannst es noch {count}× verschieben, danach sperrt sich die App bis zum Update.',
+      'security_update_now': 'Jetzt aktualisieren',
+      'security_update_later': 'In 3 Stunden erinnern',
+      'security_update_countdown_title': 'Sicherheitsupdate nötig',
+      'security_update_countdown_body':
+          'Die App sperrt sich in {hours} Std. {minutes} Min.',
+      'security_lock_title': 'Update erforderlich',
+      'security_lock_body':
+          'Diese Version ist wegen einer Sicherheitslücke gesperrt. Deine Daten bleiben verschlüsselt auf dem Gerät und sind nach dem Update wieder da.',
+      'security_lock_body_deleted':
+          'Diese Version ist wegen einer Sicherheitslücke gesperrt. Zum Schutz wurden die Mitgliederdaten auf diesem Gerät gelöscht. Nach dem Update lädt die App sie neu.',
+      'security_lock_version': 'Version {current} · mindestens {min} nötig',
+      'security_lock_store': 'Zum Store',
+      'security_lock_emergency': 'Notfallkontakte',
+      'security_lock_emergency_hint':
+          'Nur lesen. Die App ist bis zum Update gesperrt.',
+      'security_lock_recheck': 'Erneut prüfen',
       'update_required_title': 'Update erforderlich',
       'update_required_body':
           'Deine aktuelle App-Version wird nicht mehr unterstützt. Bitte aktualisiere die App.',
@@ -496,7 +518,7 @@ class AppLocalizations {
       'analytics_enable': 'Analyse/Telemetry erlauben',
       'app_lock_enable': 'App-Sperre aktivieren',
       'app_lock_enable_hint':
-          'Fordert nach Rueckkehr aus dem Hintergrund die Geraeteauthentifizierung an.',
+          'Fordert nach Rückkehr aus dem Hintergrund die Geräteauthentifizierung an.',
       'member_search_result_highlight_enable':
           'Suchtreffer im Untertitel hervorheben',
       'member_search_result_highlight_hint':
@@ -520,13 +542,13 @@ class AppLocalizations {
       'profile_context_current_layer_label': 'Aktiver Layer',
       'profile_context_switch_action': 'Layer wechseln',
       'profile_context_no_other_layers':
-          'Es sind aktuell keine weiteren erreichbaren Layer verfuegbar.',
+          'Es sind aktuell keine weiteren erreichbaren Layer verfügbar.',
       'profile_context_unavailable':
-          'Der Arbeitskontext ist derzeit nicht verfuegbar.',
+          'Der Arbeitskontext ist derzeit nicht verfügbar.',
       'profile_context_loading': 'Arbeitskontext wird geladen',
       'profile_context_sheet_title': 'Layer wechseln',
       'profile_context_sheet_hint':
-          'Waehle einen anderen erreichbaren Layer als aktiven Arbeitskontext.',
+          'Wähle einen anderen erreichbaren Layer als aktiven Arbeitskontext.',
       'profile_context_current_badge': 'Aktuell aktiv',
       'profile_context_switch_loading': 'Arbeitskontext wird gewechselt',
       'profile_roles_title': 'Rollen',
@@ -577,6 +599,9 @@ class AppLocalizations {
       'member_list_last_update_minutes': 'vor {count} Minuten',
       'member_list_last_update_hours': 'vor {count} Stunden',
       'member_list_last_update_days': 'vor {count} Tagen',
+      'member_list_last_update_minutes_one': 'vor 1 Minute',
+      'member_list_last_update_hours_one': 'vor 1 Stunde',
+      'member_list_last_update_days_one': 'vor 1 Tag',
       'member_list_footer_count': '{count} Mitglieder',
       'member_list_mobile_refresh_title': 'Über mobile Daten aktualisieren?',
       'member_list_mobile_refresh_body':
@@ -700,7 +725,7 @@ class AppLocalizations {
           'Treffer in der Mitgliederliste farbig markieren',
       'no_mobile_data_title': 'Keine Mobilen Daten',
       'no_mobile_data_hint':
-          'Blockiert Netzwerkzugriffe ueber mobile Daten. Online-Funktionen laufen dann nur ueber WLAN.',
+          'Blockiert Netzwerkzugriffe über mobile Daten. Online-Funktionen laufen dann nur über WLAN.',
       'settings_map': 'Karte',
       'settings_map_title': 'Karte',
       'settings_map_loading': 'Kartendaten werden geladen',
@@ -775,19 +800,19 @@ class AppLocalizations {
           'Kein Mailprogramm gefunden. Schreib gern direkt an {email}.',
       'settings_hitobito_issue_title': 'Hitobito derzeit nicht erreichbar',
       'settings_hitobito_issue_body':
-          'Die App zeigt weiter lokale Daten an. Tippe hier, um die Verbindung erneut zu pruefen.',
+          'Die App zeigt weiter lokale Daten an. Tippe hier, um die Verbindung erneut zu prüfen.',
       'settings_hitobito_login_expired_title': 'Anmeldung abgelaufen',
       'settings_hitobito_login_expired_body':
           'Tippe, um dich neu anzumelden. Deine gespeicherten Daten bleiben sichtbar.',
       'settings_hitobito_issue_relogin_body':
           'Die App zeigt weiter lokale Daten an. Tippe hier, um dich erneut bei Hitobito anzumelden.',
       'settings_hitobito_issue_offline_body':
-          'Du bist gerade offline. Die App zeigt lokale Daten an und verbindet sich wieder, sobald eine Verbindung verfuegbar ist.',
+          'Du bist gerade offline. Die App zeigt lokale Daten an und verbindet sich wieder, sobald eine Verbindung verfügbar ist.',
       'settings_data_expiry_soon_title': 'Lokale Daten laufen bald ab',
       'settings_data_expiry_soon_body':
-          'Melde dich innerhalb von {days} Tagen erneut an, damit die lokalen Daten verfuegbar bleiben.',
+          'Melde dich innerhalb von {days} Tagen erneut an, damit die lokalen Daten verfügbar bleiben.',
       'settings_messages_retention_hint':
-          'Hinweis: Externe Meldungen werden nach spaetestens 3 Tagen automatisch ausgeblendet.',
+          'Hinweis: Externe Meldungen werden nach spätestens 3 Tagen automatisch ausgeblendet.',
       'logout': 'Abmelden',
       'developed_with': 'Entwickelt mit',
       'developed_in_hamburg': 'in Hamburg',
@@ -831,10 +856,10 @@ class AppLocalizations {
           'Kartenvorschau wird nur über WLAN aktualisiert.',
       'auth_loading_title': 'Sichere Sitzung wird vorbereitet',
       'auth_loading_body':
-          'Bitte warte kurz, waehrend der geschuetzte App-Zustand geladen wird.',
+          'Bitte warte kurz, während der geschützte App-Zustand geladen wird.',
       'auth_login_title': 'Anmeldung erforderlich',
       'auth_login_body':
-          'Melde dich mit deinem Hitobito-Zugang an, um sensible DPSG-Daten offline verfuegbar zu machen.',
+          'Melde dich mit deinem Hitobito-Zugang an, um sensible DPSG-Daten offline verfügbar zu machen.',
       'auth_not_configured_body':
           'OAuth ist noch nicht konfiguriert. Hinterlege die Hitobito-Zugangsdaten in der .env, um den Login zu aktivieren.',
       'auth_login_action': 'Mit Hitobito anmelden',
@@ -900,10 +925,10 @@ class AppLocalizations {
       'auth_unlock_body':
           'Bestätige kurz deine Identität, um auf die lokal gespeicherten Daten zuzugreifen.',
       'auth_unlock_action': 'Jetzt entsperren',
-      'auth_refresh_due_title': 'Auffrischung nach 24 Stunden faellig',
+      'auth_refresh_due_title': 'Auffrischung nach 24 Stunden fällig',
       'auth_refresh_due_yes': 'Ja',
       'auth_refresh_due_no': 'Nein',
-      'auth_manual_refresh_action': 'Sitzung jetzt pruefen',
+      'auth_manual_refresh_action': 'Sitzung jetzt prüfen',
       'auth_lock_timeout_label': 'App-Sperre nach Hintergrund in Sekunden',
       'debug_reset_title': 'App zurücksetzen',
       'debug_reset_action': 'Alle Daten löschen',
@@ -913,6 +938,8 @@ class AppLocalizations {
       'debug_reset_confirm_action': 'Jetzt löschen',
       'debug_reset_done':
           'Alle Daten wurden gelöscht. Bitte jetzt App beenden und neu starten.',
+      'debug_reset_partial':
+          'Nicht alle Daten konnten gelöscht werden. Bitte App beenden, neu starten und den Reset wiederholen.',
       'common_remove': 'Entfernen',
       'common_copy': 'Kopieren',
       'common_retry': 'Erneut versuchen',
@@ -994,6 +1021,7 @@ class AppLocalizations {
       'member_edit_field_gender': 'Geschlecht',
       'member_edit_gender_female': 'Weiblich',
       'member_edit_gender_male': 'Männlich',
+      'member_edit_gender_diverse': 'Divers',
       'member_edit_gender_unknown': 'Unbekannt',
       'member_edit_field_birthday': 'Geburtsdatum',
       'member_edit_field_primary_email': 'Primäre E-Mail',
@@ -1488,6 +1516,8 @@ class AppLocalizations {
       'debug_logs_range_cancel': 'Abbrechen',
       'debug_logs_menu': 'Aktionen',
       'debug_logs_share': 'Teilen',
+      'debug_logs_report_failed':
+          'Die Mail konnte nicht geöffnet werden. Teile die Logs stattdessen.',
       'debug_logs_report': 'Report Issue',
       'debug_logs_report_hint':
           'Mail an den Entwickler, gleicher Ausschnitt im Anhang',
@@ -1939,7 +1969,7 @@ class AppLocalizations {
       'legal_r_logmail_retention': 'until troubleshooting is finished',
       'legal_device_title': 'On your device',
       'legal_device_body':
-          'Member data is stored encrypted on your device and deleted when you sign out, or after 90 days without an update. Achievements and statistics history remain until the app is reset, logs for seven days.',
+          'Member data is stored encrypted on your device and deleted when you sign out, or after 90 days without an update. The statistics history is deleted when you sign out or switch accounts, achievements remain until the app is reset, logs for seven days.',
       'legal_rights_title': 'Your rights',
       'legal_rights_intro': 'You can request at any time:',
       'legal_rights_list':
@@ -2056,6 +2086,28 @@ class AppLocalizations {
       'acknowledge': 'Acknowledge',
       'update_available_title': 'Update available',
       'update_available_body': 'A newer version of the app is available.',
+      'security_update_title': 'Security update required',
+      'security_update_body':
+          'This version has a security vulnerability. The update fixes it.',
+      'security_update_betrifft': 'Affects: {text}',
+      'security_update_rest':
+          'You can postpone it {count} more times, then the app locks until you update.',
+      'security_update_now': 'Update now',
+      'security_update_later': 'Remind me in 3 hours',
+      'security_update_countdown_title': 'Security update needed',
+      'security_update_countdown_body':
+          'The app locks in {hours} h {minutes} min.',
+      'security_lock_title': 'Update required',
+      'security_lock_body':
+          'This version is locked because of a security vulnerability. Your data stays encrypted on the device and is back after the update.',
+      'security_lock_body_deleted':
+          'This version is locked because of a security vulnerability. Member data on this device was deleted for protection. After the update, the app loads it again.',
+      'security_lock_version': 'Version {current} · at least {min} required',
+      'security_lock_store': 'Open store',
+      'security_lock_emergency': 'Emergency contacts',
+      'security_lock_emergency_hint':
+          'Read only. The app is locked until you update.',
+      'security_lock_recheck': 'Check again',
       'update_required_title': 'Update required',
       'update_required_body':
           'Your current app version is no longer supported. Please update the app.',
@@ -2216,6 +2268,9 @@ class AppLocalizations {
       'member_list_last_update_minutes': '{count} minutes ago',
       'member_list_last_update_hours': '{count} hours ago',
       'member_list_last_update_days': '{count} days ago',
+      'member_list_last_update_minutes_one': '1 minute ago',
+      'member_list_last_update_hours_one': '1 hour ago',
+      'member_list_last_update_days_one': '1 day ago',
       'member_list_footer_count': '{count} members',
       'member_list_mobile_refresh_title': 'Update via mobile data?',
       'member_list_mobile_refresh_body':
@@ -2549,6 +2604,8 @@ class AppLocalizations {
       'debug_reset_confirm_action': 'Delete now',
       'debug_reset_done':
           'All data was deleted. Please close and restart the app now.',
+      'debug_reset_partial':
+          'Not all data could be deleted. Please close and restart the app and run the reset again.',
       'common_remove': 'Remove',
       'common_copy': 'Copy',
       'common_retry': 'Retry',
@@ -2628,6 +2685,7 @@ class AppLocalizations {
       'member_edit_field_gender': 'Gender',
       'member_edit_gender_female': 'Female',
       'member_edit_gender_male': 'Male',
+      'member_edit_gender_diverse': 'Diverse',
       'member_edit_gender_unknown': 'Unknown',
       'member_edit_field_birthday': 'Birthday',
       'member_edit_field_primary_email': 'Primary email',
@@ -3111,6 +3169,8 @@ class AppLocalizations {
       'debug_logs_range_cancel': 'Cancel',
       'debug_logs_menu': 'Actions',
       'debug_logs_share': 'Share',
+      'debug_logs_report_failed':
+          'The email could not be opened. Share the logs instead.',
       'debug_logs_report': 'Report issue',
       'debug_logs_report_hint':
           'Email to the developer with the same excerpt attached',
