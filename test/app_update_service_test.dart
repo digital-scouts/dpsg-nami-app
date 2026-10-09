@@ -89,4 +89,55 @@ void main() {
 
     expect(fetchCalls, 1);
   });
+
+  group('Sicherheitsupdate', () {
+    Map<String, dynamic> manifest({Map<String, dynamic>? security}) => {
+      'android': {
+        'latest': '1.1.0',
+        'min_supported': '1.0.0',
+        'store_url': 'https://example.com/android',
+        'security': ?security,
+      },
+    };
+
+    test('meldet ein Sicherheitsupdate unter der Mindestversion', () async {
+      final service = AppUpdateService(
+        platformOverride: 'android',
+        currentVersionProvider: () async => '1.0.0',
+        manifestProvider: () async => manifest(
+          security: {
+            'min_version': '1.0.1',
+            'betrifft': 'Anmeldung',
+            'betrifft_en': 'Sign-in',
+            'daten_loeschen': true,
+          },
+        ),
+      );
+
+      final info = await service.pruefeSicherheitsupdate();
+
+      expect(info?.vorgabe.minVersion, '1.0.1');
+      expect(info?.vorgabe.betrifftFuer('de'), 'Anmeldung');
+      expect(info?.vorgabe.betrifftFuer('en'), 'Sign-in');
+      expect(info?.vorgabe.datenLoeschen, isTrue);
+      expect(info?.storeUrl, 'https://example.com/android');
+    });
+
+    test('meldet nichts ab der Mindestversion oder ohne Block', () async {
+      final aktuell = AppUpdateService(
+        platformOverride: 'android',
+        currentVersionProvider: () async => '1.0.1',
+        manifestProvider: () async =>
+            manifest(security: {'min_version': '1.0.1'}),
+      );
+      final ohne = AppUpdateService(
+        platformOverride: 'android',
+        currentVersionProvider: () async => '1.0.0',
+        manifestProvider: () async => manifest(),
+      );
+
+      expect(await aktuell.pruefeSicherheitsupdate(), isNull);
+      expect(await ohne.pruefeSicherheitsupdate(), isNull);
+    });
+  });
 }
