@@ -25,7 +25,7 @@ class DemoData {
   final DateTime Function() _now;
 
   AuthProfile get profile => switch (zugang) {
-    DemoZugang.stammesvorstand => const AuthProfile(
+    DemoZugang.stammesvorstand || DemoZugang.supporter => const AuthProfile(
       namiId: 1061,
       primaryGroupId: DemoBezirk.silberfelsId,
       email: 'johanna.becker@example.org',

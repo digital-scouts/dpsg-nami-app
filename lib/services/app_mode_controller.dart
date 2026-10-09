@@ -5,8 +5,20 @@ import 'app_startup_state_service.dart';
 enum AppMode { live, demo }
 
 /// Rolle, mit der die Demo den erfundenen Bezirk zeigt. Jeder Zugang sieht
-/// nur, was diese Rolle in Hitobito lesen duerfte.
-enum DemoZugang { stammesvorstand, leitung, bezirksvorstand }
+/// nur, was diese Rolle in Hitobito lesen duerfte. [supporter] zeigt den
+/// Stammesvorstand, startet aber mit gesperrten Supporter-Extras und kauft
+/// ueber den echten Store, damit sich Kaeufe ohne Login pruefen lassen (App
+/// Review).
+enum DemoZugang { stammesvorstand, leitung, bezirksvorstand, supporter }
+
+/// Ob die Demo alle Supporter-Extras ohne Kauf freischaltet. Nur der Zugang
+/// [DemoZugang.supporter] nutzt den Store, und das nur mit Store-Anbindung;
+/// sonst bliebe ein Schloss ohne Kaufweg.
+bool demoAllesFrei({
+  required bool isDemo,
+  required DemoZugang zugang,
+  required bool storeEnabled,
+}) => isDemo && !(zugang == DemoZugang.supporter && storeEnabled);
 
 /// Merkt sich, ob die App im Demo-Modus laeuft und mit welchem Zugang, damit
 /// ein Kaltstart dort weitermacht, wo die Person aufgehoert hat.

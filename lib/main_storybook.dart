@@ -59,6 +59,7 @@ import 'stories/statistik_group_distribution_story.dart';
 import 'stories/statistik_bearbeiten_story.dart';
 import 'stories/statistik_kacheln_story.dart';
 import 'stories/docs/docs_scenes_story.dart';
+import 'stories/store/review_scenes_story.dart';
 import 'stories/store/store_scenes_story.dart';
 
 Future<void> main() async {
@@ -158,6 +159,7 @@ List<Story> buildStorybookStories() {
     stufenwechselEmpfehlungStory(),
     supporterPageStory(),
     ...storeSceneStories(),
+    ...reviewSceneStories(),
     ...docsSceneStories(),
   ];
 }
