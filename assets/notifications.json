@@ -1,23 +1,47 @@
 {
-    "items": [
-        {
-            "id": "test-1",
-            "title": {
-                "de": "Hallo",
-                "en": "Hello"
-            },
-            "body": {
-                "de": "Text",
-                "en": "Text"
-            },
-            "type": "info",
-            "platform": "all",
-            "created_at": null,
-            "updated_at": null,
-            "starts_at": null,
-            "ends_at": null,
-            "deep_link": null,
-            "external_link": null
-        }
-    ]
+  "items": [
+    {
+      "id": "dev-urgent-update",
+      "title": { "de": "Bitte Update installieren", "en": "Please install the update" },
+      "body": { "de": "Version 1.0.1 behebt einen Fehler beim Speichern von Mitgliedsänderungen.", "en": "Version 1.0.1 fixes an error when saving member changes." },
+      "type": "urgent",
+      "platform": "all",
+      "created_at": "2026-10-09T08:00:00Z",
+      "external_link": "https://digital-scouts.github.io/dpsg-nami-app/"
+    },
+    {
+      "id": "dev-urgent-anmeldung",
+      "title": { "de": "Anmeldung kurz gestört", "en": "Login briefly disrupted" },
+      "body": { "de": "Hitobito meldet Probleme bei der Anmeldung. Lokale Daten bleiben nutzbar.", "en": "Hitobito reports login problems. Local data remains available." },
+      "type": "urgent",
+      "platform": "all",
+      "created_at": "2026-10-08T08:00:00Z",
+      "deep_link": "/settings/notifications"
+    },
+    {
+      "id": "dev-warn-wartung",
+      "title": { "de": "Hitobito: Wartung am Samstag", "en": "Hitobito: maintenance on Saturday" },
+      "body": { "de": "Am Samstag von 8 bis 10 Uhr ist die Anmeldung zeitweise nicht möglich.", "en": "On Saturday from 8 to 10 am, login is temporarily unavailable." },
+      "type": "warn",
+      "platform": "all",
+      "created_at": "2026-10-07T08:00:00Z",
+      "ends_at": "2099-01-01T00:00:00Z"
+    },
+    {
+      "id": "dev-info-handbuch",
+      "title": { "de": "Neue Stufenfarben im Handbuch", "en": "New section colours in the manual" },
+      "body": { "de": "Das Handbuch wurde um die Seite zu den Stufenfarben ergänzt.", "en": "The manual now has a page on section colours." },
+      "type": "info",
+      "platform": "all",
+      "created_at": "2026-10-01T08:00:00Z"
+    },
+    {
+      "id": "dev-abgelaufen",
+      "title": { "de": "Abgelaufen, nie sichtbar", "en": "Expired, never visible" },
+      "body": { "de": "Prüft den Zeitfilter.", "en": "Checks the time filter." },
+      "type": "info",
+      "platform": "all",
+      "ends_at": "2020-01-01T00:00:00Z"
+    }
+  ]
 }

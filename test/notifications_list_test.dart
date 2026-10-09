@@ -33,6 +33,6 @@ void main() {
       ),
     );
     expect(find.text('Test'), findsOneWidget);
-    expect(find.byIcon(Icons.close), findsOneWidget);
+    expect(find.byKey(const Key('notification-ack-button')), findsOneWidget);
   });
 }

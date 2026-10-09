@@ -1,119 +1,150 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:nami/l10n/app_localizations.dart';
 
 import '../../core/notifications/pull_notification.dart';
 
+/// Meldungskarte: neutrale Fläche, links ein Streifen in der Farbe der
+/// Priorität, darunter Titel, Text, Datum und die Aktionen.
 class NotificationCard extends StatelessWidget {
   const NotificationCard({
     super.key,
     required this.notification,
     this.onTap,
-    this.onClose,
+    this.onAcknowledge,
+    this.onOpenLink,
+    this.kopfzeile,
   });
 
   final PullNotification notification;
   final VoidCallback? onTap;
-  final VoidCallback? onClose;
+
+  /// Ohne Callback gibt es keine Bestätigen-Aktion (z. B. interne Meldungen).
+  final VoidCallback? onAcknowledge;
+
+  /// Ohne Callback gibt es keine Link-Aktion.
+  final VoidCallback? onOpenLink;
+
+  /// Optionale Zeile über der Priorität, z. B. „1 von 3“ im Banner.
+  final Widget? kopfzeile;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context);
     final isDark = theme.brightness == Brightness.dark;
     final isUrgent = notification.type == 'urgent';
     final isWarn = notification.type == 'warn';
-    final backgroundColor = isUrgent
-        ? (isDark ? const Color(0xFF3A1418) : const Color(0xFFFDECEE))
-        : isWarn
-        ? (isDark ? const Color(0xFF2A2010) : const Color(0xFFFFF8E1))
-        : theme.colorScheme.surfaceContainerHighest;
-    final borderColor = isUrgent
+
+    final streifen = isUrgent
         ? const Color(0xFFCC1F2F)
         : isWarn
         ? (isDark ? const Color(0xFF8A6A00) : const Color(0xFFFFB300))
-        : theme.colorScheme.outlineVariant.withValues(alpha: 0.5);
-    final foregroundColor = isUrgent
-        ? (isDark ? const Color(0xFFFFC9CF) : const Color(0xFF7A1020))
+        : theme.colorScheme.outlineVariant;
+    final labelFarbe = isUrgent
+        ? (isDark ? const Color(0xFFFF8F9A) : const Color(0xFFCC1F2F))
         : isWarn
-        ? (isDark ? const Color(0xFFFFE7A3) : const Color(0xFF795B00))
-        : theme.colorScheme.onSurface;
-    final iconColor = isUrgent
-        ? borderColor
-        : isWarn
-        ? borderColor
-        : foregroundColor;
+        ? (isDark ? const Color(0xFFFFD666) : const Color(0xFF8A6A00))
+        : theme.colorScheme.onSurfaceVariant;
+    final label = t.t(
+      isUrgent
+          ? 'notif_prio_urgent'
+          : isWarn
+          ? 'notif_prio_warn'
+          : 'notif_prio_info',
+    );
+    final datum = notification.updatedAt ?? notification.createdAt;
 
     return Material(
-      color: Colors.transparent,
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.shadow.withValues(alpha: 0.12),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isUrgent || isWarn) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2, right: 8),
-                      child: Icon(
-                        isUrgent ? Icons.error_outline : Icons.info_outline,
-                        size: 20,
-                        color: iconColor,
-                      ),
-                    ),
-                  ],
-                  Expanded(
-                    child: Text(
-                      notification.title.resolve(locale),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: foregroundColor,
-                      ),
-                    ),
-                  ),
-                  if (onClose != null && !isUrgent)
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      splashRadius: 18,
-                      icon: Icon(Icons.close, color: foregroundColor),
-                      onPressed: onClose,
-                    ),
-                ],
+              Container(
+                key: const Key('notification-streifen'),
+                width: 5,
+                color: streifen,
               ),
-              const SizedBox(height: 4),
-              Text(
-                notification.body.resolve(locale),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: foregroundColor,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (kopfzeile != null) ...[
+                        kopfzeile!,
+                        const SizedBox(height: 6),
+                      ],
+                      Text(
+                        label.toUpperCase(),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: labelFarbe,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        notification.title.resolve(locale),
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        notification.body.resolve(locale),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      if (datum != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          DateFormat.yMd(
+                            locale.toString(),
+                          ).format(datum.toLocal()),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                      if (onOpenLink != null || onAcknowledge != null) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (onOpenLink != null)
+                              FilledButton.tonalIcon(
+                                key: const Key('notification-link-button'),
+                                onPressed: onOpenLink,
+                                icon: const Icon(Icons.north_east, size: 16),
+                                iconAlignment: IconAlignment.end,
+                                label: Text(t.t('notif_more_info')),
+                              ),
+                            if (onAcknowledge != null)
+                              FilledButton(
+                                key: const Key('notification-ack-button'),
+                                onPressed: onAcknowledge,
+                                style: isUrgent
+                                    ? FilledButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFFCC1F2F,
+                                        ),
+                                        foregroundColor: Colors.white,
+                                      )
+                                    : null,
+                                child: Text(t.t('acknowledge')),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-              if (onClose != null && isUrgent) ...[
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: OutlinedButton.icon(
-                    onPressed: onClose,
-                    icon: const Icon(Icons.check),
-                    label: Text(AppLocalizations.of(context).t('acknowledge')),
-                  ),
-                ),
-              ],
             ],
           ),
         ),

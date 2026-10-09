@@ -14,4 +14,7 @@ abstract class PullNotificationsRepository {
 
   /// Gibt alle bestätigten/ausgeblendeten IDs zurück
   Future<Set<String>> getAcknowledgedIds();
+
+  /// Zeitpunkt des letzten Abrufversuchs, null wenn nie geladen wurde
+  Future<DateTime?> getLastFetchAt();
 }

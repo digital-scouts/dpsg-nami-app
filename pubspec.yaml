@@ -111,6 +111,7 @@ flutter:
     - assets/ai_kontext/
     - .env
     - assets/changelog.json
+    - assets/notifications.json
     - assets/fonts/WorkSans-OFL.txt
     - assets/fonts/Roboto-LICENSE.txt
 

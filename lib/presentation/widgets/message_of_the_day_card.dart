@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/notifications/message_of_the_day.dart';
+import '../notifications/notification_links.dart';
 
 class MessageOfTheDayCard extends StatelessWidget {
   final MessageOfTheDay motd;
@@ -63,9 +64,10 @@ class MessageOfTheDayCard extends StatelessWidget {
                 style: TextButton.styleFrom(
                   foregroundColor: motd.action!.color,
                 ),
-                onPressed: () {
-                  // TODO(#210): Open link in InApp browser
-                },
+                onPressed: () => oeffneMeldungsLink(
+                  context,
+                  externalLink: motd.action!.externalLink.toString(),
+                ),
                 child: Text(motd.action!.label),
               ),
             ),

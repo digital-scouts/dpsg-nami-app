@@ -36,7 +36,7 @@ void main() {
         ),
       );
       expect(find.text('Test'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byKey(const Key('notification-ack-button')));
       await tester.pump();
       expect(acked.contains('1'), isTrue);
     },

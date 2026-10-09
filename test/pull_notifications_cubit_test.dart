@@ -35,6 +35,9 @@ class _FakePullNotificationsRepository implements PullNotificationsRepository {
   Future<Set<String>> getAcknowledgedIds() async => acknowledged;
 
   @override
+  Future<DateTime?> getLastFetchAt() async => null;
+
+  @override
   Future<void> resetAcknowledgedNotifications() async {
     resetCalled = true;
   }

@@ -82,15 +82,21 @@ Regeln:
 - Die App akzeptiert nur https-URLs (http nur für Loopback in Tests) und bricht nach 5 s ab.
 - Der Cache gibt nach jedem erfolgreichen Abruf zurückgezogene Mitteilungen samt Bestätigung wieder frei.
 - Cache-first mit gedrosseltem Remote-Check. Das Intervall gilt auch nach einem fehlgeschlagenen Abruf.
+- Für die Entwicklung lädt die App den Feed aus einem Asset, wenn `PULL_NOTIFICATIONS_ASSET` gesetzt ist (z. B. `assets/notifications.json`). Release-Builds ignorieren den Schlüssel.
 
 ### Externe Felder
 
 - `type` wird auf `severity` gemappt (`info|warn|urgent`).
-- `platform`, `starts_at`, `ends_at` werden zentral vor Anzeige ausgewertet.
+- `platform`, `starts_at`, `ends_at` wertet das Repository (`PullNotificationsRepositoryImpl`) vor jeder Ausgabe aus. Der Cache bleibt vollständig, gefiltert wird nur die Ausgabe.
+- `external_link` öffnet die App nur für https-Adressen, im In-App-Browser.
+- `deep_link` öffnet nur freigegebene Ziele (`erlaubteMeldungsZiele` in `notification_links.dart`): Meldungen, Mitteilungs-Einstellungen, Qualifikationen, Erfolge, Supporter. Andere Ziele werden ignoriert. Hat eine Meldung beides, gewinnt der `deep_link`.
+- Der Link der Tagesmeldung öffnet ebenfalls im In-App-Browser.
 
 ### Ack
 
 - Externe Meldungen bleiben ackbar (lokale Persistenz in Hive).
+- Jede bestätigte Meldung verschwindet, auch mit `ends_at` und auch bei `urgent`. „Gelesene zurücksetzen“ holt sie zurück.
+- Nicht bestätigbar ist nur die Sperre durch ein erforderliches Update (`internal.update.required`).
 
 ## Vollständige Liste interner Meldungen
 
@@ -121,8 +127,9 @@ Hinweise:
 
 - **Settings-Stapel:** zeigt höchste aktive Meldung + Count über alle aktiven Meldungen.
 - **Meldungen-Screen:** zeigt vollständige Liste (intern + extern), gefiltert nach aktiv/ackbar.
+- **Meldungen-Screen (Aufbau):** Abschnitte „Dringend“, „Hinweise“, „Information“ mit Zähler, Aktualisieren per Wischen, „Gelesene zurücksetzen“ im Menü. Der Leerzustand („Alles gelesen“, letzter Abruf, „Gelesene wieder anzeigen“) erscheint nur nach dem Bestätigen der letzten Meldung, weil die Seite sonst keinen Einstieg hat.
 - **Andere Seiten:**
-  - `urgent`: appweit prominent (Banner/Dialog, je nach Kontext)
+  - `urgent` (extern): Banner über den Tabs. Bei mehreren zeigt es die erste mit „1 von n · Alle ansehen“, nach dem Bestätigen rückt die nächste nach (`UrgentNotificationModel`). Kein Dialog.
   - `warn`: kontextabhängig (z. B. Members-Snackbar einmalig)
   - `info`: primär im Hub/Listenkontext
 
@@ -162,8 +169,10 @@ Technische Notiz:
 - Tests für Ack-Policy (extern ackbar, intern nicht ackbar).
 - Widget-Tests für Settings-Stapel und Meldungen-Liste aus gemeinsamer Quelle.
 
+## Gestaltung
+
+Karte, Banner, Liste und Leerzustand sind in `design/entscheidung/2026-10-10-meldungen.md` festgelegt.
+
 ## Offene Punkte
 
-- Endgültiger Kanal für `urgent` intern außerhalb Settings (globales Banner vs. Dialog) im Feindesign festlegen.
-- Verhalten bei gleichzeitigen `urgent`-Meldungen (Queue/Rotation) definieren.
-- Deep-Link-Verhalten für externe Meldungen abschließen.
+- Weitere `deep_link`-Ziele mit Parametern (z. B. ein bestimmtes Mitglied) kommen mit dem Ticket „Qualifikationen und Mitgliedsdetails: Nachträge“.

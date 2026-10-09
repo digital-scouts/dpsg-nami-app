@@ -59,7 +59,16 @@ class RemoteNotificationsDataSource {
         'Fehler beim Laden der Notifications: ${response.statusCode}',
       );
     }
-    final data = json.decode(response.body);
+    final items = parseFeed(json.decode(response.body));
+    await logger.log(
+      'RemoteNotificationsDataSource',
+      'Fetched ${items.length} Notifications',
+    );
+    return items;
+  }
+
+  /// Akzeptiert `{"items": [...]}` oder eine blanke Liste.
+  static List<PullNotification> parseFeed(dynamic data) {
     List items;
     if (data is List) {
       items = data;
@@ -68,10 +77,6 @@ class RemoteNotificationsDataSource {
     } else {
       items = [];
     }
-    await logger.log(
-      'RemoteNotificationsDataSource',
-      'Fetched ${items.length} Notifications',
-    );
     return items
         .map((e) => PullNotification.fromJson(e as Map<String, dynamic>))
         .toList();
