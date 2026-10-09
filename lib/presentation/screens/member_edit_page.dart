@@ -385,14 +385,67 @@ class _MemberEditPageState extends State<MemberEditPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(_t.t('member_edit_resolution_intro')),
+          if (resolutionCase.hinweis case final hinweis?) ...[
+            const SizedBox(height: 12),
+            Container(
+              key: const Key('member-edit-resolution-hinweis'),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _t.t('member_edit_resolution_rejected', {'details': hinweis}),
+              ),
+            ),
+          ],
           if (visibleItems.isNotEmpty) const SizedBox(height: 12),
-          if (visibleItems.isEmpty)
+          if (visibleItems.isEmpty && !resolutionCase.istAbgelehnt)
             _EmptyState(message: _t.t('member_edit_resolution_empty')),
+          // Eine Ablehnung ohne Feldbezug laesst sich nur korrigieren und neu
+          // senden oder ganz verwerfen.
+          if (visibleItems.isEmpty && resolutionCase.istAbgelehnt)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                key: const Key('member-edit-resolution-discard'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: _verwerfeAbgelehnteAenderung,
+                child: Text(_t.t('member_edit_resolution_discard_all')),
+              ),
+            ),
           for (var index = 0; index < visibleItems.length; index++) ...[
             if (index > 0) const SizedBox(height: 10),
             _buildResolutionItemCard(visibleItems[index]),
           ],
         ],
+      ),
+    );
+  }
+
+  Future<void> _verwerfeAbgelehnteAenderung() async {
+    final entry = widget.pendingEntry;
+    final model = context.read<MemberEditModel?>();
+    if (entry == null || model == null) {
+      return;
+    }
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final t = _t;
+    final verworfen = await model.discardPending(entry.entryId);
+    if (!mounted || verworfen == null) {
+      return;
+    }
+    Navigator.of(context).pop();
+    AppSnackbar.showOnMessenger(
+      messenger: messenger,
+      context: messenger?.context ?? context,
+      message: t.t('member_detail_discarded'),
+      type: AppSnackbarType.info,
+      action: AppSnackbarAction(
+        label: t.t('common_undo'),
+        onPressed: () => unawaited(model.restorePending(verworfen)),
       ),
     );
   }

@@ -48,6 +48,7 @@ import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
 import 'package:nami/presentation/notifications/wiredash_texte.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
+import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/theme/schrift_lizenzen.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
@@ -949,6 +950,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       syncMembers: _syncArbeitskontextComplete,
       // Der Demo-Zugang ist nur lesend, es gibt nichts nachzusenden.
       pendingRetryEnabled: !_isDemo,
+      onRetrySummary: _zeigeAbgelehnteAenderungen,
     );
     _lastNoMobileDataEnabled = _appSettingsModel.noMobileDataEnabled;
     _pendingSessionActive = _authModel.session != null;
@@ -1470,6 +1472,63 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ?.pushNamed(AppRoutes.achievements),
       ),
     );
+  }
+
+  /// Hinweis, wenn Hitobito beim automatischen Nachsenden Aenderungen
+  /// abgelehnt hat. „Anzeigen“ oeffnet die (erste) betroffene Person.
+  void _zeigeAbgelehnteAenderungen(PendingPersonUpdateRetrySummary summary) {
+    final abgelehnt = summary.results
+        .where(
+          (result) =>
+              result.disposition ==
+                  PendingPersonUpdateRetryDisposition.needsResolution &&
+              (result.entry.resolutionCase?.istAbgelehnt ?? false),
+        )
+        .toList(growable: false);
+    final snackbarContext = navigatorKey.currentContext;
+    if (abgelehnt.isEmpty || snackbarContext == null) {
+      return;
+    }
+    final t = AppLocalizations.of(snackbarContext);
+    final erste = abgelehnt.first.entry;
+    AppSnackbar.showOnMessenger(
+      messenger: scaffoldMessengerKey.currentState,
+      context: snackbarContext,
+      message: abgelehnt.length == 1
+          ? t.t('member_pending_rejected_snack', {'name': erste.displayName})
+          : t.t('member_pending_rejected_snack_many', {
+              'count': abgelehnt.length,
+            }),
+      type: AppSnackbarType.warning,
+      action: AppSnackbarAction(
+        label: t.t('common_show'),
+        onPressed: () => _oeffneMitglied(erste.mitgliedsnummer),
+      ),
+    );
+  }
+
+  void _oeffneMitglied(String mitgliedsnummer) {
+    final navigator = navigatorKey.currentState;
+    final readModel = navigator?.context.read<ArbeitskontextModel>().readModel;
+    if (navigator == null || readModel == null) {
+      return;
+    }
+    for (final mitglied in readModel.mitglieder) {
+      if (mitglied.mitgliedsnummer == mitgliedsnummer) {
+        unawaited(
+          navigator.push(
+            MaterialPageRoute<void>(
+              settings: RouteSettings(
+                name: AppRoutes.memberDetail,
+                arguments: mitglied.mitgliedsnummer,
+              ),
+              builder: (_) => MemberDetailPage(mitglied: mitglied),
+            ),
+          ),
+        );
+        return;
+      }
+    }
   }
 
   Future<void> _performFullReset() async {

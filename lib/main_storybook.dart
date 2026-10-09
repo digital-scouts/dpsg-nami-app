@@ -104,6 +104,7 @@ List<Story> buildStorybookStories() {
     memberEditResolutionServerConflictStory(),
     memberEditResolutionServerValidationStory(),
     memberEditResolutionMixedFieldsStory(),
+    memberEditResolutionRejectedStory(),
     memberListStory(),
     memberListTileStory(),
     memberListSearchBarStory(),
