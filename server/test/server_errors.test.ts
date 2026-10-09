@@ -36,6 +36,7 @@ describe('server error handling', () => {
                     findSince: async () => [],
                     findBySender: async () => [],
                     deleteBySender: async () => 0,
+                    findOldestReceivedAt: async () => null,
                 },
             },
         });

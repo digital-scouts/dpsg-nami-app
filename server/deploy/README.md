@@ -80,7 +80,7 @@ App im Simulator auf den Mock stellen: in der lokalen `.env` (nicht in `.env.exa
 
 ## Monatsreport und Web-Ansicht
 
-Der Server legt zu jedem abgeschlossenen Monat einen Bericht über den Kreis der Teilnehmenden an (Inhalt siehe `spec/monatsreport.md`). Ansehen lässt er sich unter `https://namiapp.scout-link.de/admin`, dazu gibt es optional eine kurze Telegram-Nachricht.
+Der Server legt zu jedem abgeschlossenen Monat einen Bericht über den Kreis der Teilnehmenden an (Inhalt siehe `spec/monatsreport.md`). Ansehen lässt er sich unter `https://namiapp.scout-link.de/admin`, dazu gibt es optional eine kurze Telegram-Nachricht. Mit demselben Zugang zeigt `/admin/betrieb` den Betriebsstatus und prüft `notifications.json` und `version.json` der App (`spec/admin_betrieb.md`).
 
 Web-Ansicht einrichten:
 

@@ -80,6 +80,10 @@ export const buildMemoryDependencies = (
                 ohneAbgelaufene().rawSnapshots.filter((document) =>
                     document.stamm_pseudonym === stammPseudonym && isCurrentSince(document, since)),
             findSince: async (since) => ohneAbgelaufene().rawSnapshots.filter((document) => isCurrentSince(document, since)),
+            findOldestReceivedAt: async () => {
+                const zeiten = ohneAbgelaufene().rawSnapshots.map((document) => document.received_at.getTime());
+                return zeiten.length === 0 ? null : new Date(Math.min(...zeiten));
+            },
             findBySender: async (senderPseudonym) =>
                 ohneAbgelaufene().rawSnapshots
                     .filter((document) => document.sender_pseudonym === senderPseudonym)

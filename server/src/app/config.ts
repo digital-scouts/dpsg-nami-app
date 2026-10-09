@@ -12,6 +12,12 @@ const optionalString = z
     .optional()
     .transform((value) => (value == null || value === '' ? undefined : value));
 
+// Leer heisst Standardwert; sonst nur https.
+const httpsUrl = (fallback: string) =>
+    optionalString
+        .pipe(z.string().url().refine((value) => value.startsWith('https://'), 'must use https').optional())
+        .transform((value) => value ?? fallback);
+
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     HOST: z.string().trim().min(1).default('0.0.0.0'),
@@ -39,6 +45,9 @@ const envSchema = z.object({
     REPORT_TELEGRAM_BOT_TOKEN: optionalString,
     REPORT_TELEGRAM_CHAT_ID: optionalString,
     PUBLIC_BASE_URL: optionalString.pipe(z.string().url().optional()),
+    // Quellen der App fuer /admin/betrieb, nur https (GitHub Pages).
+    ADMIN_NOTIFICATIONS_URL: httpsUrl('https://digital-scouts.github.io/dpsg-nami-app/notifications.json'),
+    ADMIN_VERSION_URL: httpsUrl('https://digital-scouts.github.io/dpsg-nami-app/version.json'),
 }).refine(
     // Synthetische Staemme nur fluechtig im Speicher, nie in der produktiven MongoDB.
     (env) => env.MOCK_SEED_STAMM_COUNT === 0 || env.STORAGE_BACKEND === 'memory',
@@ -58,6 +67,8 @@ const envSchema = z.object({
 export type AdminConfig = {
     user: string;
     passwordHash: string;
+    notificationsUrl: string;
+    versionUrl: string;
 };
 
 export type TelegramConfig = {
@@ -115,7 +126,12 @@ export const loadConfig = (
         storageBackend: parsed.STORAGE_BACKEND,
         mockSeedStammCount: parsed.MOCK_SEED_STAMM_COUNT,
         admin: parsed.ADMIN_USER != null && parsed.ADMIN_PASSWORD_HASH != null
-            ? { user: parsed.ADMIN_USER, passwordHash: parsed.ADMIN_PASSWORD_HASH }
+            ? {
+                user: parsed.ADMIN_USER,
+                passwordHash: parsed.ADMIN_PASSWORD_HASH,
+                notificationsUrl: parsed.ADMIN_NOTIFICATIONS_URL,
+                versionUrl: parsed.ADMIN_VERSION_URL,
+            }
             : null,
         telegram: parsed.REPORT_TELEGRAM_BOT_TOKEN != null && parsed.REPORT_TELEGRAM_CHAT_ID != null
             ? { botToken: parsed.REPORT_TELEGRAM_BOT_TOKEN, chatId: parsed.REPORT_TELEGRAM_CHAT_ID }

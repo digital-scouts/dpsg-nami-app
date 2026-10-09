@@ -232,6 +232,10 @@ export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => {
                 .toArray(),
         findBySender: async (senderPseudonym) =>
             collection.find({ sender_pseudonym: senderPseudonym }, { ...withoutInternals, sort: { received_at: 1 } }).toArray(),
+        findOldestReceivedAt: async () => {
+            const aeltester = await collection.findOne({}, { projection: { _id: 0, received_at: 1 }, sort: { received_at: 1 } });
+            return aeltester?.received_at ?? null;
+        },
         deleteBySender: async (senderPseudonym) =>
             (await collection.deleteMany({ sender_pseudonym: senderPseudonym })).deletedCount,
     };
