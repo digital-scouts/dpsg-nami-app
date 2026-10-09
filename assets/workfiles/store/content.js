@@ -64,6 +64,21 @@ window.STORE = {
     scenes: ['mitglieder', 'statistik', 'erfolge'],
   },
 
+  // App-Store-Produktseite: Kopfzeile (Marke, eine Idee) und
+  // Suchergebnis (zeigt die App). Keine Preise, URLs oder fremde Plattformen.
+  appStore: {
+    header: {
+      title: 'NaMi',
+      claim: 'Dein Stamm in der Hosentasche – für Leitende in der DPSG',
+      scenes: ['statistik', 'mitglieder', 'stufenwechsel', 'erfolge'],
+    },
+    search: {
+      headline: 'Dein Stamm in der Hosentasche',
+      subline: 'Mitglieder, Statistik und Stufenwechsel – auch offline.',
+      scenes: ['mitglieder', 'statistik', 'stufenwechsel'],
+    },
+  },
+
   // Limits laut Play Console / App Store Connect.
   texts: {
     play: [

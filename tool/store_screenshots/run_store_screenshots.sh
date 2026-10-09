@@ -3,6 +3,7 @@
 #
 # Nutzung:
 #   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name iphone
+#   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name duo
 #   tool/store_screenshots/run_store_screenshots.sh --device <simulator-udid> --name ipad
 #   tool/store_screenshots/run_store_screenshots.sh --set docs --device <simulator-udid>
 #   tool/store_screenshots/run_store_screenshots.sh --set review --device <simulator-udid>
@@ -14,8 +15,10 @@
 # fuer die Pruefinformationen der In-App-Kaeufe nach
 # assets/workfiles/store/review/.
 #
-# Empfohlene Simulatoren: iPhone Pro Max (6,9", 1320x2868) und
-# iPad Pro 13-inch (2064x2752); fuer docs immer ein iPhone. Die App wird dabei
+# Empfohlene Simulatoren: iPhone 17 Pro (6,3", 1206x2622), iPhone Duo
+# aufgeklappt (iOS 27.1, 2853x2007; mit iOS-27.1-SDK bauen, sonst
+# Kompatibilitaetsmodus mit 2613x2007) und iPad Pro 13-inch
+# (2064x2752); fuer docs immer ein iPhone. Die App wird dabei
 # auf dem Simulator installiert und danach von `flutter test` wieder entfernt;
 # die PNGs schreibt der Test direkt in den Zielordner (nur im Simulator
 # moeglich).

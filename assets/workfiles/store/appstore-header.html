@@ -1,0 +1,55 @@
+<!doctype html>
+<!--
+  App-Store-Kopfzeile 3840 × 1646. Marke mittig, weil der App Store je nach
+  Gerät seitlich beschneidet; die Geräte am Rand dürfen wegfallen.
+  Parameter: ?style=navy|hell|stufen
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kopfzeile</title>
+<script src="content.js"></script>
+<link rel="stylesheet" href="store.css">
+<style>
+  .header { width: 3840px; height: 1646px; }
+  .header .center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 1700px; display: flex; flex-direction: column; align-items: center; text-align: center; z-index: 2; }
+  .header .brand { display: flex; align-items: center; gap: 56px; }
+  .header .brand img { width: 260px; height: 260px; border-radius: 58px; box-shadow: 0 24px 70px rgba(0,0,0,.25); background: #fff; }
+  .header .brand h1 { font-size: 250px; font-weight: 700; margin: 0; letter-spacing: -0.02em; line-height: 1; }
+  .header .claim { text-wrap: balance; font-size: 84px; line-height: 1.25; margin: 70px 0 0; font-weight: 500; }
+  .header .stripes { display: flex; gap: 20px; margin-top: 70px; }
+  .header .stripes span { width: 120px; height: 20px; border-radius: 10px; }
+  .header .phone { position: absolute; width: 600px; background: #0d0e11; padding: 18px; border-radius: 96px; box-shadow: 0 50px 140px rgba(0,0,0,.45); z-index: 1; }
+  .header .phone img { display: block; width: 100%; border-radius: 80px; }
+  .header .phone:nth-of-type(1) { left: -230px; top: 520px; transform: rotate(-12deg); }
+  .header .phone:nth-of-type(2) { left: 330px; top: 240px; transform: rotate(-5deg); }
+  .header .phone:nth-of-type(3) { right: 330px; top: 240px; transform: rotate(5deg); }
+  .header .phone:nth-of-type(4) { right: -230px; top: 520px; transform: rotate(12deg); }
+  .s-hell .claim { color: #3b4250; }
+  .s-navy .claim, .s-stufen .claim { color: #d6e4f2; }
+  .s-hell .phone { box-shadow: 0 40px 120px rgba(0, 48, 86, .22); }
+  .s-stufen { --accent: var(--navy); }
+</style>
+</head>
+<body>
+<div id="canvas" class="canvas header"></div>
+<script src="store.js"></script>
+<script>
+  const style = new URLSearchParams(location.search).get('style') || StoreRender.defaultStyle();
+  const h = STORE.appStore.header;
+  const canvas = document.getElementById('canvas');
+  canvas.classList.add('s-' + style);
+  canvas.innerHTML = `
+    ${StoreRender.watermark(1900, 1000, -700)}
+    ${h.scenes.map((s) => `<div class="phone"><img src="raw/iphone/${s}.png${StoreRender.bust}" alt=""></div>`).join('')}
+    <div class="center">
+      <div class="brand"><img src="../../icon/icon.png" alt=""><h1>${h.title}</h1></div>
+      <p class="claim">${h.claim}</p>
+      <div class="stripes">
+        <span style="background:var(--woe)"></span><span style="background:var(--jufi)"></span>
+        <span style="background:var(--pfadi)"></span><span style="background:var(--rover)"></span>
+      </div>
+    </div>`;
+</script>
+</body>
+</html>

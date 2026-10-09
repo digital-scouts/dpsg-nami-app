@@ -1,0 +1,46 @@
+<!doctype html>
+<!--
+  App-Store-Suchergebnis 3840 × 2560 (3:2). Zeigt auf einen Blick, was die App macht.
+  Parameter: ?style=navy|hell|stufen
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Suchergebnis</title>
+<script src="content.js"></script>
+<link rel="stylesheet" href="store.css">
+<style>
+  .search { width: 3840px; height: 2560px; display: flex; flex-direction: column; align-items: center; }
+  .search .copy { text-align: center; padding-top: 150px; z-index: 2; }
+  .search .accent-bar { width: 150px; height: 18px; border-radius: 999px; margin: 0 auto 48px; }
+  .search h1 { font-size: 150px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; margin: 0; }
+  .search .subline { font-size: 72px; line-height: 1.3; margin: 36px 0 0; }
+  .search .phones { display: flex; gap: 160px; align-items: flex-end; margin-top: 80px; z-index: 1; }
+  /* Geräte nebeneinander statt einzeln am unteren Rand. */
+  .search .device { position: relative; left: auto; bottom: auto !important; transform: none; }
+  .search .device:nth-child(2) { margin-bottom: 70px; }
+  .s-stufen { --accent: var(--navy); }
+</style>
+</head>
+<body>
+<div id="canvas" class="canvas search"></div>
+<script src="store.js"></script>
+<script>
+  const style = new URLSearchParams(location.search).get('style') || StoreRender.defaultStyle();
+  const s = STORE.appStore.search;
+  const canvas = document.getElementById('canvas');
+  canvas.classList.add('s-' + style);
+  canvas.style.setProperty('--accent', '#5A9AD8');
+  canvas.innerHTML = `
+    ${StoreRender.watermark(2600, -700, -500)}
+    <div class="copy">
+      <div class="accent-bar"></div>
+      <h1>${s.headline}</h1>
+      <p class="subline">${s.subline}</p>
+    </div>
+    <div class="phones">
+      ${s.scenes.map((scene) => StoreRender.device('iphone', { scene })).join('')}
+    </div>`;
+</script>
+</body>
+</html>
