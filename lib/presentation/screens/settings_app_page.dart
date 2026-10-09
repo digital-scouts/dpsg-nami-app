@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/section_header.dart';
 
 class AppSettingsPage extends StatefulWidget {
@@ -107,82 +108,86 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(t.t('settings_app'))),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-        children: [
-          DpsgSectionHeader(label: t.t('settings_app_section_security')),
-          _AppSettingsCard(
-            children: [
-              _AppSettingsSwitchRow(
-                title: t.t('settings_app_lock_title'),
-                subtitle: t.t('settings_app_lock_hint'),
-                value: _biometricLockEnabled,
-                onChanged: (value) {
-                  setState(() => _biometricLockEnabled = value);
-                  widget.onBiometricLockChanged?.call(value);
-                },
-              ),
-              _AppSettingsSwitchRow(
-                title: t.t('settings_app_analytics_title'),
-                subtitle: t.t('settings_app_analytics_hint'),
-                value: _analyticsEnabled,
-                onChanged: (value) {
-                  setState(() => _analyticsEnabled = value);
-                  widget.onAnalyticsChanged?.call(value);
-                },
-              ),
-              if (widget.bundesstatistikVerfuegbar)
+      body: AppLesebreite(
+        builder: (context, rand) => ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20) + rand,
+          children: [
+            DpsgSectionHeader(label: t.t('settings_app_section_security')),
+            _AppSettingsCard(
+              children: [
                 _AppSettingsSwitchRow(
-                  title: t.t('settings_app_bundesstatistik_title'),
-                  subtitle: t.t('settings_app_bundesstatistik_hint'),
-                  value: _bundesstatistikTeilnahme,
-                  onChanged: _setBundesstatistikTeilnahme,
+                  title: t.t('settings_app_lock_title'),
+                  subtitle: t.t('settings_app_lock_hint'),
+                  value: _biometricLockEnabled,
+                  onChanged: (value) {
+                    setState(() => _biometricLockEnabled = value);
+                    widget.onBiometricLockChanged?.call(value);
+                  },
                 ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          DpsgSectionHeader(label: t.t('language')),
-          _AppSettingsCard(
-            children: [
-              _AppSettingsRadioRow(
-                title: t.t('language_de'),
-                selected: _languageCode == 'de',
-                onTap: () => _setLanguageCode('de'),
-              ),
-              _AppSettingsRadioRow(
-                title: t.t('settings_app_language_en'),
-                selected: _languageCode == 'en',
-                onTap: () => _setLanguageCode('en'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          DpsgSectionHeader(label: t.t('settings_app_section_behavior')),
-          _AppSettingsCard(
-            children: [
-              _AppSettingsSwitchRow(
-                title: t.t('settings_app_mobile_data_title'),
-                subtitle: t.t('settings_app_mobile_data_hint'),
-                value: _noMobileDataEnabled,
-                onChanged: (value) {
-                  setState(() => _noMobileDataEnabled = value);
-                  widget.onNoMobileDataChanged?.call(value);
-                },
-              ),
-              _AppSettingsSwitchRow(
-                title: t.t('settings_app_highlight_title'),
-                subtitle: t.t('settings_app_highlight_hint'),
-                value: _memberListSearchResultHighlightEnabled,
-                onChanged: (value) {
-                  setState(
-                    () => _memberListSearchResultHighlightEnabled = value,
-                  );
-                  widget.onMemberListSearchResultHighlightChanged?.call(value);
-                },
-              ),
-            ],
-          ),
-        ],
+                _AppSettingsSwitchRow(
+                  title: t.t('settings_app_analytics_title'),
+                  subtitle: t.t('settings_app_analytics_hint'),
+                  value: _analyticsEnabled,
+                  onChanged: (value) {
+                    setState(() => _analyticsEnabled = value);
+                    widget.onAnalyticsChanged?.call(value);
+                  },
+                ),
+                if (widget.bundesstatistikVerfuegbar)
+                  _AppSettingsSwitchRow(
+                    title: t.t('settings_app_bundesstatistik_title'),
+                    subtitle: t.t('settings_app_bundesstatistik_hint'),
+                    value: _bundesstatistikTeilnahme,
+                    onChanged: _setBundesstatistikTeilnahme,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DpsgSectionHeader(label: t.t('language')),
+            _AppSettingsCard(
+              children: [
+                _AppSettingsRadioRow(
+                  title: t.t('language_de'),
+                  selected: _languageCode == 'de',
+                  onTap: () => _setLanguageCode('de'),
+                ),
+                _AppSettingsRadioRow(
+                  title: t.t('settings_app_language_en'),
+                  selected: _languageCode == 'en',
+                  onTap: () => _setLanguageCode('en'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DpsgSectionHeader(label: t.t('settings_app_section_behavior')),
+            _AppSettingsCard(
+              children: [
+                _AppSettingsSwitchRow(
+                  title: t.t('settings_app_mobile_data_title'),
+                  subtitle: t.t('settings_app_mobile_data_hint'),
+                  value: _noMobileDataEnabled,
+                  onChanged: (value) {
+                    setState(() => _noMobileDataEnabled = value);
+                    widget.onNoMobileDataChanged?.call(value);
+                  },
+                ),
+                _AppSettingsSwitchRow(
+                  title: t.t('settings_app_highlight_title'),
+                  subtitle: t.t('settings_app_highlight_hint'),
+                  value: _memberListSearchResultHighlightEnabled,
+                  onChanged: (value) {
+                    setState(
+                      () => _memberListSearchResultHighlightEnabled = value,
+                    );
+                    widget.onMemberListSearchResultHighlightChanged?.call(
+                      value,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

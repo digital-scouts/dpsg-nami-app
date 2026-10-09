@@ -60,7 +60,9 @@ void main() {
 
   Future<void> tapKey(WidgetTester tester, String key) async {
     final finder = find.byKey(ValueKey(key));
-    await tester.scrollUntilVisible(finder, 200);
+    // Ohne Nachlauf einer Wischgeste, der das Ziel wieder verschieben kann.
+    await tester.ensureVisible(finder);
+    await tester.pumpAndSettle();
     await tester.tap(finder);
     await tester.pumpAndSettle();
   }

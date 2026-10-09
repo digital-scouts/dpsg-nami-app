@@ -19,6 +19,7 @@ import '../../format/date_formatters.dart';
 import '../../model/auth_session_model.dart';
 import '../../notifications/app_snackbar.dart';
 import '../../theme/status_farben.dart';
+import '../app_lesebreite.dart';
 import '../leserechte_hinweis.dart';
 import '../neuanmeldung_sheet.dart';
 import '../section_header.dart';
@@ -72,44 +73,46 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final qualifikationen = widget.qualifikationen;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 16),
-      children: [
-        DpsgSectionHeader(label: t.t('quali_abschnitt_efz')),
-        _karte(_efzZeile(context, t)),
-        const SizedBox(height: 18),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            DpsgSectionHeader(label: t.t('quali_abschnitt_liste')),
-            if (widget._qualifikationenStand == TeildatenStand.geladen &&
-                qualifikationen.isNotEmpty) ...[
-              const SizedBox(width: 6),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  '${qualifikationen.length}',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.outlineVariant,
+    return AppLesebreite(
+      builder: (context, rand) => ListView(
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 16) + rand,
+        children: [
+          DpsgSectionHeader(label: t.t('quali_abschnitt_efz')),
+          _karte(_efzZeile(context, t)),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              DpsgSectionHeader(label: t.t('quali_abschnitt_liste')),
+              if (widget._qualifikationenStand == TeildatenStand.geladen &&
+                  qualifikationen.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '${qualifikationen.length}',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
-        _karte(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: _qualifikationsZeilen(context, t),
           ),
-        ),
-        if (!widget.vollLesbar)
-          LeserechteHinweis(
-            text: t.t('leserechte_quali_hinweis'),
-            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+          _karte(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: _qualifikationsZeilen(context, t),
+            ),
           ),
-      ],
+          if (!widget.vollLesbar)
+            LeserechteHinweis(
+              text: t.t('leserechte_quali_hinweis'),
+              padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+            ),
+        ],
+      ),
     );
   }
 

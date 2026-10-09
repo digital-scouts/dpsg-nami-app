@@ -7,6 +7,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/qualifikations_einstellungen_model.dart';
 import 'package:nami/presentation/screens/qualifikationen/qualifikation_einstellungen_page.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/section_header.dart';
 import 'package:nami/presentation/widgets/stufen_choice_chips.dart';
 import 'package:provider/provider.dart';
@@ -72,88 +73,91 @@ class _SettingsNotificationPageState extends State<SettingsNotificationPage> {
     final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(t.t('settings_notifications'))),
-      body: ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          Card(
-            margin: EdgeInsets.zero,
-            child: SwitchListTile(
-              title: Text(t.t('notifications_enable')),
-              subtitle: const Text('Push-Mitteilungen empfangen'),
-              value: _notificationsEnabled,
-              onChanged: (v) {
-                setState(() => _notificationsEnabled = v);
-                widget.onNotificationsChanged?.call(v);
-              },
+      body: AppLesebreite(
+        builder: (context, rand) => ListView(
+          padding: const EdgeInsets.all(12) + rand,
+          children: [
+            Card(
+              margin: EdgeInsets.zero,
+              child: SwitchListTile(
+                title: Text(t.t('notifications_enable')),
+                subtitle: const Text('Push-Mitteilungen empfangen'),
+                value: _notificationsEnabled,
+                onChanged: (v) {
+                  setState(() => _notificationsEnabled = v);
+                  widget.onNotificationsChanged?.call(v);
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Opacity(
-            opacity: _notificationsEnabled ? 1 : 0.45,
-            child: IgnorePointer(
-              ignoring: !_notificationsEnabled,
-              child: Card(
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Column(
-                    children: [
-                      SwitchListTile(
-                        key: const Key('geburtstag-schalter'),
-                        title: const Text('Geburtstagserinnerungen'),
-                        subtitle: Text(t.t('geburtstag_einstellung_hinweis')),
-                        value: _birthdayEnabled,
-                        onChanged: (v) {
-                          setState(() => _birthdayEnabled = v);
-                          if (v) {
-                            _setGeburtstagsStufen(_letzteGeburtstagsStufen);
-                          } else {
-                            if (_geburstagsbenachrichtigungStufen.isNotEmpty) {
-                              _letzteGeburtstagsStufen =
-                                  _geburstagsbenachrichtigungStufen;
+            const SizedBox(height: 16),
+            Opacity(
+              opacity: _notificationsEnabled ? 1 : 0.45,
+              child: IgnorePointer(
+                ignoring: !_notificationsEnabled,
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          key: const Key('geburtstag-schalter'),
+                          title: const Text('Geburtstagserinnerungen'),
+                          subtitle: Text(t.t('geburtstag_einstellung_hinweis')),
+                          value: _birthdayEnabled,
+                          onChanged: (v) {
+                            setState(() => _birthdayEnabled = v);
+                            if (v) {
+                              _setGeburtstagsStufen(_letzteGeburtstagsStufen);
+                            } else {
+                              if (_geburstagsbenachrichtigungStufen
+                                  .isNotEmpty) {
+                                _letzteGeburtstagsStufen =
+                                    _geburstagsbenachrichtigungStufen;
+                              }
+                              _setGeburtstagsStufen(const <Stufe>{});
                             }
-                            _setGeburtstagsStufen(const <Stufe>{});
-                          }
-                        },
-                      ),
-                      if (_birthdayEnabled) ...[
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Stufen',
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                              const SizedBox(height: 8),
-                              StufenChoiceChips(
-                                singleSelect: false,
-                                showBiber: true,
-                                showLeader: true,
-                                ausgewaehlteStufen:
-                                    _geburstagsbenachrichtigungStufen,
-                                ausgewaehlteStufenChanged:
-                                    _setGeburtstagsStufen,
-                              ),
-                            ],
-                          ),
+                          },
                         ),
+                        if (_birthdayEnabled) ...[
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Stufen',
+                                  style: Theme.of(context).textTheme.labelLarge,
+                                ),
+                                const SizedBox(height: 8),
+                                StufenChoiceChips(
+                                  singleSelect: false,
+                                  showBiber: true,
+                                  showLeader: true,
+                                  ausgewaehlteStufen:
+                                      _geburstagsbenachrichtigungStufen,
+                                  ausgewaehlteStufenChanged:
+                                      _setGeburtstagsStufen,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          _MeineQualifikationen(
-            aktiv: _notificationsEnabled,
-            readModel:
-                widget.readModel ??
-                context.watch<ArbeitskontextModel?>()?.readModel,
-          ),
-        ],
+            _MeineQualifikationen(
+              aktiv: _notificationsEnabled,
+              readModel:
+                  widget.readModel ??
+                  context.watch<ArbeitskontextModel?>()?.readModel,
+            ),
+          ],
+        ),
       ),
     );
   }

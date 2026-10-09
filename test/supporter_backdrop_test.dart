@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
 import 'package:nami/presentation/widgets/member_list_directory.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
@@ -173,6 +174,33 @@ void main() {
           .dy;
       expect(tester.getTopLeft(backgrounds).dy, 0);
       expect(tester.getSize(backgrounds).height, headerBottom);
+    });
+
+    testWidgets('folgt auf breiten Fenstern dem Kopf-Block', (tester) async {
+      tester.view.physicalSize = const Size(1376, 1032);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        buildPage(background: AppearanceBackgroundId.waldsee),
+      );
+      await settle(tester);
+
+      final anchor = tester.getRect(find.byType(SupporterBackdropAnchor));
+      final background = tester.getRect(find.byType(SupporterBackground));
+      expect(anchor.width, AppLesebreite.breite);
+      expect(background.left, anchor.left);
+      expect(background.right, anchor.right);
+      expect(background.top, 0);
+      expect(background.bottom, anchor.bottom);
+      final clip = tester.widget<ClipRRect>(
+        find
+            .ancestor(
+              of: find.byType(SupporterBackground),
+              matching: find.byType(ClipRRect),
+            )
+            .first,
+      );
+      expect(clip.borderRadius, isNot(BorderRadius.zero));
     });
 
     testWidgets('ohne Backdrop zeichnet der Header seine Flaeche selbst', (

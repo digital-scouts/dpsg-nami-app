@@ -7,7 +7,8 @@ import 'supporter_background.dart';
 /// Legt die Header-Flaeche durchgehend vom oberen Rand (hinter Safe Area und
 /// Banner) bis zur Unterkante des Bereichs, den ein
 /// [SupporterBackdropAnchor] markiert, z. B. den Listen-Header. Mit
-/// Supporter-Hintergrund animiert, sonst schlicht in `surface`.
+/// Supporter-Hintergrund animiert, sonst schlicht in `surface`. Seitlich
+/// folgt die Flaeche dem Anker, auf breiten Fenstern also dem Kopf-Block.
 class SupporterBackdrop extends StatefulWidget {
   const SupporterBackdrop({
     super.key,
@@ -27,9 +28,14 @@ class SupporterBackdrop extends StatefulWidget {
   State<SupporterBackdrop> createState() => _SupporterBackdropState();
 }
 
+/// Flaeche des Hintergrunds: von oben bis zur Unterkante des Ankers, seitlich
+/// so breit wie der Anker, mit dessen Eckenradius.
+typedef SupporterBackdropFlaeche = ({Rect rect, BorderRadius radius});
+
 /// Verbindet [SupporterBackdrop] und [SupporterBackdropAnchor].
 class SupporterBackdropController {
-  final ValueNotifier<double?> extent = ValueNotifier<double?>(null);
+  final ValueNotifier<SupporterBackdropFlaeche?> flaeche =
+      ValueNotifier<SupporterBackdropFlaeche?>(null);
   final GlobalKey _stackKey = GlobalKey();
   VoidCallback? _measureAnchor;
   bool _disposed = false;
@@ -48,15 +54,15 @@ class SupporterBackdropController {
     }
   }
 
-  void _report(double? value) {
-    if (!_disposed && extent.value != value) {
-      extent.value = value;
+  void _report(SupporterBackdropFlaeche? value) {
+    if (!_disposed && flaeche.value != value) {
+      flaeche.value = value;
     }
   }
 
   void _dispose() {
     _disposed = true;
-    extent.dispose();
+    flaeche.dispose();
   }
 }
 
@@ -83,23 +89,26 @@ class _SupporterBackdropState extends State<SupporterBackdrop> {
         key: _controller._stackKey,
         children: [
           // Feste Kinderzahl, damit der Inhalt beim Umschalten erhalten bleibt.
-          ValueListenableBuilder<double?>(
-            valueListenable: _controller.extent,
-            builder: (context, extent, _) {
-              if (extent == null || extent <= 0) {
+          ValueListenableBuilder<SupporterBackdropFlaeche?>(
+            valueListenable: _controller.flaeche,
+            builder: (context, flaeche, _) {
+              if (flaeche == null || flaeche.rect.bottom <= 0) {
                 return const SizedBox.shrink();
               }
               return Positioned(
                 top: 0,
-                left: 0,
-                right: 0,
-                height: extent,
-                child: background == null
-                    ? ColoredBox(
-                        key: const ValueKey('supporter-backdrop-plain'),
-                        color: Theme.of(context).colorScheme.surface,
-                      )
-                    : SupporterBackground(background: background),
+                left: flaeche.rect.left,
+                width: flaeche.rect.width,
+                height: flaeche.rect.bottom,
+                child: ClipRRect(
+                  borderRadius: flaeche.radius,
+                  child: background == null
+                      ? ColoredBox(
+                          key: const ValueKey('supporter-backdrop-plain'),
+                          color: Theme.of(context).colorScheme.surface,
+                        )
+                      : SupporterBackground(background: background),
+                ),
               );
             },
           ),
@@ -123,11 +132,18 @@ class _SupporterBackdropScope extends InheritedWidget {
       controller != oldWidget.controller;
 }
 
-/// Markiert die Unterkante des Hintergrunds. Misst sich nach Layout- und
-/// Groessenaenderungen und meldet die Position an den [SupporterBackdrop].
+/// Markiert Unterkante und seitliche Ausdehnung des Hintergrunds. Misst sich
+/// nach Layout- und Groessenaenderungen und meldet die Flaeche an den
+/// [SupporterBackdrop].
 class SupporterBackdropAnchor extends StatefulWidget {
-  const SupporterBackdropAnchor({super.key, required this.child});
+  const SupporterBackdropAnchor({
+    super.key,
+    this.borderRadius = BorderRadius.zero,
+    required this.child,
+  });
 
+  /// Eckenradius der Flaeche, z. B. unten abgerundet als Kopf-Block.
+  final BorderRadius borderRadius;
   final Widget child;
 
   @override
@@ -178,10 +194,15 @@ class _SupporterBackdropAnchorState extends State<SupporterBackdropAnchor> {
     if (box == null || stack == null || !box.attached || !box.hasSize) {
       return;
     }
-    final bottom = box
-        .localToGlobal(Offset(0, box.size.height), ancestor: stack)
-        .dy;
-    controller._report(bottom);
+    final bottomRight = box.localToGlobal(
+      box.size.bottomRight(Offset.zero),
+      ancestor: stack,
+    );
+    final left = box.localToGlobal(Offset.zero, ancestor: stack).dx;
+    controller._report((
+      rect: Rect.fromLTRB(left, 0, bottomRight.dx, bottomRight.dy),
+      radius: widget.borderRadius,
+    ));
   }
 
   @override

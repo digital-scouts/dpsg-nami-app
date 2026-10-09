@@ -23,6 +23,7 @@ import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../notifications/app_snackbar.dart';
+import '../widgets/app_lesebreite.dart';
 import '../widgets/member_detail/member_qualifikationen_tab.dart';
 import '../widgets/member_basis.dart';
 import '../widgets/member_detail/member_rollen_tab.dart';
@@ -355,52 +356,68 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                   : SystemUiOverlayStyle.dark,
               child: Material(
                 color: kopfFarbe,
+                // Trennlinie ueber die volle Breite, auch wenn Kopf und Tabs
+                // auf breiten Fenstern auf die Lesebreite begrenzt sind.
+                shape: Border(
+                  bottom: BorderSide(
+                    color:
+                        TabBarTheme.of(context).dividerColor ??
+                        Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
                 child: SafeArea(
                   bottom: false,
+                  // Leiste vollflaechig, Inhalt buendig mit der Lesebreite.
                   child: Builder(
-                    builder: (context) => Column(
-                      children: [
-                        MemberSteckbriefKopf(
-                          mitglied: currentMitglied,
-                          heute: heute,
-                          supporterBadge: _ownBadge(context, currentMitglied),
-                          onStufenTap: () =>
-                              DefaultTabController.of(context).animateTo(1),
-                          leading: IconButton(
-                            tooltip: MaterialLocalizations.of(
-                              context,
-                            ).backButtonTooltip,
-                            onPressed: () => Navigator.of(context).maybePop(),
-                            icon: const Icon(Icons.arrow_back),
-                          ),
-                          actions: [
-                            if (hasPending) ...[
-                              const SizedBox(width: 8),
-                              _PendingBadge(needsResolution: needsResolution),
-                            ],
-                            IconButton(
-                              key: const Key('member-detail-edit'),
-                              tooltip: t.t('member_detail_edit_tooltip'),
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: isWritable && !_isPreparingEdit
-                                  ? () =>
-                                        _prepareAndOpenEditPage(currentMitglied)
-                                  : null,
+                    builder: (context) => AppLesebreiteBox(
+                      child: Column(
+                        children: [
+                          MemberSteckbriefKopf(
+                            mitglied: currentMitglied,
+                            heute: heute,
+                            supporterBadge: _ownBadge(context, currentMitglied),
+                            onStufenTap: () =>
+                                DefaultTabController.of(context).animateTo(1),
+                            leading: IconButton(
+                              tooltip: MaterialLocalizations.of(
+                                context,
+                              ).backButtonTooltip,
+                              onPressed: () => Navigator.of(context).maybePop(),
+                              icon: const Icon(Icons.arrow_back),
                             ),
-                          ],
-                        ),
-                        // Tabs so breit wie ihr Text, damit nichts
-                        // abgeschnitten wird; bei grosser Schrift scrollbar.
-                        TabBar(
-                          isScrollable: true,
-                          tabAlignment: TabAlignment.center,
-                          tabs: [
-                            Tab(text: t.t('member_detail_tab_daten')),
-                            Tab(text: t.t('member_detail_tab_rollen')),
-                            Tab(text: t.t('member_detail_tab_qualifikationen')),
-                          ],
-                        ),
-                      ],
+                            actions: [
+                              if (hasPending) ...[
+                                const SizedBox(width: 8),
+                                _PendingBadge(needsResolution: needsResolution),
+                              ],
+                              IconButton(
+                                key: const Key('member-detail-edit'),
+                                tooltip: t.t('member_detail_edit_tooltip'),
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: isWritable && !_isPreparingEdit
+                                    ? () => _prepareAndOpenEditPage(
+                                        currentMitglied,
+                                      )
+                                    : null,
+                              ),
+                            ],
+                          ),
+                          // Tabs so breit wie ihr Text, damit nichts
+                          // abgeschnitten wird; bei grosser Schrift scrollbar.
+                          TabBar(
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.center,
+                            dividerColor: Colors.transparent,
+                            tabs: [
+                              Tab(text: t.t('member_detail_tab_daten')),
+                              Tab(text: t.t('member_detail_tab_rollen')),
+                              Tab(
+                                text: t.t('member_detail_tab_qualifikationen'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

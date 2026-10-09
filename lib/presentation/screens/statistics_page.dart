@@ -439,6 +439,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
             background: background,
             primary: StatistikKopfZeile(statistik: daten.statistik),
             secondary: _StatisticsTabBar(stammName: snapshot.stammName),
+            // Das Kachelraster nutzt die volle Breite, der Kopf auch.
+            volleBreite: true,
           ),
           Expanded(
             child: TabBarView(

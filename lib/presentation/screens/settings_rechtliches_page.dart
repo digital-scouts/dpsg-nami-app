@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/rechtliches/anbieter.dart';
 import '../../l10n/app_localizations.dart';
+import '../widgets/app_lesebreite.dart';
 import '../widgets/section_header.dart';
 
 /// Wann Daten an einen Empfaenger fliessen; bestimmt Text und Farbe des Chips.
@@ -104,99 +105,101 @@ class SettingsRechtlichesPage extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(t.t('legal_title'))),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        children: [
-          _KurzGesagtKarte(onMail: () => _oeffne(_mail)),
-          const SizedBox(height: 20),
-          DpsgSectionHeader(label: t.t('legal_recipients_title')),
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              t.t('legal_recipients_hint'),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+      body: AppLesebreite(
+        builder: (context, rand) => ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24) + rand,
+          children: [
+            _KurzGesagtKarte(onMail: () => _oeffne(_mail)),
+            const SizedBox(height: 20),
+            DpsgSectionHeader(label: t.t('legal_recipients_title')),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
+              child: Text(
+                t.t('legal_recipients_hint'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
-          ),
-          _EmpfaengerRaster(
-            onTap: (empfaenger) => _zeigeEmpfaenger(context, empfaenger),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            margin: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                _NavZeile(
-                  key: const Key('legal-device'),
-                  icon: Icons.lock_outline,
-                  label: t.t('legal_device_title'),
-                  onTap: () => _zeigeText(
-                    context,
-                    t.t('legal_device_title'),
-                    Text(t.t('legal_device_body')),
-                  ),
-                ),
-                _NavZeile(
-                  key: const Key('legal-rights'),
-                  icon: Icons.balance_outlined,
-                  label: t.t('legal_rights_title'),
-                  onTap: () => _zeigeText(
-                    context,
-                    t.t('legal_rights_title'),
-                    _RechteInhalt(onMail: () => _oeffne(_mail)),
-                  ),
-                ),
-                _NavZeile(
-                  key: const Key('legal-sources'),
-                  icon: Icons.map_outlined,
-                  label: t.t('legal_sources_title'),
-                  onTap: () => _zeigeText(
-                    context,
-                    t.t('legal_sources_title'),
-                    Text(t.t('legal_sources_body')),
-                  ),
-                ),
-                _NavZeile(
-                  key: const Key('legal-licenses'),
-                  icon: Icons.description_outlined,
-                  label: t.t('legal_licenses'),
-                  onTap: () => showLicensePage(
-                    context: context,
-                    applicationName: 'NaMi',
-                  ),
-                ),
-              ],
+            _EmpfaengerRaster(
+              onTap: (empfaenger) => _zeigeEmpfaenger(context, empfaenger),
             ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            margin: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: ListTile(
-              key: const Key('legal-full-policy'),
-              leading: Icon(
-                Icons.article_outlined,
-                color: theme.colorScheme.primary,
+            const SizedBox(height: 16),
+            Card(
+              margin: EdgeInsets.zero,
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  _NavZeile(
+                    key: const Key('legal-device'),
+                    icon: Icons.lock_outline,
+                    label: t.t('legal_device_title'),
+                    onTap: () => _zeigeText(
+                      context,
+                      t.t('legal_device_title'),
+                      Text(t.t('legal_device_body')),
+                    ),
+                  ),
+                  _NavZeile(
+                    key: const Key('legal-rights'),
+                    icon: Icons.balance_outlined,
+                    label: t.t('legal_rights_title'),
+                    onTap: () => _zeigeText(
+                      context,
+                      t.t('legal_rights_title'),
+                      _RechteInhalt(onMail: () => _oeffne(_mail)),
+                    ),
+                  ),
+                  _NavZeile(
+                    key: const Key('legal-sources'),
+                    icon: Icons.map_outlined,
+                    label: t.t('legal_sources_title'),
+                    onTap: () => _zeigeText(
+                      context,
+                      t.t('legal_sources_title'),
+                      Text(t.t('legal_sources_body')),
+                    ),
+                  ),
+                  _NavZeile(
+                    key: const Key('legal-licenses'),
+                    icon: Icons.description_outlined,
+                    label: t.t('legal_licenses'),
+                    onTap: () => showLicensePage(
+                      context: context,
+                      applicationName: 'NaMi',
+                    ),
+                  ),
+                ],
               ),
-              title: Text(
-                t.t('legal_full_policy'),
-                style: TextStyle(
+            ),
+            const SizedBox(height: 16),
+            Card(
+              margin: EdgeInsets.zero,
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                key: const Key('legal-full-policy'),
+                leading: Icon(
+                  Icons.article_outlined,
                   color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
                 ),
+                title: Text(
+                  t.t('legal_full_policy'),
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.open_in_new,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                onTap: () =>
+                    _oeffne(Uri.parse(Anbieter.datenschutzerklaerungUrl)),
               ),
-              trailing: Icon(
-                Icons.open_in_new,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
-              onTap: () =>
-                  _oeffne(Uri.parse(Anbieter.datenschutzerklaerungUrl)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
