@@ -31,3 +31,19 @@ Stand: 2026-10-09. Wie Änderungen an Mitgliedern nach Hitobito gelangen und was
 - Eine Ablehnung ohne Feldbezug lässt sich korrigieren und neu senden oder im Problemlösungsmodus mit „Änderung verwerfen“ ganz verwerfen.
 - Pausierte Einträge lassen sich im Detail-Banner verwerfen.
 - Verwerfen wirkt sofort. Eine Leiste bietet „Rückgängig“ an (`discardPending`, `restorePending`).
+
+## Sync-Versuch
+
+- Ein Hitobito-Sync zählt erst als Versuch, wenn Hitobito erreichbar war. Bei gesperrtem Netz, fehlendem Netzzugriff oder Netzfehler wird der vorherige Zeitpunkt wiederhergestellt (`AuthSessionModel._versuchNichtZaehlen`). Der nächste Trigger darf es sofort erneut versuchen.
+- `PendingSyncCoordinator` setzt danach den WLAN-Trigger zurück, damit dieselbe Verbindung den Sync erneut auslösen kann.
+
+## Datenablauf
+
+- Ist die Aufbewahrungsfrist überschritten, sendet die App einmal die vorgemerkten Änderungen (`sendeVorgemerkteVorAblauf`, höchstens 20 s), meldet dann ab und löscht die Daten.
+- Der Login zeigt die Karte „Daten abgelaufen“. Gingen Änderungen verloren, erscheint sie als Warnung mit der Zahl.
+- Läuft der Ablauf schon, warten weitere Auslöser auf ihn. Während des Sendens prüft der Remote-Zugriff die Frist nicht erneut.
+
+## Bewusste Entscheidungen
+
+- **Kein Entwurf über Prozessende:** Ungespeicherte Eingaben im Bearbeiten werden nicht gespeichert (Datensparsamkeit). Beim Verlassen mit Änderungen fragt die App nach. Gespeicherte Änderungen bleiben in der Warteschlange.
+- **Keine Fristverlängerung für Wartendes:** Beim Datenablauf gibt es genau einen Sendeversuch. Klappt er nicht (etwa weil auch die Anmeldung abgelaufen ist), gehen die Änderungen mit den übrigen Daten verloren. Die Login-Karte nennt die Zahl.

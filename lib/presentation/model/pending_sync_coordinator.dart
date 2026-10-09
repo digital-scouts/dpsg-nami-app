@@ -182,6 +182,13 @@ class PendingSyncCoordinator {
         trigger: trigger,
         userInitiated: false,
       );
+      // Hat der Sync Hitobito nicht erreicht, darf dieselbe Verbindung ihn
+      // spaeter erneut ausloesen.
+      final ergebnis = _authModel.lastSyncAttemptResult;
+      if (ergebnis == SyncAttemptResult.networkError ||
+          ergebnis == SyncAttemptResult.wifiOnly) {
+        _wifiSyncTrigger.reset();
+      }
       await _retryPendingPersonUpdatesIfPossible(trigger: '${trigger}_pending');
     } finally {
       _isForegroundSyncRunning = false;

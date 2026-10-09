@@ -108,6 +108,7 @@
       "version": "1.0.0",
       "data_reset": true,
       "features": [
+        "Bevor die gespeicherten Daten nach 90 Tagen ablaufen, sendet die App noch vorgemerkte Änderungen. Was nicht mehr gesendet werden konnte, nennt sie beim Anmelden.",
         "Die App verwendet nun NaMi 3.0 (Hitobito) und wurde komplett neu gestaltet.",
         "Arbeitskontext: Wer Rechte auf mehreren Ebenen hat, wechselt im Profil zwischen Stamm, Bezirk und weiteren Ebenen.",
         "Mitgliedsdetails mit Rollenverlauf, nächstem Stufenwechsel, Geschwistern und Qualifikationen.",
