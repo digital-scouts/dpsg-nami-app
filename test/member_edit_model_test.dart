@@ -197,6 +197,66 @@ void main() {
     },
   );
 
+  test(
+    'uebergibt nach erfolgreichem Speichern das Server-Mitglied lokal',
+    () async {
+      final serverMitglied = _mitglied(
+        personId: 23,
+        mitgliedsnummer: '4711',
+      ).copyWith(vorname: 'Juliane', nachname: 'Kellermann');
+      final lokalAktualisiert = <Mitglied>[];
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          updateResultsByPersonId: <int, Object>{23: serverMitglied},
+        ),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
+        logger: FakeLoggerService(),
+        onMemberUpdated: (member) async => lokalAktualisiert.add(member),
+      );
+      final basisMitglied = _mitglied(personId: 23, mitgliedsnummer: '4711');
+
+      final result = await model.submitUpdate(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+      );
+
+      expect(result.success, isTrue);
+      expect(result.updatedMember, serverMitglied);
+      expect(lokalAktualisiert, <Mitglied>[serverMitglied]);
+      expect(model.pendingUpdates, isEmpty);
+      expect(model.isBusy, isFalse);
+    },
+  );
+
+  test('reiht nach erfolgreichem Schreiben nicht ein, wenn nur das lokale '
+      'Aktualisieren scheitert', () async {
+    final logger = FakeLoggerService();
+    final repository = _FakeMemberWriteRepository();
+    final model = MemberEditModel(
+      memberWriteRepository: repository,
+      pendingRepository: InMemoryPendingPersonUpdateRepository(),
+      logger: logger,
+      onMemberUpdated: (_) async => throw StateError('Hive gesperrt'),
+    );
+    final basisMitglied = _mitglied(personId: 23, mitgliedsnummer: '4711');
+
+    final result = await model.submitUpdate(
+      accessToken: 'token-123',
+      basisMitglied: basisMitglied,
+      zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+    );
+
+    expect(result.success, isTrue);
+    expect(result.wasQueued, isFalse);
+    expect(model.pendingUpdates, isEmpty);
+    expect(repository.updateCalls, hasLength(1));
+    expect(
+      logger.messages,
+      contains(contains('local_update_failed person_id=23')),
+    );
+  });
+
   test('queuet das Update bei generischem Fehler', () async {
     final pendingRepository = InMemoryPendingPersonUpdateRepository();
     final logger = FakeLoggerService();
@@ -1581,20 +1641,17 @@ void main() {
       }
     });
 
-    test(
-      'behaelt den Eintrag, wenn das lokale Aktualisieren nach erfolgreichem '
-      'Schreiben fehlschlaegt (aktuelles Verhalten)',
-      () async {
-        final result = await retryWith(<int, Object>{
-          1: _mitglied(personId: 1, mitgliedsnummer: '1'),
-        }, onMemberUpdated: (_) async => throw StateError('Hive gesperrt'));
+    test('entfernt den Eintrag, auch wenn das lokale Aktualisieren nach '
+        'erfolgreichem Schreiben fehlschlaegt', () async {
+      final result = await retryWith(<int, Object>{
+        1: _mitglied(personId: 1, mitgliedsnummer: '1'),
+      }, onMemberUpdated: (_) async => throw StateError('Hive gesperrt'));
 
-        // Die Aenderung ist bereits auf dem Server und wird beim naechsten
-        // Retry trotzdem erneut gesendet.
-        expect(result.summary.retainedCount, 1);
-        expect(result.remaining, hasLength(1));
-      },
-    );
+      // Die Aenderung ist bereits auf dem Server und darf nicht erneut
+      // gesendet werden.
+      expect(result.summary.retainedCount, 0);
+      expect(result.remaining, isEmpty);
+    });
   });
 
   group('automatisches Senden mit Backoff', () {

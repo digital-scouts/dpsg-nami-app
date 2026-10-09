@@ -1835,6 +1835,100 @@ void main() {
     );
 
     test(
+      'erzwungener Sync erneuert das Token nur einmal',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        final memberTokens = <String>[];
+
+        await model.syncHitobitoData(
+          trigger: 'member_list_pull_refresh',
+          force: true,
+          syncMembers: (accessToken) async => memberTokens.add(accessToken),
+        );
+
+        expect(model.lastSyncAttemptResult, SyncAttemptResult.success);
+        expect(oauthService.refreshCallCount, 1);
+        expect(memberTokens, <String>['refreshed-token']);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'nicht erreichbarer Token-Endpunkt bricht den Sync ohne weitere Anfrage ab',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        oauthService.refreshError = TimeoutException('Keine Antwort');
+
+        await model.syncHitobitoData(
+          trigger: 'member_list_pull_refresh',
+          force: true,
+          syncMembers: (_) async => fail('Mitglieder duerfen nicht laden'),
+        );
+
+        expect(model.lastSyncAttemptResult, SyncAttemptResult.networkError);
+        expect(oauthService.fetchProfileCallCount, 0);
+        expect(model.requiresInteractiveLogin, isFalse);
+        expect(model.state, AuthState.signedIn);
+        expect(model.session?.accessToken, 'stale-token');
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'Ueberlast am Token-Endpunkt nutzt das noch gueltige Token weiter',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        oauthService.refreshError = const HitobitoAuthException(
+          'Token-Anfrage fehlgeschlagen (503).',
+          statusCode: 503,
+          art: HitobitoAuthFehlerArt.voruebergehend,
+        );
+
+        await model.syncHitobitoData(
+          trigger: 'member_list_pull_refresh',
+          force: true,
+          syncMembers: (_) async {},
+        );
+
+        expect(model.lastSyncAttemptResult, SyncAttemptResult.success);
+        expect(oauthService.fetchProfileCallCount, 1);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'manueller Sync meldet jede Stoerung erneut, automatischer nur einmal',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        oauthService.refreshError = TimeoutException('Keine Antwort');
+
+        Future<void> sync({required bool userInitiated}) =>
+            model.syncHitobitoData(
+              trigger: userInitiated ? 'member_list_pull_refresh' : 'interval',
+              force: true,
+              userInitiated: userInitiated,
+              syncMembers: (_) async {},
+            );
+
+        await sync(userInitiated: true);
+        expect(model.hasUnseenRemoteAccessIssueNotice, isTrue);
+        model.markRemoteAccessIssueNoticeShown();
+
+        await sync(userInitiated: true);
+        expect(model.hasUnseenRemoteAccessIssueNotice, isTrue);
+        model.markRemoteAccessIssueNoticeShown();
+
+        await sync(userInitiated: false);
+        expect(model.hasUnseenRemoteAccessIssueNotice, isFalse);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
       '401 der API mit gestoertem Refresh sendet das abgelehnte Token nicht erneut',
       () async {
         final (:model, :oauthService) = buildModel();

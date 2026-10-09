@@ -4,8 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/statistiks/statistik_verlauf.dart';
 
-/// Monatliche Summen je Stamm, nur auf dem Gerät. `AppResetService` löscht
-/// sie mit allen anderen SharedPreferences.
+/// Monatliche Summen je Stamm, nur auf dem Gerät. Abmelden, Datenablauf und
+/// Kontowechsel löschen sie über `clearAll`, der App-Reset mit allen anderen
+/// SharedPreferences.
 class SharedPrefsStatistikVerlaufRepository
     implements StatistikVerlaufRepository {
   static const String _keyPrefix = 'statistikVerlauf';
@@ -42,6 +43,18 @@ class SharedPrefsStatistikVerlaufRepository
     );
   }
 
+  @override
+  Future<void> clearAll() async {
+    final prefs = await _prefs();
+    final keys = prefs
+        .getKeys()
+        .where((key) => key.startsWith('$_keyPrefix:'))
+        .toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
+
   String _keyForLayer(int layerId) => '$_keyPrefix:$layerId';
 }
 
@@ -59,4 +72,7 @@ class InMemoryStatistikVerlaufRepository implements StatistikVerlaufRepository {
   ) async {
     _werte[layerId] = List.unmodifiable(eintraege);
   }
+
+  @override
+  Future<void> clearAll() async => _werte.clear();
 }

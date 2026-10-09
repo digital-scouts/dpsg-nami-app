@@ -31,7 +31,7 @@ Die App speichert die Daten verschlüsselt auf dem Gerät, damit sie auch offlin
 ## Daten nur auf deinem Gerät
 
 - **Erfolge:** Zähler und Freischaltdaten, zum Beispiel wie oft die App geöffnet wurde. Sie bleiben bis zum Zurücksetzen der App.
-- **Statistik-Verlauf:** monatliche Zählwerte deines Stammes für bis zu 24 Monate, dazu deine Kachel-Einstellungen. Sie enthalten keine Daten einzelner Mitglieder und bleiben bis zum Zurücksetzen der App.
+- **Statistik-Verlauf:** monatliche Zählwerte deines Stammes für bis zu 24 Monate, dazu deine Kachel-Einstellungen. Sie enthalten keine Daten einzelner Mitglieder. Der Verlauf wird beim Abmelden, beim Wechsel des Kontos und nach Ablauf der Datenfrist gelöscht, die Kachel-Einstellungen beim Zurücksetzen der App.
 - **Erinnerungen:** Geburtstage der gewählten Stufen, ablaufende Qualifikationen und das bevorstehende Ende der Hitobito-Anmeldung plant die App als lokale Benachrichtigungen auf deinem Gerät. Dafür wird nichts übertragen. Beim Abmelden und beim Zurücksetzen der App werden sie gelöscht.
 - **Protokolle:** ein App-Protokoll mit technischen Ereignissen und ein Netzwerkprotokoll mit Methode, Status, Quelle und Adresse jeder Anfrage, ohne Inhalte. In Adressen können technische IDs von Personen und Gruppen stehen. Die Protokolle werden nach sieben Tagen gelöscht.
 
@@ -41,7 +41,7 @@ Die App nutzt den Dienst der [Wiredash GmbH](https://docs.wiredash.com/company/p
 
 - **Technische Kennung:** Beim Start übermittelt die App höchstens alle 30 Minuten eine zufällige Kennung der Installation, App-Version, Betriebssystem und Sprache. So sehen wir, welche Versionen im Einsatz sind. Rechtsgrundlage ist unser berechtigtes Interesse an einem stabilen Betrieb (Art. 6 Abs. 1 lit. f DSGVO).
 - **Feedback und Zufriedenheitsumfrage:** nur wenn du sie selbst startest. Übermittelt werden dein Text, auf Wunsch deine E-Mail-Adresse und Screenshots sowie Gerätedaten wie Modell und Bildschirmgröße. Achte darauf, dass auf Screenshots keine Mitgliederdaten zu sehen sind, oder übermale sie. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.
-- **Nutzungsereignisse und Fehlerberichte:** nur mit deiner Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du beim ersten Start oder in den Einstellungen unter „Nutzungsanalyse“ gibst und jederzeit widerrufen kannst. Übermittelt werden zum Beispiel Anmeldeschritte, Wechsel der Gruppenebene samt Name, geänderte Einstellungen, die Art einer Mitgliedsänderung ohne Inhalte und technische Fehlermeldungen. Die Liste aller Ereignisse steht unter [Wiredash und Tracking](./technik/wiredash/).
+- **Nutzungsereignisse und Fehlerberichte:** nur mit deiner Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du beim ersten Start oder in den Einstellungen unter „Nutzungsanalyse“ gibst und jederzeit widerrufen kannst. Übermittelt werden zum Beispiel Anmeldeschritte, Wechsel der Gruppenebene (nur die Nummer der Ebene), geänderte Einstellungen, die Art einer Mitgliedsänderung ohne Inhalte und technische Fehlermeldungen, aus denen E-Mail-Adressen, Telefonnummern und Zugangsdaten vorher entfernt werden. Die Liste aller Ereignisse steht unter [Wiredash und Tracking](./technik/wiredash/).
 
 ## Bundesweite Statistik (freiwillig)
 

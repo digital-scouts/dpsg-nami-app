@@ -105,7 +105,7 @@ PendingPersonUpdate _buildServerConflictEntry() {
           type: MemberResolutionTargetType.firstName,
         ),
         message:
-            'Vorname wurde lokal und auf dem Server unterschiedlich geaendert.',
+            'Vorname wurde lokal und auf dem Server unterschiedlich geändert.',
       ),
       MemberResolutionItem(
         problemType: MemberResolutionProblemType.conflict,
@@ -115,7 +115,7 @@ PendingPersonUpdate _buildServerConflictEntry() {
           relationshipId: 1,
         ),
         message:
-            'Telefonnummer wurde lokal und auf dem Server unterschiedlich geaendert.',
+            'Telefonnummer wurde lokal und auf dem Server unterschiedlich geändert.',
       ),
     ],
   );
@@ -279,7 +279,7 @@ PendingPersonUpdate _buildMixedFieldsEntry() {
           relationshipId: 2,
         ),
         message:
-            'Zusatz-E-Mail wurde lokal und auf dem Server unterschiedlich geaendert.',
+            'Zusatz-E-Mail wurde lokal und auf dem Server unterschiedlich geändert.',
       ),
       MemberResolutionItem(
         problemType: MemberResolutionProblemType.validation,
@@ -288,7 +288,7 @@ PendingPersonUpdate _buildMixedFieldsEntry() {
           type: MemberResolutionTargetType.phone,
           relationshipId: 1,
         ),
-        message: 'Die Telefonnummer ist im Serverformat ungueltig.',
+        message: 'Die Telefonnummer ist im Serverformat ungültig.',
       ),
       MemberResolutionItem(
         problemType: MemberResolutionProblemType.validation,

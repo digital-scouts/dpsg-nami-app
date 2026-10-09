@@ -16,10 +16,67 @@ class RemoteVersionPlatformInfo {
     required this.latestVersion,
     required this.minSupportedVersion,
     required this.storeUrl,
+    this.security,
   });
 
   final String latestVersion;
   final String minSupportedVersion;
+  final String storeUrl;
+  final SicherheitsUpdateVorgabe? security;
+}
+
+/// Block `security` je Plattform in `version.json`: Versionen unter
+/// [minVersion] haben eine Sicherheitsluecke. Siehe `specs/app-update.md`.
+class SicherheitsUpdateVorgabe {
+  const SicherheitsUpdateVorgabe({
+    required this.minVersion,
+    this.betrifft,
+    this.betrifftEn,
+    this.datenLoeschen = false,
+  });
+
+  final String minVersion;
+  final String? betrifft;
+  final String? betrifftEn;
+
+  /// Bei einem Datenleck loescht die App beim Sperren die Mitgliederdaten.
+  final bool datenLoeschen;
+
+  String? betrifftFuer(String languageCode) =>
+      languageCode == 'en' ? (betrifftEn ?? betrifft) : betrifft;
+
+  static SicherheitsUpdateVorgabe? tryParse(Object? raw) {
+    if (raw is! Map<String, dynamic>) {
+      return null;
+    }
+    final minVersion = raw['min_version']?.toString().trim();
+    if (minVersion == null || _SemVer.tryParse(minVersion) == null) {
+      return null;
+    }
+    String? text(String key) {
+      final value = raw[key]?.toString().trim();
+      return value == null || value.isEmpty ? null : value;
+    }
+
+    return SicherheitsUpdateVorgabe(
+      minVersion: minVersion,
+      betrifft: text('betrifft'),
+      betrifftEn: text('betrifft_en'),
+      datenLoeschen: raw['daten_loeschen'] == true,
+    );
+  }
+}
+
+/// Diese Installation braucht ein Sicherheitsupdate.
+class SicherheitsUpdateInfo {
+  const SicherheitsUpdateInfo({
+    required this.vorgabe,
+    required this.currentVersion,
+    required this.storeUrl,
+  });
+
+  final SicherheitsUpdateVorgabe vorgabe;
+  final String currentVersion;
   final String storeUrl;
 }
 
@@ -94,8 +151,10 @@ class AppUpdateService {
   final String? platformOverride;
   final LoggerService? _logger;
 
-  Future<RemoteVersionManifest?> loadVersionManifest() async {
-    final manifest = await _loadManifest();
+  Future<RemoteVersionManifest?> loadVersionManifest({
+    bool forceRefresh = false,
+  }) async {
+    final manifest = await _loadManifest(forceRefresh: forceRefresh);
     if (manifest.isEmpty) {
       return null;
     }
@@ -161,12 +220,51 @@ class AppUpdateService {
     return null;
   }
 
+  /// Liefert die Vorgabe, wenn diese Version unter der Mindestversion eines
+  /// Sicherheitsupdates liegt. Mit [forceRefresh] wird das Manifest ohne
+  /// Rücksicht auf das Abrufintervall neu geladen („Erneut prüfen“).
+  Future<SicherheitsUpdateInfo?> pruefeSicherheitsupdate({
+    bool forceRefresh = false,
+  }) async {
+    final platformKey = platformOverride ?? _resolvePlatformKey();
+    if (platformKey == null) {
+      return null;
+    }
+    final versionManifest = await loadVersionManifest(
+      forceRefresh: forceRefresh,
+    );
+    final platformInfo = switch (platformKey) {
+      'android' => versionManifest?.android,
+      'ios' => versionManifest?.ios,
+      _ => null,
+    };
+    final vorgabe = platformInfo?.security;
+    final currentVersion = _SemVer.tryParse(await _currentVersionProvider());
+    final minVersion = vorgabe == null
+        ? null
+        : _SemVer.tryParse(vorgabe.minVersion);
+    if (platformInfo == null ||
+        vorgabe == null ||
+        currentVersion == null ||
+        minVersion == null ||
+        currentVersion.compareTo(minVersion) >= 0) {
+      return null;
+    }
+    return SicherheitsUpdateInfo(
+      vorgabe: vorgabe,
+      currentVersion: currentVersion.release,
+      storeUrl: platformInfo.storeUrl,
+    );
+  }
+
   static Future<String> _defaultCurrentVersionProvider() async {
     final info = await PackageInfo.fromPlatform();
     return info.version;
   }
 
-  Future<Map<String, dynamic>> _loadManifest() async {
+  Future<Map<String, dynamic>> _loadManifest({
+    bool forceRefresh = false,
+  }) async {
     if (_manifestProvider != null) {
       return _manifestProvider();
     }
@@ -182,6 +280,7 @@ class AppUpdateService {
     final now = _nowProvider();
 
     final isCacheFresh =
+        !forceRefresh &&
         cachedRaw != null &&
         lastFetchAt != null &&
         now.difference(lastFetchAt) < _minFetchInterval;
@@ -252,7 +351,7 @@ class AppUpdateService {
   static Map<String, dynamic> _decodeManifest(String rawBody) {
     final decoded = jsonDecode(rawBody);
     if (decoded is! Map<String, dynamic>) {
-      throw Exception('Version Manifest hat ein ungueltiges Format.');
+      throw Exception('Version Manifest hat ein ungültiges Format.');
     }
 
     return decoded;
@@ -280,6 +379,7 @@ class AppUpdateService {
       latestVersion: latestVersion,
       minSupportedVersion: minSupportedVersion,
       storeUrl: storeUrl,
+      security: SicherheitsUpdateVorgabe.tryParse(raw['security']),
     );
   }
 

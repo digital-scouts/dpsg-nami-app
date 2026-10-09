@@ -24,6 +24,10 @@ import 'package:nami/data/nami_ai/nami_ai_chat_history_local_repository.dart';
 import 'package:nami/demo/demo_data.dart';
 import 'package:nami/demo/demo_staemme.dart';
 import 'package:nami/demo/demo_services.dart';
+import 'package:nami/domain/app_update/sicherheits_update_regel.dart';
+import 'package:nami/presentation/model/sicherheits_update_model.dart';
+import 'package:nami/presentation/notifications/sicherheits_update_sheet.dart';
+import 'package:nami/presentation/widgets/sicherheits_update_sperre.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/bundesstatistik/bundesstatistik_teilnahme.dart';
@@ -473,6 +477,8 @@ Future<void> _startApp({
     // Daten, die Logout und Datenablauf entfernen muessen.
     purgeLocalPersonalData: () async {
       await SharedPrefsAddressMapLocationRepository().clearAll();
+      // Der Statistikverlauf zeigt Zahlen des bisherigen Kontos.
+      await statistikVerlaufRepository.clearAll();
       await mapTileCacheService.deleteRoot();
       await TeilenOrdner.leeren();
     },
@@ -481,6 +487,14 @@ Future<void> _startApp({
       localeModel.setLocale(Locale(normalized), persist: false);
       await appSettingsModel.setLanguageCode(normalized);
     },
+  );
+
+  // Sicherheitsupdate mit Countdown und Sperre (#197). Bei einem Datenleck
+  // loescht die Sperre die Mitgliederdaten wie ein Logout.
+  final sicherheitsUpdateModel = SicherheitsUpdateModel(
+    updateService: appUpdateService,
+    onDatenLoeschen: authModel.logout,
+    logger: logger,
   );
 
   final arbeitskontextModel = ArbeitskontextModel(
@@ -814,6 +828,9 @@ Future<void> _startApp({
         Provider<AppSettingsRepository>.value(value: settingsRepo),
         Provider<NetworkAccessPolicy>.value(value: networkAccessPolicy),
         Provider<AppUpdateService>.value(value: appUpdateService),
+        ChangeNotifierProvider<SicherheitsUpdateModel>.value(
+          value: sicherheitsUpdateModel,
+        ),
         Provider<DataExpiryNotificationService>.value(
           value: dataExpiryNotificationService,
         ),
@@ -915,6 +932,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
   PullNotificationsLoaded? _pendingNotificationsState;
   bool _didCheckForAppUpdate = false;
+  late final SicherheitsUpdateModel _sicherheitsUpdate;
+  bool _sicherheitsSheetOffen = false;
   bool _startupFlowCompleted = false;
   bool _startupFlowRunning = false;
   bool _didRunEngagementPrompt = false;
@@ -942,6 +961,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _urgentNotificationModel = context.read<UrgentNotificationModel>();
     _achievementService = context.read<AchievementService>();
     _storeReviewPromptService = context.read<StoreReviewPromptService>();
+    _sicherheitsUpdate = context.read<SicherheitsUpdateModel>();
+    _sicherheitsUpdate.addListener(_handleSicherheitsUpdate);
     _achievementSubscription = _achievementService.unlocks.listen(
       _handleAchievementUnlock,
     );
@@ -1250,6 +1271,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
     _didCheckForAppUpdate = true;
 
+    // Ein Sicherheitsupdate geht dem normalen Update-Hinweis vor.
+    await _sicherheitsUpdate.pruefe();
+    if (_sicherheitsUpdate.lage.art != SicherheitsUpdateLageArt.keine) {
+      await _zeigeSicherheitsUpdateWennFaellig();
+      return true;
+    }
+
     try {
       final info = await context.read<AppUpdateService>().checkForUpdate();
       final dialogContext = navigatorKey.currentContext;
@@ -1264,6 +1292,32 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         'App-Update-Check fehlgeschlagen: $error\n$stack',
       );
       return false;
+    }
+  }
+
+  void _handleSicherheitsUpdate() {
+    if (_sicherheitsUpdate.istGesperrt) {
+      _pendingSync.pause();
+    }
+    // Der Timer meldet die naechste Nachfrage; beim Start zeigt sie der
+    // Startup-Flow.
+    if (_startupFlowCompleted) {
+      unawaited(_zeigeSicherheitsUpdateWennFaellig());
+    }
+  }
+
+  Future<void> _zeigeSicherheitsUpdateWennFaellig() async {
+    final sheetContext = navigatorKey.currentContext;
+    if (_sicherheitsSheetOffen ||
+        sheetContext == null ||
+        _sicherheitsUpdate.lage.art != SicherheitsUpdateLageArt.nachfrage) {
+      return;
+    }
+    _sicherheitsSheetOffen = true;
+    try {
+      await showSicherheitsUpdateSheet(sheetContext, _sicherheitsUpdate);
+    } finally {
+      _sicherheitsSheetOffen = false;
     }
   }
 
@@ -1451,8 +1505,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _pendingNotificationsState = null;
     _urgentNotificationModel.setNotification(null);
 
-    await _authModel.logout();
-    await _appResetService.resetAllData();
+    try {
+      await _authModel.logout();
+    } catch (error) {
+      // Der Reset loescht die Sitzung ohnehin; ein Fehler beim Abmelden darf
+      // ihn nicht abbrechen.
+      await logger.logWarn(
+        'debug_tools',
+        'Abmelden vor dem Reset fehlgeschlagen: ${error.runtimeType}',
+      );
+    }
+    context.read<BundesstatistikModel>().zuruecksetzen();
+    final resetErgebnis = await _appResetService.resetAllData();
+    if (!resetErgebnis.vollstaendig) {
+      await logger.logWarn(
+        'debug_tools',
+        'App-Reset unvollstaendig: ${resetErgebnis.fehlgeschlagen.join(',')}',
+      );
+    }
     _pendingAchievementUnlocks.clear();
     await context.read<AchievementsModel>().load();
 
@@ -1479,8 +1549,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       AppSnackbar.showOnMessenger(
         messenger: scaffoldMessengerKey.currentState,
         context: snackbarContext,
-        message: AppLocalizations.of(snackbarContext).t('debug_reset_done'),
-        type: AppSnackbarType.success,
+        message: AppLocalizations.of(snackbarContext).t(
+          resetErgebnis.vollstaendig
+              ? 'debug_reset_done'
+              : 'debug_reset_partial',
+        ),
+        type: resetErgebnis.vollstaendig
+            ? AppSnackbarType.success
+            : AppSnackbarType.warning,
       );
     }
   }
@@ -1489,6 +1565,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _authModel.removeListener(_handleAuthModelChanged);
+    _sicherheitsUpdate.removeListener(_handleSicherheitsUpdate);
     _appSettingsModel.removeListener(_handleAppSettingsChanged);
     _urgentNotificationModel.setAcknowledgeHandler(null);
     _achievementSubscription?.cancel();
@@ -1509,8 +1586,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       unawaited(_achievementService.recordDaily(AchievementIds.appDays));
       authModel.onAppResumed();
       _notificationsCubit?.load();
-      _pendingSync.resume();
+      if (!_sicherheitsUpdate.istGesperrt) {
+        _pendingSync.resume();
+      }
       _syncDataExpiryReminder();
+      unawaited(_sicherheitsUpdate.pruefe());
     } else if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
@@ -1599,8 +1679,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     if (child != null)
                       AppGesperrterInhalt(
                         gesperrt: authModel.state == AuthState.unlockRequired,
-                        child: child,
+                        child: SicherheitsUpdateRahmen(child: child),
                       ),
+                    const SicherheitsUpdateSperre(),
                     const AppLockOverlay(),
                     AppSichtschutz(
                       aktiv:

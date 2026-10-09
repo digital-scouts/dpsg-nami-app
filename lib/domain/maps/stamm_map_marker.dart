@@ -155,12 +155,12 @@ class StammMapMarkerSnapshot {
     final fetchedAtRaw = json['fetched_at']?.toString();
     final fetchedAt = DateTime.tryParse(fetchedAtRaw ?? '');
     if (fetchedAt == null) {
-      throw const FormatException('Ungueltiger Zeitstempel fuer Stammmarker.');
+      throw const FormatException('Ungültiger Zeitstempel für Stammmarker.');
     }
 
     final rawMarkers = json['markers'];
     if (rawMarkers is! List) {
-      throw const FormatException('Stammmarker muessen eine Liste sein.');
+      throw const FormatException('Stammmarker müssen eine Liste sein.');
     }
 
     final rawSource = json['source']?.toString();

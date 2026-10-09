@@ -40,8 +40,11 @@ import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
+
+import 'support/fake_connectivity.dart';
 
 void main() {
   setUpAll(() async {
@@ -229,6 +232,58 @@ void main() {
       );
     },
   );
+
+  testWidgets('meldet jede gescheiterte manuelle Aktualisierung erneut', (
+    tester,
+  ) async {
+    final connectivity = FakeConnectivity.wifi();
+    final networkAccessPolicy = NetworkAccessPolicy(connectivity: connectivity);
+    final authModel = await _createSignedInAuthModel(
+      networkAccessPolicy: networkAccessPolicy,
+    );
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      authModel: authModel,
+    );
+    connectivity.setOffline();
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+        networkAccessPolicy: networkAccessPolicy,
+      ),
+    );
+    await tester.pump();
+
+    final hinweis = find.text(
+      'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
+    );
+    for (var versuch = 0; versuch < 2; versuch++) {
+      // Die Liste startet die Aktualisierung, ohne auf sie zu warten.
+      await tester
+          .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+          .onRefresh();
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      expect(authModel.lastSyncAttemptResult, SyncAttemptResult.networkError);
+      expect(hinweis, findsOneWidget, reason: 'Versuch ${versuch + 1}');
+
+      ScaffoldMessenger.of(
+        tester.element(find.byType(MemberPeoplePage)),
+      ).hideCurrentSnackBar();
+      await tester.pumpAndSettle();
+      expect(hinweis, findsNothing);
+    }
+  });
 
   testWidgets('trackt den Resolution-Hinweis auf der Members-Page', (
     tester,
@@ -1320,6 +1375,7 @@ Widget _buildTestApp({
   LoggerService? logger,
   MemberEditModel? memberEditModel,
   MemberFiltersModel? memberFiltersModel,
+  NetworkAccessPolicy? networkAccessPolicy,
 }) {
   final effectiveLogger = logger ?? _FakeLoggerService();
   return MultiProvider(
@@ -1336,6 +1392,8 @@ Widget _buildTestApp({
       if (memberEditModel != null)
         ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
       Provider<LoggerService>.value(value: effectiveLogger),
+      if (networkAccessPolicy != null)
+        Provider<NetworkAccessPolicy>.value(value: networkAccessPolicy),
     ],
     child: MaterialApp(
       navigatorObservers: [
@@ -1354,7 +1412,9 @@ Widget _buildTestApp({
   );
 }
 
-Future<AuthSessionModel> _createSignedInAuthModel() async {
+Future<AuthSessionModel> _createSignedInAuthModel({
+  NetworkAccessPolicy? networkAccessPolicy,
+}) async {
   final authModel = AuthSessionModel(
     repository: _InMemoryAuthSessionRepository(),
     profileRepository: _InMemoryAuthProfileRepository(),
@@ -1366,6 +1426,7 @@ Future<AuthSessionModel> _createSignedInAuthModel() async {
       refreshInterval: const Duration(hours: 24),
     ),
     logger: _FakeLoggerService(),
+    networkAccessPolicy: networkAccessPolicy,
   );
   await authModel.signIn();
   return authModel;

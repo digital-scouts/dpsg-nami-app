@@ -117,6 +117,8 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Beim Wechsel des Arbeitskontexts wird der bisher lokal gespeicherte Kontext verworfen und der neue Kontext geladen.
 - Damit ist lokal immer genau ein Layer mit seinen Daten verankert.
 - Diese Entscheidung dient Einfachheit, begrenzter Datenmenge und einer klaren Erwartungshaltung für Nutzer.
+- Abgleich, Rollen-Nachladen und Kontextwechsel laufen nie gleichzeitig. Ein Wechsel wartet auf einen laufenden Abgleich und prüft das Ziel danach erneut. Ein Abgleich, der während eines Wechsels angestoßen wird, wartet auf ihn und lädt nicht noch einmal.
+- Ein Abgleich, der vor dem Speichern einer Mitgliedsänderung gestartet ist, übernimmt die gespeicherte Änderung in sein Ergebnis und überschreibt sie nicht mit dem älteren Serverstand. Die Rollen kommen weiter aus dem Abgleich.
 
 ### 6. Suche, Listen und Statistik
 
@@ -132,7 +134,7 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Eine sichtbare Abweichungsmarkierung am Filter-Icon bedeutet, dass Sortierung, Zusatztext oder aktive eigene Gruppen vom Standard abweichen.
 - Die Kachel-Belegung der Stammstatistik (Überblick, eigene Zählkacheln, Zielwerte, ausgeblendete Themen) wird wie die eigenen Gruppen je Layer gespeichert. Ein Kontextwechsel lädt die Belegung des neuen Layers und beendet das Bearbeiten.
 - Eigene Zählkacheln verwenden dieselben Regeln wie die eigenen Gruppen der Mitgliederliste, sind aber eigenständige Kopien und zählen unabhängig davon, ob ein Filter-Chip aktiv ist.
-- Der Statistik-Verlauf zeichnet je Layer höchstens einen Eintrag pro Monat auf, nur wenn die Rollen vollständig geladen sind und nie aus einem Zwischenstand des Ladens. Gespeichert werden nur Summen, längstens 24 Monate.
+- Der Statistik-Verlauf zeichnet je Layer höchstens einen Eintrag pro Monat auf, nur wenn die Rollen vollständig geladen sind und nie aus einem Zwischenstand des Ladens. Gespeichert werden nur Summen, längstens 24 Monate. Abmelden, Kontowechsel und Datenablauf löschen ihn, weil er zum Konto gehört.
 
 ### 7. Meine Gruppe
 

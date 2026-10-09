@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -7,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../domain/settings/app_settings_repository.dart';
+import 'log_sanitizer.dart';
 import 'logging_env.dart';
 
 typedef WiredashEventHook =
@@ -203,7 +205,7 @@ class LoggerService {
   }) {
     final buffer = StringBuffer(message);
     if (error != null) {
-      buffer.write(' error=${error.runtimeType}: $error');
+      buffer.write(' error=${LogSanitizer.fehler(error)}');
     }
     if (stackTrace != null) {
       buffer.write('\n$stackTrace');
@@ -278,7 +280,12 @@ class LoggerService {
     return trackEvent('runtime_error', {
       'source': source,
       'error_type': error.runtimeType.toString(),
-      'exception': error.toString(),
+      // Nur die bereinigte erste Zeile: Fehlertexte koennen Feldwerte oder
+      // Namen enthalten.
+      'exception': LogSanitizer.text(
+        error.toString().split('\n').first,
+        maxLength: 200,
+      ),
       'is_expected': isExpected,
       if (stackTrace != null) 'stack': stackTrace.toString(),
       ...properties,
@@ -295,7 +302,8 @@ class LoggerService {
     String message,
   ) async {
     final ts = DateFormat('yyyy-MM-dd HH:mm:ss').format(_now());
-    final line = '[$ts] [${level.name}] [$service] $message\n';
+    final line =
+        '[$ts] [${level.name}] [$service] ${LogSanitizer.text(message)}\n';
     if (kDebugMode) {
       // ignore: avoid_print
       print(line.trim());
@@ -343,9 +351,9 @@ class LoggerService {
       return value;
     }
     if (value is String) {
-      return _truncateEventString(value);
+      return _truncateEventString(LogSanitizer.text(value));
     }
-    return _truncateEventString(value.toString());
+    return _truncateEventString(LogSanitizer.text(value.toString()));
   }
 
   String _truncateEventString(String value) {
@@ -527,6 +535,37 @@ class LoggerService {
       await file.delete();
       totalBytes -= stat.size;
     }
+
+    // Reicht das nicht, ist die heutige Datei allein zu gross: ihre aeltesten
+    // Zeilen fallen weg.
+    if (totalBytes > LoggingEnv.maxSizeBytes) {
+      for (final file in retainedFiles) {
+        final day = _parseLogDate(file);
+        if (day != null && _isSameDay(day, today) && await file.exists()) {
+          await _kuerzeVorne(file, behalten: LoggingEnv.maxSizeBytes ~/ 2);
+        }
+      }
+    }
+  }
+
+  /// Behaelt die letzten [behalten] Bytes ab einem Zeilenanfang.
+  Future<void> _kuerzeVorne(File file, {required int behalten}) async {
+    final bytes = await file.readAsBytes();
+    if (bytes.length <= behalten) {
+      return;
+    }
+    var start = bytes.length - behalten;
+    final zeilenende = bytes.indexOf(0x0A, start);
+    start = zeilenende == -1 ? bytes.length : zeilenende + 1;
+    final ts = DateFormat('yyyy-MM-dd HH:mm:ss').format(_now());
+    final hinweis = utf8.encode(
+      '[$ts] [${LogLevel.warn.name}] [logger] Aeltere Eintraege von heute '
+      'wegen Groessenlimit entfernt\n',
+    );
+    await file.writeAsBytes(<int>[
+      ...hinweis,
+      ...bytes.sublist(start),
+    ], flush: true);
   }
 
   DateTime? _parseLogDate(File file) {

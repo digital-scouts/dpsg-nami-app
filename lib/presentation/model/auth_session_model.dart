@@ -750,8 +750,12 @@ class AuthSessionModel extends ChangeNotifier {
       );
       // Hitobito lehnt das alte Token ab. Ein Zugriff damit scheitert mit
       // 401 und wuerde eine Stoerung am Token-Endpunkt (Ueberlast,
-      // Zeitlimit) faelschlich als abgelaufene Anmeldung werten.
-      if (abgelehntesAccessToken != null || _istAbgelaufen(currentSession)) {
+      // Zeitlimit) faelschlich als abgelaufene Anmeldung werten. Ist
+      // Hitobito gar nicht erreichbar, scheitert auch der naechste Zugriff;
+      // er wuerde nur ein weiteres Zeitlimit abwarten.
+      if (abgelehntesAccessToken != null ||
+          _istAbgelaufen(currentSession) ||
+          _istNichtErreichbar(error)) {
         rethrow;
       }
     }
@@ -1168,9 +1172,11 @@ class AuthSessionModel extends ChangeNotifier {
         );
         return;
       }
+      // Die Profil-Phase hat das Token bei [force] bereits erneuert. Ein
+      // zweiter erzwungener Refresh wuerde den Refresh-Token ohne Nutzen
+      // erneut rotieren.
       final membersLoaded = await executeRemoteAccess<bool>(
         trigger: '${trigger}_members',
-        forceRefresh: force,
         allowMobileDataOverride: allowMobileDataOverride,
         action: (session) async {
           await syncMembers(session.accessToken);
@@ -1210,6 +1216,7 @@ class AuthSessionModel extends ChangeNotifier {
           ? SyncAttemptResult.wifiOnly
           : SyncAttemptResult.networkError;
       _reportNetworkAccessBlockedIssue(error, notify: false);
+      _zeigeHinweisErneutFuerManuellenSync(userInitiated);
     } catch (error, stack) {
       if (generation != _sessionGeneration) {
         await _logSyncAbortedForEndedSession(trigger);
@@ -1230,6 +1237,7 @@ class AuthSessionModel extends ChangeNotifier {
         requiresInteractiveLogin: _isUnauthorized(error),
         notify: false,
       );
+      _zeigeHinweisErneutFuerManuellenSync(userInitiated);
     } finally {
       // Ein neuer Sync nach Logout oder Benutzerwechsel hat eigene Flags.
       if (identical(_activeSyncToken, syncToken)) {
@@ -1238,6 +1246,15 @@ class AuthSessionModel extends ChangeNotifier {
         _isUserInitiatedSyncInProgress = false;
         notifyListeners();
       }
+    }
+  }
+
+  /// Automatische Syncs melden eine Stoerung nur einmal. Wer selbst
+  /// aktualisiert, bekommt bei jedem gescheiterten Versuch eine Rueckmeldung;
+  /// eine noetige Neuanmeldung fragt der Aufrufer stattdessen ab.
+  void _zeigeHinweisErneutFuerManuellenSync(bool userInitiated) {
+    if (userInitiated && hasRemoteAccessIssue && !_requiresInteractiveLogin) {
+      _hasShownRemoteAccessIssueNotice = false;
     }
   }
 
@@ -1306,7 +1323,7 @@ class AuthSessionModel extends ChangeNotifier {
     }
     // Zeitlimit und abgebrochene Verbindung: Hitobito war nicht erreichbar,
     // ein spaeterer Versuch kann gelingen.
-    if (error is TimeoutException || error is http.ClientException) {
+    if (_istNichtErreichbar(error)) {
       return SyncAttemptResult.networkError;
     }
     final statusCode = switch (error) {
@@ -1564,6 +1581,12 @@ class AuthSessionModel extends ChangeNotifier {
     }
     return error.art == HitobitoAuthFehlerArt.sitzungBeendet ||
         (error.art == null && error.statusCode == 401);
+  }
+
+  /// Zeitlimit oder abgebrochene Verbindung: Hitobito hat gar nicht
+  /// geantwortet.
+  bool _istNichtErreichbar(Object error) {
+    return error is TimeoutException || error is http.ClientException;
   }
 
   bool _istAbgelaufen(AuthSession session) {

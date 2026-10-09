@@ -108,8 +108,7 @@ class NetworkAccessPolicy {
       return NetworkAccessDecision.blocked(
         type: connectionType,
         reason: NetworkAccessBlockedReason.offline,
-        message:
-            'Das Geraet ist offline. $feature ist derzeit nicht verfuegbar.',
+        message: 'Das Gerät ist offline. $feature ist derzeit nicht verfügbar.',
       );
     }
 
@@ -120,7 +119,7 @@ class NetworkAccessPolicy {
         type: connectionType,
         reason: NetworkAccessBlockedReason.noMobileDataEnabled,
         message:
-            'Keine Mobilen Daten ist aktiviert. $feature ist nur ueber WLAN verfuegbar.',
+            'Keine Mobilen Daten ist aktiviert. $feature ist nur über WLAN verfügbar.',
       );
     }
 
