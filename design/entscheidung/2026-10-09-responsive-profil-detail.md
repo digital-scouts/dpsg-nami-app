@@ -29,6 +29,13 @@
 | Liste und Detail | L1 · Kopf nur über der Liste, L3 · Detail als Karte | nicht gewählt |
 | Einstellungen rechts | R2 · Hinweis „Bereich auswählen“ | nicht gewählt |
 
+Nachtrag nach Durchsicht auf dem Duo-Simulator (2026-10-09):
+
+- N1 trägt auf dem Duo, es bleibt dabei.
+- Auf Faltgeräten liegt die Teilung zwischen Liste und Detail auf dem Falz, bei den Mitgliedern wie in den Einstellungen. Halb aufgeklappt ergibt das zwei Buchseiten: links die Seitenleiste und die Liste, rechts das Detail und der Systemrand des Duo.
+- iOS meldet die Lage des Falzes nicht. Die App erkennt die Innenfläche des Duo an einem quer liegenden iPhone-Fenster, das mindestens 600 pt hoch ist, und nimmt die Mitte. Auf Android gilt der gemeldete Falz bzw. das Scharnier, ein Spalt bleibt frei.
+- Bleiben links oder rechts weniger als 280 pt, gelten die üblichen Listenbreiten (320 bzw. 360 pt).
+
 ## Offen
 
-- Ob N1 auf dem Duo trägt, entscheidet der Test im Simulator.
+- Der Suchkopf der Mitglieder (L2) läuft über beide Seiten und damit über den Falz.

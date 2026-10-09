@@ -28,6 +28,7 @@ import 'package:nami/services/network_access_policy.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
 import 'package:provider/provider.dart';
+import '../widgets/app_falz.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback? onStammSettings;
@@ -237,15 +238,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (detail == null) {
       return liste;
     }
-    return LayoutBuilder(
-      builder: (context, constraints) => Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(width: constraints.maxWidth < 900 ? 320 : 360, child: liste),
-          Expanded(child: detail),
-        ],
-      ),
-    );
+    return AppListeDetail(liste: liste, detail: detail);
   }
 
   @override

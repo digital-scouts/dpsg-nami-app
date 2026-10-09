@@ -24,6 +24,7 @@ import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/abmeldung_hinweis_karte.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/app_lesebreite.dart';
+import 'package:nami/presentation/widgets/app_falz.dart';
 import 'package:nami/presentation/widgets/app_seitenleiste.dart';
 import 'package:nami/presentation/widgets/demo_zugang_sheet.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
@@ -362,6 +363,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       ),
     );
 
+    final leistenbreite = AppSeitenleiste.breiteFuer(
+      MediaQuery.sizeOf(context).width,
+    );
     return Scaffold(
       // Der Inhalt behaelt seinen Zustand, wenn die Seitenleiste beim Auf-
       // oder Zuklappen erscheint oder verschwindet.
@@ -374,12 +378,17 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               schnellzugriff: [for (final z in schnellziele) ?z.eintrag],
               unten: hauptbereiche.sublist(3),
               ausgewaehlt: _index,
-              breite: AppSeitenleiste.breiteFuer(
-                MediaQuery.sizeOf(context).width,
-              ),
+              breite: leistenbreite,
               onAuswahl: (i) => _wechsle(i, schnellziele),
             ),
-          Expanded(key: const ValueKey('shell-inhalt'), child: inhaltsbereich),
+          Expanded(
+            key: const ValueKey('shell-inhalt'),
+            child: AppFalzBereich.fuer(
+              context,
+              versatz: seitenleiste ? leistenbreite : 0,
+              child: inhaltsbereich,
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: seitenleiste

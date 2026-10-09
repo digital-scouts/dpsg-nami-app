@@ -10,6 +10,7 @@ import 'package:nami/presentation/widgets/member_custom_filter_icons.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_search_bar.dart';
+import 'package:nami/presentation/widgets/app_falz.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
 
 enum MemberFilterOptionsTrigger { tuneButton, listHeader }
@@ -252,18 +253,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
         Expanded(
           child: detail == null
               ? liste
-              : LayoutBuilder(
-                  builder: (context, constraints) => Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(
-                        width: constraints.maxWidth < 900 ? 320 : 360,
-                        child: liste,
-                      ),
-                      Expanded(child: detail),
-                    ],
-                  ),
-                ),
+              : AppListeDetail(liste: liste, detail: detail),
         ),
       ],
     );

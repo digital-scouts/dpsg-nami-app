@@ -160,6 +160,21 @@ void main() {
     });
 
     testWidgets(
+      'Einstellungen teilen sich auf dem Duo am Falz',
+      (tester) async {
+        // Innenflaeche des Duo: Falz in der Mitte des Bildschirms.
+        tester.view.display.size = const Size(951, 669);
+        addTearDown(tester.view.display.reset);
+        await pumpShell(tester, const Size(951, 669));
+
+        await tester.tap(inLeiste('Einstellungen'));
+        await tester.pumpAndSettle();
+        expect(tester.getRect(find.byType(ProfilePage)).left, 951 / 2);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+    );
+
+    testWidgets(
       'Einstellungsseiten oeffnen auf schmalen Fenstern ueber der unteren '
       'Leiste',
       (tester) async {

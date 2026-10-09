@@ -9,6 +9,7 @@ import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
+import 'package:nami/presentation/widgets/app_falz.dart';
 import 'package:nami/presentation/widgets/app_seitenleiste.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/services/app_icon_service.dart';
@@ -220,7 +221,13 @@ class StoryNavigationsScaffold extends StatelessWidget {
               breite: AppSeitenleiste.breiteFuer(breite),
               onAuswahl: (_) {},
             ),
-          Expanded(child: body(context, seitenleiste)),
+          Expanded(
+            child: AppFalzBereich.fuer(
+              context,
+              versatz: seitenleiste ? AppSeitenleiste.breiteFuer(breite) : 0,
+              child: Builder(builder: (context) => body(context, seitenleiste)),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: seitenleiste || ausgewaehlt > 3
