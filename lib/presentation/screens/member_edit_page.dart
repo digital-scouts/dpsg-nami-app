@@ -73,6 +73,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   final Set<String> _dismissedResolutionItemIds = <String>{};
   late bool _editSectionExpanded;
   bool _isSubmitting = false;
+  bool _verlassenErlaubt = false;
 
   MemberResolutionCase? get _resolutionCase =>
       widget.pendingEntry?.resolutionCase;
@@ -100,6 +101,35 @@ class _MemberEditPageState extends State<MemberEditPage> {
       basisMitglied: widget.mitglied,
       zielMitglied: _buildTargetMember(),
     );
+  }
+
+  /// Eingaben seit dem Oeffnen, die beim Verlassen verloren gingen. Ein
+  /// Entwurf wird bewusst nicht gespeichert.
+  bool get _hatUngespeicherteAenderungen =>
+      !_isSubmitting &&
+      MemberConflictResolver.hasLocalChanges(
+        basisMitglied: widget.mitglied,
+        zielMitglied: _buildTargetMember(),
+      );
+
+  Future<void> _frageVorDemVerlassen() async {
+    final wahl = await showModalBottomSheet<_VerlassenWahl>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _VerlassenSheet(t: _t),
+    );
+    if (!mounted || wahl == null) {
+      return;
+    }
+    switch (wahl) {
+      case _VerlassenWahl.speichern:
+        await _save();
+      case _VerlassenWahl.verwerfen:
+        setState(() => _verlassenErlaubt = true);
+        Navigator.of(context).pop();
+      case _VerlassenWahl.weiterBearbeiten:
+        break;
+    }
   }
 
   bool get _cannotSendNow {
@@ -193,63 +223,72 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _isResolutionMode
-              ? _t.t('member_edit_title_resolution_named', {
-                  'name': _resolutionDisplayName,
-                })
-              : _t.t('member_edit_title_edit'),
+    return PopScope<Object?>(
+      // Zurueck ohne Rueckfrage, solange nichts geaendert ist.
+      canPop: _verlassenErlaubt || !_hatUngespeicherteAenderungen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          unawaited(_frageVorDemVerlassen());
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            _isResolutionMode
+                ? _t.t('member_edit_title_resolution_named', {
+                    'name': _resolutionDisplayName,
+                  })
+                : _t.t('member_edit_title_edit'),
+          ),
         ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Form(
-              key: _formKey,
-              // Haelt den Zustand des Speichern-Buttons aktuell.
-              onChanged: () => setState(() {}),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final horizontalPadding = switch (constraints.maxWidth) {
-                    >= 1100 => 24.0,
-                    >= 700 => 16.0,
-                    _ => _pagePadding,
-                  };
+        body: Column(
+          children: [
+            Expanded(
+              child: Form(
+                key: _formKey,
+                // Haelt den Zustand des Speichern-Buttons aktuell.
+                onChanged: () => setState(() {}),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final horizontalPadding = switch (constraints.maxWidth) {
+                      >= 1100 => 24.0,
+                      >= 700 => 16.0,
+                      _ => _pagePadding,
+                    };
 
-                  return ListView(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontalPadding,
-                      _pagePadding,
-                      horizontalPadding,
-                      18,
-                    ),
-                    children: [
-                      Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 1320),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (_isResolutionMode) ...[
-                                _buildResolutionSection(),
-                                const SizedBox(height: 10),
-                                _buildEditableMemberSection(),
-                              ] else
-                                _buildEditSectionsContent(),
-                            ],
+                    return ListView(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        _pagePadding,
+                        horizontalPadding,
+                        18,
+                      ),
+                      children: [
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1320),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (_isResolutionMode) ...[
+                                  _buildResolutionSection(),
+                                  const SizedBox(height: 10),
+                                  _buildEditableMemberSection(),
+                                ] else
+                                  _buildEditSectionsContent(),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          _buildStickySaveBar(context),
-        ],
+            _buildStickySaveBar(context),
+          ],
+        ),
       ),
     );
   }
@@ -1070,6 +1109,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
       controller: controller,
       focusNode: focusNode,
       keyboardType: keyboardType,
+      // Mitgliederdaten: kein Lernen der Tastatur, keine Vorschlaege oder
+      // Autokorrektur, die Namen und Nummern veraendern.
+      enableIMEPersonalizedLearning: false,
+      autocorrect: false,
+      enableSuggestions: false,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
@@ -2587,5 +2631,65 @@ class _AddressDraft {
     townController.dispose();
     countryController.dispose();
     streetFocusNode.dispose();
+  }
+}
+
+enum _VerlassenWahl { speichern, weiterBearbeiten, verwerfen }
+
+/// Rueckfrage beim Verlassen mit ungespeicherten Aenderungen.
+class _VerlassenSheet extends StatelessWidget {
+  const _VerlassenSheet({required this.t});
+
+  final AppLocalizations t;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              t.t('member_edit_leave_title'),
+              style: theme.textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              t.t('member_edit_leave_body'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              key: const Key('member-edit-leave-save'),
+              onPressed: () =>
+                  Navigator.of(context).pop(_VerlassenWahl.speichern),
+              child: Text(t.t('member_edit_leave_save')),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              key: const Key('member-edit-leave-continue'),
+              onPressed: () =>
+                  Navigator.of(context).pop(_VerlassenWahl.weiterBearbeiten),
+              child: Text(t.t('member_edit_leave_continue')),
+            ),
+            const SizedBox(height: 4),
+            TextButton(
+              key: const Key('member-edit-leave-discard'),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+              ),
+              onPressed: () =>
+                  Navigator.of(context).pop(_VerlassenWahl.verwerfen),
+              child: Text(t.t('member_edit_leave_discard')),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

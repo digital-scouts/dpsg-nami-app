@@ -60,6 +60,7 @@ class _ProblemMeldenSheetState extends State<ProblemMeldenSheet> {
             TextField(
               key: Key('problem-$frage'),
               controller: c,
+              enableIMEPersonalizedLearning: false,
               minLines: 1,
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
