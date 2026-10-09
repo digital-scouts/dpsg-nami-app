@@ -1,14 +1,17 @@
-// Bausteine für screenshot.html und feature-graphic.html.
+// Bausteine für screenshot.html, die Kopfzeile, das Suchergebnis und
+// feature-graphic.html.
 window.StoreRender = (() => {
   // Verhindert, dass der Browser nach neuen Rohscreens alte Bilder zeigt.
   const bust = `?t=${Date.now()}`;
-  const RAW_RATIO = { iphone: 2868 / 1320, ipad: 2752 / 2064 };
+  // iPhone 6,3" (17 Pro), iPhone Duo aufgeklappt quer, iPad 13".
+  const RAW_RATIO = { iphone: 2622 / 1206, duo: 2007 / 2853, ipad: 2752 / 2064 };
 
   // Maße in Pixeln des jeweiligen Zielformats.
   const LAYOUT = {
-    iphone: { screenW: 900, bezel: 22, radius: 150, bottom: 80, pt: 440 },
+    iphone: { screenW: 822, bezel: 20, radius: 137, bottom: 73, pt: 402 },
+    duo: { screenW: 1800, bezel: 26, radius: 90, bottom: 344, pt: 951 },
     ipad: { screenW: 1440, bezel: 32, radius: 66, bottom: 80, pt: 1032 },
-    play: { cardW: 660, radius: 44, bottom: 70, cropTop: 62 / 956 },
+    play: { cardW: 660, radius: 44, bottom: 70, cropTop: 62 / 874 },
   };
 
   const signal = (h) => `<svg height="${h}" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>`;

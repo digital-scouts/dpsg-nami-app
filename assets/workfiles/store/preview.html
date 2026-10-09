@@ -54,8 +54,14 @@
   </section>
   <section id="appstore">
     <h2>App Store</h2>
-    <h3>iPhone 6,9" · 1320 × 2868</h3>
+    <h3>Kopfzeile · 3840 × 1646</h3>
+    <div class="row" id="appstore-header"></div>
+    <h3>Suchergebnis · 3840 × 2560</h3>
+    <div class="row" id="appstore-search"></div>
+    <h3>iPhone 6,3" · 1206 × 2622</h3>
     <div class="row" id="iphone-shots"></div>
+    <h3>iPhone Duo aufgeklappt · 2853 × 2007</h3>
+    <div class="row" id="duo-shots"></div>
     <h3>iPad 13" · 2064 × 2752</h3>
     <div class="row" id="ipad-shots"></div>
   </section>
@@ -91,7 +97,12 @@
       .map((s, i) => frame(`screenshot.html?target=${target}&slide=${i}&${q}`, w, h, scale, `${i + 1} · ${s.scene}`))
       .join('');
     document.getElementById('play-shots').innerHTML = shots('play', 1080, 1920, zoom * 1.3);
-    document.getElementById('iphone-shots').innerHTML = shots('iphone', 1320, 2868, zoom);
+    document.getElementById('appstore-header').innerHTML =
+      frame(`appstore-header.html?${q}`, 3840, 1646, zoom * 0.6);
+    document.getElementById('appstore-search').innerHTML =
+      frame(`appstore-search.html?${q}`, 3840, 2560, zoom * 0.6);
+    document.getElementById('iphone-shots').innerHTML = shots('iphone', 1206, 2622, zoom * 1.09);
+    document.getElementById('duo-shots').innerHTML = shots('duo', 2853, 2007, zoom * 0.95);
     document.getElementById('ipad-shots').innerHTML = shots('ipad', 2064, 2752, zoom * 0.95);
   }
 
