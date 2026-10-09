@@ -702,6 +702,29 @@ Future<void> _startApp({
     onMemberSaved: () => achievementService.record(AchievementIds.memberEdited),
     sessionGeneration: () => authModel.sessionGeneration,
   );
+  // Vor dem Datenablauf einmal versuchen, Vorgemerktes zu senden; was danach
+  // offen ist, geht mit dem Loeschen verloren und wird am Login genannt.
+  authModel.sendeVorgemerkteVorAblauf = () async {
+    await memberEditModel.loadPending();
+    if (memberEditModel.pendingUpdates.isEmpty || isDemo) {
+      return 0;
+    }
+    final session = authModel.session;
+    if (session != null && session.accessToken.isNotEmpty) {
+      try {
+        await memberEditModel
+            .retryPending(
+              accessToken: session.accessToken,
+              trigger: 'data_expiry',
+            )
+            .timeout(const Duration(seconds: 20));
+      } on TimeoutException {
+        // Was bis hierher nicht gesendet ist, zaehlt als verloren.
+      }
+    }
+    await memberEditModel.loadPending();
+    return memberEditModel.pendingUpdates.length;
+  };
 
   // Session-/Arbeitskontext-Initialisierung (inkl. moeglicher voller
   // Netzwerk-Reloads von Gruppen/Mitgliedern) laeuft bewusst NACH

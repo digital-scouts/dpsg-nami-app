@@ -877,6 +877,13 @@ class AppLocalizations {
       'auth_session_reminder_title': 'Angemeldet bleiben',
       'auth_session_reminder_body':
           'Öffne die App kurz, sonst meldet Hitobito dich morgen ab. Deine Daten bleiben erhalten.',
+      'auth_logout_expired_title': 'Daten abgelaufen',
+      'auth_logout_expired_body':
+          'Die App hatte 90 Tage keine Verbindung zu Hitobito und hat die gespeicherten Daten zum Schutz gelöscht. Melde dich neu an, um den aktuellen Stand zu laden.',
+      'auth_logout_expired_lost_title':
+          'Daten abgelaufen, {count} Änderungen verloren',
+      'auth_logout_expired_lost_body':
+          'Die App hatte 90 Tage keine Verbindung zu Hitobito und hat die gespeicherten Daten zum Schutz gelöscht. {count} vorgemerkte Änderungen konnten vorher nicht mehr gesendet werden. Trage sie nach dem Anmelden bitte erneut ein.',
       'auth_logout_rights_changed_title': 'Rechte geändert',
       'auth_logout_rights_changed_body':
           'Die App hat dich abgemeldet und die gespeicherten Daten gelöscht, weil sich deine Rechte in Hitobito geändert haben. Melde dich neu an, um den aktuellen Stand zu laden.',
@@ -2551,6 +2558,12 @@ class AppLocalizations {
       'auth_session_reminder_title': 'Stay signed in',
       'auth_session_reminder_body':
           'Open the app briefly, otherwise Hitobito will sign you out tomorrow. Your data is kept.',
+      'auth_logout_expired_title': 'Data expired',
+      'auth_logout_expired_body':
+          'The app had no connection to Hitobito for 90 days and deleted the stored data for protection. Sign in again to load the current data.',
+      'auth_logout_expired_lost_title': 'Data expired, {count} changes lost',
+      'auth_logout_expired_lost_body':
+          'The app had no connection to Hitobito for 90 days and deleted the stored data for protection. {count} pending changes could not be sent before. Please enter them again after signing in.',
       'auth_logout_rights_changed_title': 'Permissions changed',
       'auth_logout_rights_changed_body':
           'The app signed you out and deleted the stored data because your permissions in Hitobito changed. Sign in again to load the current data.',

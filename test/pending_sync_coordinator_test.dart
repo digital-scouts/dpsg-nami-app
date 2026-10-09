@@ -364,6 +364,25 @@ void main() {
     });
   });
 
+  test('erlaubt nach einem Sync ohne Netz einen neuen Versuch', () {
+    fakeAsync((async) {
+      final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
+      harness.authModel.ergebnis = SyncAttemptResult.networkError;
+
+      harness.coordinator.start();
+      unawaited(
+        harness.coordinator.checkCurrentConnectivity(trigger: 'startup'),
+      );
+      async.flushMicrotasks();
+      // Dieselbe Verbindung meldet sich erneut, z. B. beim Resume.
+      unawaited(harness.coordinator.checkCurrentConnectivity(trigger: 'again'));
+      async.flushMicrotasks();
+
+      expect(harness.authModel.syncTriggers, <String>['startup', 'again']);
+      harness.dispose();
+    });
+  });
+
   test('dispose beendet Listener und Timer', () {
     fakeAsync((async) {
       final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
@@ -474,6 +493,10 @@ class _StubAuthSessionModel extends AuthSessionModel {
       );
 
   final List<String> syncTriggers = <String>[];
+  SyncAttemptResult? ergebnis;
+
+  @override
+  SyncAttemptResult? get lastSyncAttemptResult => ergebnis;
   Future<void> Function()? onSync;
   bool hasSession = true;
   bool requiresInteractiveLoginOverride = false;

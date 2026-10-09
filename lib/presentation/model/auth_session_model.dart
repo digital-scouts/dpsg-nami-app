@@ -31,7 +31,7 @@ enum SyncAttemptResult {
 enum NextSyncDisplayKind { atTime, whenWifiAvailable, loginRequired }
 
 /// Warum die App ohne Zutun der Person abgemeldet hat.
-enum LogoutReason { keineBerechtigung }
+enum LogoutReason { keineBerechtigung, datenAbgelaufen }
 
 class DataSyncStatus {
   const DataSyncStatus({
@@ -145,6 +145,14 @@ class AuthSessionModel extends ChangeNotifier {
   int _neuanmeldungen = 0;
   SyncAttemptResult? _lastSyncAttemptResult;
   LogoutReason? _logoutReason;
+  int _verloreneAenderungen = 0;
+  Future<void>? _laufenderAblauf;
+  bool _sendetVorAblauf = false;
+
+  /// Sendet vor dem Datenablauf die vorgemerkten Aenderungen und liefert,
+  /// wie viele danach noch offen sind. Wird gesetzt, sobald das
+  /// Bearbeiten-Modell existiert.
+  Future<int> Function()? sendeVorgemerkteVorAblauf;
 
   AuthState get state => _state;
   int get sessionGeneration => _sessionGeneration;
@@ -175,6 +183,10 @@ class AuthSessionModel extends ChangeNotifier {
 
   /// Grund der letzten automatischen Abmeldung, bis zur naechsten Anmeldung.
   LogoutReason? get logoutReason => _logoutReason;
+
+  /// Vorgemerkte Aenderungen, die beim Datenablauf nicht mehr gesendet
+  /// werden konnten.
+  int get verloreneAenderungen => _verloreneAenderungen;
   DataSyncStatus get dataSyncStatus => DataSyncStatus(
     isSyncing: _isSyncingHitobitoData,
     hasValidLocalData: _lastSensitiveSyncAt != null,
@@ -437,6 +449,7 @@ class AuthSessionModel extends ChangeNotifier {
 
     _session = authenticatedSession;
     _logoutReason = null;
+    _verloreneAenderungen = 0;
     _lastBackgroundedAt = null;
     _backgroundedMonotonic = null;
     _lastSensitiveSyncAttemptAt = null;
@@ -490,6 +503,7 @@ class AuthSessionModel extends ChangeNotifier {
       unawaited(_widerrufen(beendeteSession));
     }
     _logoutReason = null;
+    _verloreneAenderungen = 0;
     await _logger.logInfo('auth_flow', 'logout started');
     await _logger.trackAuthFlow('logout', 'started');
     await _repository.clear();
@@ -670,7 +684,10 @@ class AuthSessionModel extends ChangeNotifier {
       return null;
     }
 
-    if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
+    // Beim Senden vor dem Ablauf ist die Frist schon ueberschritten; das
+    // ist der eine erlaubte Zugriff.
+    if (!_sendetVorAblauf &&
+        _retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
       await _logger.log(
         'auth_flow',
         'Remote-Zugriff abgebrochen ($trigger): '
@@ -1130,6 +1147,9 @@ class AuthSessionModel extends ChangeNotifier {
       return;
     }
 
+    // Ein Versuch, der Hitobito nie erreicht, zaehlt nicht: Sonst verschiebt
+    // ein Sync ohne Netz den naechsten faelligen Sync.
+    final vorherigerVersuch = _lastSensitiveSyncAttemptAt;
     await markSensitiveDataSyncAttempted();
     final generation = _sessionGeneration;
     final syncToken = Object();
@@ -1156,6 +1176,7 @@ class AuthSessionModel extends ChangeNotifier {
         await _handleSyncWithoutRemoteAccess(
           trigger: trigger,
           phase: 'profile',
+          vorherigerVersuch: vorherigerVersuch,
         );
         return;
       }
@@ -1178,6 +1199,7 @@ class AuthSessionModel extends ChangeNotifier {
         await _handleSyncWithoutRemoteAccess(
           trigger: trigger,
           phase: 'members',
+          vorherigerVersuch: vorherigerVersuch,
         );
         return;
       }
@@ -1202,6 +1224,7 @@ class AuthSessionModel extends ChangeNotifier {
       _lastSyncAttemptResult = error.isBlockedByNoMobileData
           ? SyncAttemptResult.wifiOnly
           : SyncAttemptResult.networkError;
+      await _versuchNichtZaehlen(vorherigerVersuch);
       _reportNetworkAccessBlockedIssue(error, notify: false);
       _zeigeHinweisErneutFuerManuellenSync(userInitiated);
     } catch (error, stack) {
@@ -1219,6 +1242,9 @@ class AuthSessionModel extends ChangeNotifier {
       _lastSyncAttemptResult = _requiresInteractiveLogin
           ? SyncAttemptResult.loginRequired
           : _classifySyncError(error);
+      if (_lastSyncAttemptResult == SyncAttemptResult.networkError) {
+        await _versuchNichtZaehlen(vorherigerVersuch);
+      }
       reportRemoteDataIssue(
         error.toString(),
         requiresInteractiveLogin: _isUnauthorized(error),
@@ -1248,6 +1274,7 @@ class AuthSessionModel extends ChangeNotifier {
   Future<void> _handleSyncWithoutRemoteAccess({
     required String trigger,
     required String phase,
+    required DateTime? vorherigerVersuch,
   }) async {
     if (_requiresInteractiveLogin) {
       _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
@@ -1257,9 +1284,23 @@ class AuthSessionModel extends ChangeNotifier {
       );
       return;
     }
+    // Ohne Netzzugriff wurde Hitobito nicht gefragt.
+    _lastSyncAttemptResult ??= SyncAttemptResult.networkError;
+    await _versuchNichtZaehlen(vorherigerVersuch);
     await _logger.logInfo(
       'hitobito_sync',
       'Hitobito-Sync abgebrochen trigger=$trigger phase=$phase reason=no_remote_access state=$_state',
+    );
+  }
+
+  /// Setzt den Zeitpunkt des letzten Sync-Versuchs zurueck.
+  Future<void> _versuchNichtZaehlen(DateTime? vorherigerVersuch) async {
+    _lastSensitiveSyncAttemptAt = vorherigerVersuch;
+    if (_session == null) {
+      return;
+    }
+    await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(
+      vorherigerVersuch,
     );
   }
 
@@ -1624,12 +1665,44 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
-  Future<void> _expireSensitiveData() async {
+  Future<void> _expireSensitiveData() {
+    // Resume, Start und Remote-Zugriff koennen gleichzeitig ausloesen.
+    final laufend = _laufenderAblauf;
+    if (laufend != null) {
+      return laufend;
+    }
+    final ablauf = _fuehreDatenablaufAus().whenComplete(() {
+      _laufenderAblauf = null;
+    });
+    _laufenderAblauf = ablauf;
+    return ablauf;
+  }
+
+  Future<void> _fuehreDatenablaufAus() async {
+    var verloren = 0;
+    final senden = sendeVorgemerkteVorAblauf;
+    if (senden != null && _session != null) {
+      _sendetVorAblauf = true;
+      try {
+        verloren = await senden();
+      } catch (error) {
+        await _logger.logWarn(
+          'auth_flow',
+          'Senden vor Datenablauf fehlgeschlagen: ${error.runtimeType}',
+        );
+      } finally {
+        _sendetVorAblauf = false;
+      }
+    }
     await _logger.log(
       'auth_flow',
-      'Gespeicherte Daten sind abgelaufen und werden geloescht',
+      'Gespeicherte Daten sind abgelaufen und werden geloescht '
+          'verlorene_aenderungen=$verloren',
     );
     await logout();
+    _logoutReason = LogoutReason.datenAbgelaufen;
+    _verloreneAenderungen = verloren;
+    notifyListeners();
   }
 }
 

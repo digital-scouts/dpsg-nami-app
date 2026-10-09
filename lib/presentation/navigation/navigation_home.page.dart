@@ -698,6 +698,12 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               if (authModel.logoutReason == LogoutReason.keineBerechtigung) ...[
                 const AbmeldungHinweisKarte(),
                 const SizedBox(height: 20),
+              ] else if (authModel.logoutReason ==
+                  LogoutReason.datenAbgelaufen) ...[
+                AbmeldungHinweisKarte.datenAbgelaufen(
+                  verloren: authModel.verloreneAenderungen,
+                ),
+                const SizedBox(height: 20),
               ] else if (authModel.anmeldungUnterbrochen) ...[
                 const AbmeldungHinweisKarte.anmeldungUnterbrochen(),
                 const SizedBox(height: 20),

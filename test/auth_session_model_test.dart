@@ -2591,6 +2591,112 @@ void main() {
       });
     });
   });
+
+  group('Sync-Versuch und Datenablauf (#190)', () {
+    AuthSessionModel modelMitAlterSitzung(
+      FakeSensitiveStorageService sensitiveStorage, {
+      NetworkAccessPolicy? networkAccessPolicy,
+    }) => AuthSessionModel(
+      repository: InMemoryAuthSessionRepository(
+        initialSession: AuthSession(
+          accessToken: 'stored-token',
+          refreshToken: 'stored-refresh-token',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+      ),
+      profileRepository: InMemoryAuthProfileRepository(
+        profile: const AuthProfile(namiId: 98, language: 'de'),
+        lastSyncAt: DateTime(2026, 3, 28, 8),
+      ),
+      oauthService: FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'stored-token',
+          receivedAt: DateTime(2026, 3, 28),
+        ),
+        profileToReturn: const AuthProfile(namiId: 98, language: 'de'),
+      ),
+      biometricLockService: FakeBiometricLockService(),
+      sensitiveStorageService: sensitiveStorage,
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+        nowProvider: () => DateTime(2026, 3, 28, 12),
+      ),
+      logger: _createLogger(),
+      networkAccessPolicy: networkAccessPolicy,
+    );
+
+    test('verbucht einen Sync ohne Netz nicht als Versuch', () async {
+      final sensitiveStorage = FakeSensitiveStorageService()
+        ..lastSensitiveSyncAt = DateTime(2026, 3, 26, 8)
+        ..lastSensitiveSyncAttemptAt = DateTime(2026, 3, 26, 8);
+      final model = modelMitAlterSitzung(
+        sensitiveStorage,
+        networkAccessPolicy: _BlockedNetworkAccessPolicy(
+          const NetworkAccessBlockedException(
+            reason: NetworkAccessBlockedReason.noMobileDataEnabled,
+            connectionType: NetworkConnectionType.mobile,
+            message: 'nur WLAN',
+          ),
+        ),
+      );
+      await model.initialize();
+
+      await model.syncHitobitoData(
+        trigger: 'startup',
+        userInitiated: false,
+        syncMembers: (_) async {},
+      );
+
+      expect(model.lastSyncAttemptResult, SyncAttemptResult.wifiOnly);
+      expect(
+        sensitiveStorage.lastSensitiveSyncAttemptAt,
+        DateTime(2026, 3, 26, 8),
+      );
+      expect(model.isRefreshAttemptDue, isTrue);
+    });
+
+    test(
+      'sendet vor dem Datenablauf einmal und nennt verlorene Aenderungen',
+      () async {
+        final sensitiveStorage = FakeSensitiveStorageService()
+          ..lastSensitiveSyncAt = DateTime(2025, 12, 1);
+        final model = modelMitAlterSitzung(sensitiveStorage);
+        var aufrufe = 0;
+        String? token;
+        model.sendeVorgemerkteVorAblauf = () async {
+          aufrufe++;
+          // Der Zugriff waehrend des Ablaufs darf nicht selbst ablaufen.
+          token = await model.executeRemoteAccess<String>(
+            trigger: 'test',
+            action: (session) async => session.accessToken,
+          );
+          return 2;
+        };
+
+        await model.initialize();
+
+        expect(aufrufe, 1);
+        expect(token, isNotNull);
+        expect(model.session, isNull);
+        expect(model.logoutReason, LogoutReason.datenAbgelaufen);
+        expect(model.verloreneAenderungen, 2);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test('laeuft ohne Sendefunktion ab wie bisher', () async {
+      final sensitiveStorage = FakeSensitiveStorageService()
+        ..lastSensitiveSyncAt = DateTime(2025, 12, 1);
+      final model = modelMitAlterSitzung(sensitiveStorage);
+
+      await model.initialize();
+
+      expect(model.session, isNull);
+      expect(model.logoutReason, LogoutReason.datenAbgelaufen);
+      expect(model.verloreneAenderungen, 0);
+    });
+  });
 }
 
 FakeLoggerService _createLogger() => FakeLoggerService();
