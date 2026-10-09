@@ -22,7 +22,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   ObjectBox: 7da4aceb5013d041bfafdbc6d744a26918b09757
-  objectbox_flutter_libs: 7a6ea1d74b43f5d970e6571d1b79e4b181b33d81
+  objectbox_flutter_libs: 09b1dec1b4cd27bf1a5f9bae7ccaa7e43588bf31
 
 PODFILE CHECKSUM: 27dd60ceefbaa56b89c18f6476be76073c41c42b
 

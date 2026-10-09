@@ -9,9 +9,22 @@ class LocalNotificationsDataSource {
   final Box box;
   LocalNotificationsDataSource(this.box);
 
+  /// Ersetzt den Cache durch die Liste vom Server. Zurueckgezogene
+  /// Mitteilungen verschwinden samt ihrer Bestaetigung.
   Future<void> saveNotifications(List<PullNotification> notifications) async {
     final map = {for (var n in notifications) n.id: n.toJson()};
+    final veraltet = box.keys.where((key) => !map.containsKey(key)).toList();
+    if (veraltet.isNotEmpty) {
+      await box.deleteAll(veraltet);
+    }
     await box.putAll(map);
+    final ackBox = await Hive.openBox('notifications_ack_box');
+    final veralteteAcks = ackBox.keys
+        .where((key) => !map.containsKey(key))
+        .toList();
+    if (veralteteAcks.isNotEmpty) {
+      await ackBox.deleteAll(veralteteAcks);
+    }
   }
 
   List<PullNotification> getNotifications() {

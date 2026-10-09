@@ -86,34 +86,60 @@ class GeburtstagsErinnerungService {
       await _raeumen();
       return;
     }
+    final jetzt = _jetzt();
     final plan = pushErlaubt
-        ? _planer(readModel: readModel, stufen: stufen, jetzt: _jetzt())
+        ? _planer(readModel: readModel, stufen: stufen, jetzt: jetzt)
         : const <GeplanteGeburtstagsErinnerung>[];
-    final stand = Object.hash(pushErlaubt, sprache, Object.hashAll(plan));
+    // Die Zeitzone gehoert zum Stand, damit nach einem Wechsel neu geplant
+    // wird.
+    final stand = Object.hash(
+      pushErlaubt,
+      sprache,
+      Object.hashAll(plan),
+      jetzt.timeZoneName,
+      jetzt.timeZoneOffset,
+    );
     if (stand == _letzterStand) {
       return;
     }
     _letzterStand = stand;
 
     await _mitteilungen.initialisieren();
-    await _abbrechen();
     if (plan.isEmpty) {
+      await _mitteilungen.abbrechenBereich(idErste, idLetzte);
       return;
     }
 
     final t = AppLocalizations(Locale(sprache));
-    for (var i = 0; i < plan.length && idErste + i <= idLetzte; i++) {
+    final anzahl = plan.length < idLetzte - idErste + 1
+        ? plan.length
+        : idLetzte - idErste + 1;
+    Object? fehler;
+    StackTrace? fehlerStack;
+    // Erst ersetzen, dann Ueberzaehliges entfernen: schlaegt das Planen fehl,
+    // bleiben die bisherigen Erinnerungen erhalten.
+    for (var i = 0; i < anzahl; i++) {
       final erinnerung = plan[i];
-      await _mitteilungen.planen(
-        id: idErste + i,
-        titel: t.t('geburtstag_push_titel'),
-        text: t.t('geburtstag_push_text', {
-          'name': erinnerung.kurzname,
-          'alter': erinnerung.alter,
-        }),
-        zeitpunkt: erinnerung.zeitpunkt,
-        kanalName: t.t('geburtstag_push_kanal'),
-      );
+      try {
+        await _mitteilungen.planen(
+          id: idErste + i,
+          titel: t.t('geburtstag_push_titel'),
+          text: t.t('geburtstag_push_text', {
+            'name': erinnerung.kurzname,
+            'alter': erinnerung.alter,
+          }),
+          zeitpunkt: erinnerung.zeitpunkt,
+          kanalName: t.t('geburtstag_push_kanal'),
+        );
+      } on Object catch (e, stack) {
+        fehler ??= e;
+        fehlerStack ??= stack;
+      }
+    }
+    await _mitteilungen.abbrechenAb(idErste + anzahl, idLetzte);
+    if (fehler != null) {
+      // Der Aufrufer vergisst den Stand und plant beim naechsten Anlass neu.
+      Error.throwWithStackTrace(fehler, fehlerStack!);
     }
     await _logger.logInfo(
       'notifications',
@@ -124,14 +150,6 @@ class GeburtstagsErinnerungService {
   Future<void> _raeumen() async {
     _letzterStand = null;
     await _mitteilungen.initialisieren();
-    await _abbrechen();
-  }
-
-  Future<void> _abbrechen() async {
-    for (final id in await _mitteilungen.geplanteIds()) {
-      if (id >= idErste && id <= idLetzte) {
-        await _mitteilungen.abbrechen(id);
-      }
-    }
+    await _mitteilungen.abbrechenBereich(idErste, idLetzte);
   }
 }

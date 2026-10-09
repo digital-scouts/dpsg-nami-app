@@ -639,6 +639,17 @@ Future<void> _startApp({
   authModel.addListener(syncSitzungsErinnerung);
   appSettingsModel.addListener(syncSitzungsErinnerung);
 
+  // Beim Zurueckkehren in die App erneut abgleichen: wiederholt eine
+  // fehlgeschlagene Planung und beruecksichtigt Zeitzonenwechsel. Ohne
+  // Aenderung des Stands passiert nichts.
+  AppLifecycleListener(
+    onResume: () {
+      syncQualifikationsErinnerungen();
+      syncGeburtstagsErinnerungen();
+      syncSitzungsErinnerung();
+    },
+  );
+
   // Monatliche Summen für die Statistik-Kachel „Verlauf“ (nur auf dem Gerät).
   final statistikVerlaufService = StatistikVerlaufService(
     repository: statistikVerlaufRepository,
@@ -957,6 +968,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   void _handleAppSettingsChanged() {
+    _syncDataExpiryReminder();
     final noMobileDataEnabled = _appSettingsModel.noMobileDataEnabled;
     if (_lastNoMobileDataEnabled == noMobileDataEnabled) {
       return;
@@ -1026,14 +1038,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         remaining > Duration.zero &&
         remaining <= const Duration(days: 3);
 
-    final daysRemaining = remaining == null
-        ? 0
-        : (remaining.inHours <= 24 ? 1 : (remaining.inHours / 24).ceil());
-
     unawaited(
       _dataExpiryNotificationService.updateExpiryReminder(
-        active: isActive,
-        daysRemaining: daysRemaining,
+        ablauf: isActive ? DateTime.now().add(remaining) : null,
+        pushErlaubt: _appSettingsModel.notificationsEnabled,
+        sprache: _appSettingsModel.languageCode,
       ),
     );
   }

@@ -81,11 +81,11 @@ class SitzungsErinnerungService {
     }
 
     await _mitteilungen.initialisieren();
-    await _mitteilungen.abbrechen(id);
-    _abgeglichen = true;
-    _geplantFuer = zeitpunkt;
-    _sprache = sprache;
     if (zeitpunkt == null) {
+      await _mitteilungen.abbrechen(id);
+      _abgeglichen = true;
+      _geplantFuer = null;
+      _sprache = sprache;
       return;
     }
 
@@ -97,6 +97,11 @@ class SitzungsErinnerungService {
       zeitpunkt: zeitpunkt,
       kanalName: t.t('auth_session_reminder_kanal'),
     );
+    // Erst nach gelungener Planung merken; bei Fehler bleibt die bisherige
+    // Erinnerung bestehen und der naechste Aufruf versucht es erneut.
+    _abgeglichen = true;
+    _geplantFuer = zeitpunkt;
+    _sprache = sprache;
     await _logger.logInfo(
       'notifications',
       'Anmelde-Erinnerung geplant (zeitpunkt=${zeitpunkt.toIso8601String()})',

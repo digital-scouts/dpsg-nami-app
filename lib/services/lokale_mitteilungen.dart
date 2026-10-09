@@ -12,6 +12,11 @@ abstract class LokaleMitteilungen {
 
   Future<void> abbrechen(int id);
 
+  /// Entfernt geplante und bereits angezeigte Mitteilungen der IDs
+  /// [erste] bis [letzte], damit nach Abmeldung nichts im Mitteilungscenter
+  /// bleibt.
+  Future<void> abbrechenBereich(int erste, int letzte);
+
   Future<void> planen({
     required int id,
     required String titel,
@@ -21,15 +26,32 @@ abstract class LokaleMitteilungen {
   });
 }
 
+extension LokaleMitteilungenBereich on LokaleMitteilungen {
+  /// Bricht geplante Mitteilungen der IDs ab [erste] bis [letzte] ab. Beim
+  /// Neuplanen bleiben so die ersten IDs bestehen, bis ihre Ersetzung
+  /// gelungen ist.
+  Future<void> abbrechenAb(int erste, int letzte) async {
+    for (final id in await geplanteIds()) {
+      if (id >= erste && id <= letzte) {
+        await abbrechen(id);
+      }
+    }
+  }
+}
+
 class PluginLokaleMitteilungen implements LokaleMitteilungen {
   /// [kanalId] ist die Android-Kanal-ID; der sichtbare Name kommt beim
   /// Planen lokalisiert mit.
   PluginLokaleMitteilungen({
     required this.kanalId,
+    this.importance = Importance.defaultImportance,
+    this.priority = Priority.defaultPriority,
     FlutterLocalNotificationsPlugin? plugin,
   }) : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   final String kanalId;
+  final Importance importance;
+  final Priority priority;
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialisiert = false;
 
@@ -45,7 +67,7 @@ class PluginLokaleMitteilungen implements LokaleMitteilungen {
     );
     await _plugin.initialize(
       const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        android: AndroidInitializationSettings('@drawable/ic_notification'),
         iOS: darwin,
         macOS: darwin,
       ),
@@ -64,6 +86,27 @@ class PluginLokaleMitteilungen implements LokaleMitteilungen {
   Future<void> abbrechen(int id) => _plugin.cancel(id);
 
   @override
+  Future<void> abbrechenBereich(int erste, int letzte) async {
+    final ids = <int>{...await geplanteIds()};
+    try {
+      for (final aktiv in await _plugin.getActiveNotifications()) {
+        final id = aktiv.id;
+        if (id != null) {
+          ids.add(id);
+        }
+      }
+    } on Object {
+      // Nicht jede Plattform kennt angezeigte Mitteilungen; dann bleibt es
+      // bei den geplanten.
+    }
+    for (final id in ids) {
+      if (id >= erste && id <= letzte) {
+        await _plugin.cancel(id);
+      }
+    }
+  }
+
+  @override
   Future<void> planen({
     required int id,
     required String titel,
@@ -75,8 +118,8 @@ class PluginLokaleMitteilungen implements LokaleMitteilungen {
       android: AndroidNotificationDetails(
         kanalId,
         kanalName,
-        importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
+        importance: importance,
+        priority: priority,
       ),
       iOS: const DarwinNotificationDetails(),
       macOS: const DarwinNotificationDetails(),

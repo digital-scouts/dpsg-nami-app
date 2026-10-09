@@ -101,6 +101,10 @@ class QualifikationsErinnerungService {
       pushErlaubt,
       sprache,
       DateTime(jetzt.year, jetzt.month, jetzt.day, jetzt.hour),
+      // Nach Zeitzonen- oder Sommerzeitwechsel neu planen, damit "9 Uhr"
+      // wieder zur Ortszeit passt.
+      jetzt.timeZoneName,
+      jetzt.timeZoneOffset,
     );
     if (stand == _letzterStand) {
       return;
@@ -108,12 +112,15 @@ class QualifikationsErinnerungService {
     _letzterStand = stand;
 
     await _mitteilungen.initialisieren();
-    await _abbrechen();
+    final bereitsGeplant = await _ladeGeplant();
     if (!pushErlaubt) {
+      await _mitteilungen.abbrechenBereich(idErste, idLetzte);
+      // Noch nicht Zugestelltes gilt nicht als gemeldet, damit es nach dem
+      // Wiedereinschalten kommt (spaetestens am naechsten Morgen).
+      await _speichereGeplant(_vergangene(bereitsGeplant, jetzt));
       return;
     }
 
-    final bereitsGeplant = await _ladeGeplant();
     final plan = _planer(
       readModel: readModel,
       einstellungen: einstellungen,
@@ -123,17 +130,19 @@ class QualifikationsErinnerungService {
       bereitsGeplant: bereitsGeplant,
     );
     // Vergangenes bleibt gemerkt, damit es nicht erneut kommt.
-    final gemerkt = <String, DateTime>{
-      for (final eintrag in bereitsGeplant.entries)
-        if (!eintrag.value.isAfter(jetzt) &&
-            eintrag.value.isAfter(jetzt.subtract(const Duration(days: 400))))
-          eintrag.key: eintrag.value,
-    };
-    if (plan.isNotEmpty) {
-      final t = AppLocalizations(Locale(sprache));
-      for (var i = 0; i < plan.length && idErste + i <= idLetzte; i++) {
-        final erinnerung = plan[i];
-        final (titel, text) = _texte(t, erinnerung);
+    final gemerkt = _vergangene(bereitsGeplant, jetzt);
+    final t = AppLocalizations(Locale(sprache));
+    final anzahl = plan.length < idLetzte - idErste + 1
+        ? plan.length
+        : idLetzte - idErste + 1;
+    Object? fehler;
+    StackTrace? fehlerStack;
+    // Erst ersetzen, dann Ueberzaehliges entfernen: schlaegt das Planen fehl,
+    // bleiben die bisherigen Erinnerungen erhalten.
+    for (var i = 0; i < anzahl; i++) {
+      final erinnerung = plan[i];
+      final (titel, text) = _texte(t, erinnerung);
+      try {
         await _mitteilungen.planen(
           id: idErste + i,
           titel: titel,
@@ -141,17 +150,36 @@ class QualifikationsErinnerungService {
           zeitpunkt: erinnerung.zeitpunkt,
           kanalName: t.t('quali_push_kanal'),
         );
-        for (final schluessel in erinnerung.meldeSchluessel) {
-          gemerkt[schluessel] = erinnerung.zeitpunkt;
-        }
+      } on Object catch (e, stack) {
+        fehler ??= e;
+        fehlerStack ??= stack;
+        continue;
+      }
+      for (final schluessel in erinnerung.meldeSchluessel) {
+        gemerkt[schluessel] = erinnerung.zeitpunkt;
       }
     }
+    await _mitteilungen.abbrechenAb(idErste + anzahl, idLetzte);
     await _speichereGeplant(gemerkt);
+    if (fehler != null) {
+      // Der Aufrufer vergisst den Stand und plant beim naechsten Anlass neu.
+      Error.throwWithStackTrace(fehler, fehlerStack!);
+    }
     await _logger.logInfo(
       'notifications',
       'Qualifikations-Erinnerungen geplant (anzahl=${plan.length})',
     );
   }
+
+  Map<String, DateTime> _vergangene(
+    Map<String, DateTime> geplant,
+    DateTime jetzt,
+  ) => <String, DateTime>{
+    for (final eintrag in geplant.entries)
+      if (!eintrag.value.isAfter(jetzt) &&
+          eintrag.value.isAfter(jetzt.subtract(const Duration(days: 400))))
+        eintrag.key: eintrag.value,
+  };
 
   (String, String) _texte(
     AppLocalizations t,
@@ -183,17 +211,9 @@ class QualifikationsErinnerungService {
   Future<void> _raeumen() async {
     _letzterStand = null;
     await _mitteilungen.initialisieren();
-    await _abbrechen();
+    await _mitteilungen.abbrechenBereich(idErste, idLetzte);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefsSchluessel);
-  }
-
-  Future<void> _abbrechen() async {
-    for (final id in await _mitteilungen.geplanteIds()) {
-      if (id >= idErste && id <= idLetzte) {
-        await _mitteilungen.abbrechen(id);
-      }
-    }
   }
 
   Future<Map<String, DateTime>> _ladeGeplant() async {

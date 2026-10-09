@@ -122,6 +122,10 @@ Befunde zur API:
 - **Unbekanntes Geburtsdatum:** Altersregeln treffen nicht. Die Person fällt aus Kreisen mit Altersgrenze heraus und erscheint als Hinweis in der Vorschau.
 - **Gleiche Art in zwei Instanzen:** Die Zuordnung der Vorgaben läuft über den Namen. Nach dem ersten Treffer gilt die Art-ID.
 - **Viele Abläufe:** iOS erlaubt höchstens 64 geplante Mitteilungen. Fremde Abläufe werden pro Tag gebündelt, die Anzahl ist begrenzt.
-- **Logout:** Geplante Mitteilungen mit Namen werden gelöscht. Die Einstellungen bleiben.
+- **Logout:** Geplante und bereits angezeigte Mitteilungen mit Namen werden gelöscht. Die Einstellungen bleiben.
+- **Planungsfehler:** Schlägt das Planen fehl, bleiben die bisherigen Erinnerungen bestehen. Beim nächsten Anlass (Änderung, Rückkehr in die App) wird erneut geplant.
+- **Mitteilungen aus und wieder an:** Beim Ausschalten werden Erinnerungen entfernt. Noch nicht zugestellte gelten nicht als gemeldet und kommen nach dem Einschalten wieder, verpasste spätestens am nächsten Morgen.
+- **Zeitzone:** Wechselt die Zeitzone oder die Sommerzeit, plant die App beim nächsten Abgleich neu, damit die Erinnerungen wieder um 9 Uhr Ortszeit kommen.
+- **Zustellzeit:** Android stellt ungenau zu (`inexactAllowWhileIdle`), die Uhrzeit kann sich im Ruhezustand verschieben. Exakte Alarme sind bewusst nicht vorgesehen, sie bräuchten eine Berechtigung ohne Nutzen für Tageserinnerungen.
 - **Lange nicht geöffnet:** Erinnerungen beruhen auf dem letzten Sync, eine Hintergrundaktualisierung gibt es nicht.
 - **Demo-Modus:** Synthetische Arten mit festen IDs. Die Einstellungen liegen nur im Speicher und gehen beim Neustart verloren.

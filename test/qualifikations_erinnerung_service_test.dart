@@ -20,6 +20,15 @@ class _FakeMitteilungen implements LokaleMitteilungen {
   Future<List<int>> geplanteIds() async => geplant.keys.toList();
 
   @override
+  Future<void> abbrechenBereich(int erste, int letzte) async {
+    for (final id in geplant.keys.toList()) {
+      if (id >= erste && id <= letzte) {
+        await abbrechen(id);
+      }
+    }
+  }
+
+  @override
   Future<void> abbrechen(int id) async {
     abgebrochen.add(id);
     geplant.remove(id);
@@ -54,8 +63,10 @@ void main() {
 
   late _FakeMitteilungen mitteilungen;
   late QualifikationsErinnerungService service;
+  var uhr = DateTime(2026, 10, 2, 8);
 
   setUp(() {
+    uhr = DateTime(2026, 10, 2, 8);
     SharedPreferences.setMockInitialValues({});
     mitteilungen = _FakeMitteilungen()
       // Fremde Erinnerung (Datenablauf) ausserhalb des eigenen Bereichs.
@@ -63,7 +74,7 @@ void main() {
     service = QualifikationsErinnerungService(
       logger: FakeLoggerService(),
       mitteilungen: mitteilungen,
-      jetzt: () => DateTime(2026, 10, 2, 8),
+      jetzt: () => uhr,
     );
   });
 
@@ -152,5 +163,52 @@ void main() {
 
     final texte = mitteilungen.geplant.values.map((m) => m.titel);
     expect(texte, isNot(contains('Erweitertes Führungszeugnis läuft bald ab')));
+  });
+
+  test('Planungsfehler behalten die bisherigen Erinnerungen', () async {
+    await aktualisiere();
+    final vorher = Map.of(mitteilungen.geplant);
+
+    mitteilungen.ohneErlaubnis = true;
+    await service.aktualisiere(
+      readModel: readModel,
+      einstellungen: const QualifikationsEinstellungen(),
+      eigenePersonId: 1,
+      supporter: true,
+      pushErlaubt: true,
+      sprache: 'en',
+    );
+
+    expect(mitteilungen.geplant, vorher);
+
+    mitteilungen.ohneErlaubnis = false;
+    await service.aktualisiere(
+      readModel: readModel,
+      einstellungen: const QualifikationsEinstellungen(),
+      eigenePersonId: 1,
+      supporter: true,
+      pushErlaubt: true,
+      sprache: 'en',
+    );
+    expect(
+      mitteilungen.geplant[QualifikationsErinnerungService.idErste]!.titel,
+      isNot(vorher[QualifikationsErinnerungService.idErste]!.titel),
+    );
+  });
+
+  test('Mitteilungen aus und wieder an: Verpasstes kommt am Morgen', () async {
+    await aktualisiere();
+    await aktualisiere(pushErlaubt: false);
+    expect(mitteilungen.geplant.keys, <int>[94031]);
+
+    // Der Termin (02.10., 9 Uhr) verstreicht bei ausgeschalteten
+    // Mitteilungen.
+    uhr = DateTime(2026, 10, 3, 8);
+    await aktualisiere();
+
+    final eigene =
+        mitteilungen.geplant[QualifikationsErinnerungService.idErste]!;
+    expect(eigene.titel, 'Erweitertes Führungszeugnis läuft bald ab');
+    expect(eigene.zeitpunkt, DateTime(2026, 10, 3, 9));
   });
 }

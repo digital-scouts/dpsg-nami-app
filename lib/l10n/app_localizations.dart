@@ -848,6 +848,12 @@ class AppLocalizations {
       'auth_login_interrupted_title': 'Anmeldung unterbrochen',
       'auth_login_interrupted_body':
           'Das Gerät hat die App während der Anmeldung im Browser beendet. Bitte versuche es noch einmal.',
+      'ablauf_push_kanal': 'Datenablauf',
+      'ablauf_push_titel': 'Lokale Daten laufen bald ab',
+      'ablauf_push_text_eins':
+          'Melde dich innerhalb von 1 Tag erneut an, damit lokale Daten verfügbar bleiben.',
+      'ablauf_push_text_mehr':
+          'Melde dich innerhalb von {n} Tagen erneut an, damit lokale Daten verfügbar bleiben.',
       'auth_session_reminder_kanal': 'Anmeldung',
       'auth_session_reminder_title': 'Angemeldet bleiben',
       'auth_session_reminder_body':
@@ -2478,6 +2484,12 @@ class AppLocalizations {
       'auth_login_interrupted_title': 'Sign-in interrupted',
       'auth_login_interrupted_body':
           'Your device closed the app while you were signing in in the browser. Please try again.',
+      'ablauf_push_kanal': 'Data expiry',
+      'ablauf_push_titel': 'Local data expires soon',
+      'ablauf_push_text_eins':
+          'Sign in again within 1 day to keep local data available.',
+      'ablauf_push_text_mehr':
+          'Sign in again within {n} days to keep local data available.',
       'auth_session_reminder_kanal': 'Sign-in',
       'auth_session_reminder_title': 'Stay signed in',
       'auth_session_reminder_body':

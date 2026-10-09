@@ -21,7 +21,7 @@ Ein einheitlicher Meldungsfluss für die gesamte App:
 - Externe Meldungen sind lokal **acknowledgebar**.
 - Interne Meldungen sind **zustandsgetrieben** (kein manuelles Ack, solange der Zustand aktiv ist).
 - „Bald gelöscht“-Hinweis erscheint ab **3 Tagen Restlaufzeit**.
-- Für „bald gelöscht“ wird zusätzlich eine **tägliche lokale Push-Notification** gesendet, solange der Zustand aktiv ist.
+- Für „bald gelöscht“ wird zusätzlich je Tag um 9 Uhr eine **lokale Push-Notification** geplant, solange der Zustand aktiv ist. Jede enthält die dann noch verbleibende Tageszahl, DE und EN. Der Schalter für Mitteilungen gilt auch hier.
 
 ## Begriffe
 
@@ -80,6 +80,7 @@ Regeln:
 
 - Quelle bleibt eine JSON-Datei über URL aus `.env`: `docs/notifications.json`, ausgeliefert über GitHub Pages (`https://digital-scouts.github.io/dpsg-nami-app/notifications.json`) wie `version.json`. Neue Mitteilungen entstehen durch einen Commit auf `master`.
 - Die App akzeptiert nur https-URLs (http nur für Loopback in Tests) und bricht nach 5 s ab.
+- Der Cache gibt nach jedem erfolgreichen Abruf zurückgezogene Mitteilungen samt Bestätigung wieder frei.
 - Cache-first mit gedrosseltem Remote-Check. Das Intervall gilt auch nach einem fehlgeschlagenen Abruf.
 
 ### Externe Felder
@@ -130,13 +131,12 @@ Hinweise:
 Fachregel:
 
 - Wenn Restlaufzeit bis Relogin (`remainingUntilRelogin`) `<= 3 Tage` ist, wird `internal.data.expiry_soon` aktiv.
-- Solange dieser Zustand aktiv ist, wird täglich eine lokale Push-Notification ausgelöst.
+- Solange dieser Zustand aktiv ist, wird je Tag um 9 Uhr eine lokale Push-Notification mit der richtigen Tageszahl ausgelöst. Bei ausgeschalteten Mitteilungen entfällt sie.
 - Endet der Zustand (neuer Login/Sync), werden diese täglichen Erinnerungen beendet.
 
 Technische Notiz:
 
-- `flutter_local_notifications` ist als Paket vorhanden, aber bisher nicht angebunden.
-- Die tägliche Push-Erinnerung ist daher als nächster technischer Ausbau vorgesehen.
+- `DataExpiryNotificationService` plant die Erinnerungen über `flutter_local_notifications` (IDs 94031 bis 94039), neu bei jeder Änderung von Anmeldung, Restlaufzeit, Mitteilungsschalter oder Sprache.
 
 ## Architekturhinweise
 

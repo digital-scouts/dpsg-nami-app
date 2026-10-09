@@ -30,6 +30,13 @@ class _FakeIos extends IOSFlutterLocalNotificationsPlugin {
   Future<void> cancel(int id, {String? tag}) async {}
 
   @override
+  Future<List<PendingNotificationRequest>>
+  pendingNotificationRequests() async => const [];
+
+  @override
+  Future<List<ActiveNotification>> getActiveNotifications() async => const [];
+
+  @override
   Future<bool?> requestPermissions({
     bool sound = false,
     bool alert = false,
@@ -43,7 +50,7 @@ class _FakeIos extends IOSFlutterLocalNotificationsPlugin {
   }
 }
 
-// Bei active: false schreibt der Dienst nichts ins Log.
+// Ohne Ablauf schreibt der Dienst nichts ins Log.
 LoggerService _logger() => LoggerService(
   settingsRepository: SharedPrefsAppSettingsRepository(),
   navigatorKey: GlobalKey<NavigatorState>(),
@@ -65,8 +72,16 @@ void main() {
     final service = DataExpiryNotificationService(logger: _logger());
 
     await Future.wait([
-      service.updateExpiryReminder(active: false, daysRemaining: 0),
-      service.updateExpiryReminder(active: false, daysRemaining: 0),
+      service.updateExpiryReminder(
+        ablauf: null,
+        pushErlaubt: true,
+        sprache: 'de',
+      ),
+      service.updateExpiryReminder(
+        ablauf: null,
+        pushErlaubt: true,
+        sprache: 'de',
+      ),
     ]);
 
     expect(ios.anfragen, 0);

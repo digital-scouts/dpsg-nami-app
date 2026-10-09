@@ -27,6 +27,15 @@ class _FakeMitteilungen implements LokaleMitteilungen {
   Future<List<int>> geplanteIds() async => geplant.keys.toList();
 
   @override
+  Future<void> abbrechenBereich(int erste, int letzte) async {
+    for (final id in geplant.keys.toList()) {
+      if (id >= erste && id <= letzte) {
+        await abbrechen(id);
+      }
+    }
+  }
+
+  @override
   Future<void> abbrechen(int id) async {
     abgebrochen.add(id);
     geplant.remove(id);
@@ -396,5 +405,38 @@ void main() {
 
     expect(mitteilungen.abgebrochen, isEmpty);
     expect(mitteilungen.planungen, planungen);
+  });
+
+  test('Planungsfehler behalten die bisherigen Erinnerungen', () async {
+    final readModel = qualiReadModel(
+      mitglieder: [
+        _mitglied('1', [
+          mitgliedRolle('Pfadfinder'),
+        ], geburtsdatum: DateTime(2014, 10, 9)),
+      ],
+    );
+    await aktualisiere(readModel);
+    final vorher = Map.of(eigene());
+
+    mitteilungen.ohneErlaubnis = true;
+    await aktualisiere(readModel, sprache: 'en');
+
+    expect(eigene(), vorher);
+  });
+
+  test('Abmelden raeumt auch angezeigte Mitteilungen', () async {
+    final readModel = qualiReadModel(
+      mitglieder: [
+        _mitglied('1', [
+          mitgliedRolle('Pfadfinder'),
+        ], geburtsdatum: DateTime(2014, 10, 9)),
+      ],
+    );
+    await aktualisiere(readModel);
+
+    await service.raeumen();
+
+    expect(eigene(), isEmpty);
+    expect(mitteilungen.geplant.containsKey(94031), isTrue);
   });
 }
