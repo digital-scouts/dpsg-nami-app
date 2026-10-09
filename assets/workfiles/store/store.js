@@ -3,6 +3,8 @@
 window.StoreRender = (() => {
   // Verhindert, dass der Browser nach neuen Rohscreens alte Bilder zeigt.
   const bust = `?t=${Date.now()}`;
+  // Sprache per ?lang=de|en; Rohscreens liegen in raw/<lang>/<gerät>/.
+  const lang = new URLSearchParams(location.search).get('lang') || 'de';
   // iPhone 6,3" (17 Pro), iPhone Duo aufgeklappt quer, iPad 13".
   const RAW_RATIO = { iphone: 2622 / 1206, duo: 2007 / 2853, ipad: 2752 / 2064 };
 
@@ -11,8 +13,21 @@ window.StoreRender = (() => {
     iphone: { screenW: 822, bezel: 20, radius: 137, bottom: 73, pt: 402 },
     duo: { screenW: 1800, bezel: 26, radius: 90, bottom: 344, pt: 951 },
     ipad: { screenW: 1440, bezel: 32, radius: 66, bottom: 80, pt: 1032 },
-    play: { cardW: 660, radius: 44, bottom: 70, cropTop: 62 / 874 },
+    play: { cardW: 660, radius: 44, bottom: 70, cropTop: 62 / 874, raw: 'iphone' },
+    playtablet: { cardW: 1300, radius: 60, bottom: 110, cropTop: 24 / 1376, raw: 'ipad' },
   };
+
+  // Sprachabhängiger Wert aus content.js: { de, en } oder ein fester Wert.
+  function text(value) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && 'de' in value) {
+      return value[lang] ?? value.de;
+    }
+    return value;
+  }
+
+  function raw(device, scene) {
+    return `raw/${lang}/${device}/${scene}.png${bust}`;
+  }
 
   const signal = (h) => `<svg height="${h}" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>`;
   const wifi = (h) => `<svg height="${h}" viewBox="0 0 16 12"><path d="M8 11.6 5.6 9.2a3.4 3.4 0 0 1 4.8 0L8 11.6Zm-4.2-4.2L2.1 5.7a8.4 8.4 0 0 1 11.8 0l-1.7 1.7a6 6 0 0 0-8.4 0ZM0.4 4 -1 2.6a11.4 11.4 0 0 1 18 0L15.6 4A9.4 9.4 0 0 0 .4 4Z" transform="translate(0 .2)"/></svg>`;
@@ -26,9 +41,11 @@ window.StoreRender = (() => {
           <span class="icons" style="gap:${6 * s}px">${signal(12 * s)}${wifi(12 * s)}${battery(12.5 * s)}</span>
         </div>`;
     }
+    const date = lang === 'en' ? 'Tue Sep 29' : 'Di. 29. Sep.';
+    const percent = lang === 'en' ? '100%' : '100 %';
     return `<div class="statusbar" style="height:${24 * s}px;padding:0 ${22 * s}px;font-size:${12 * s}px">
-        <span>9:41&nbsp;&nbsp;Di. 29. Sep.</span>
-        <span class="icons" style="gap:${6 * s}px">${wifi(10 * s)}<span style="font-size:${12 * s}px">100 %</span>${battery(11 * s)}</span>
+        <span>9:41&nbsp;&nbsp;${date}</span>
+        <span class="icons" style="gap:${6 * s}px">${wifi(10 * s)}<span style="font-size:${12 * s}px">${percent}</span>${battery(11 * s)}</span>
       </div>`;
   }
 
@@ -40,19 +57,21 @@ window.StoreRender = (() => {
 
   function screenLayer(target, scene, screenW, dark, slide) {
     return `<div class="screen-layer ${dark ? 'dark' : ''}" style="${dark ? splitStyle(slide) : ''}">
-        <img class="raw" src="raw/${target}/${scene}.png${bust}" alt="">
+        <img class="raw" src="${raw(target, scene)}" alt="">
         ${statusbar(target, screenW)}
       </div>`;
   }
 
   // slide.sceneDark: Bildschirm diagonal geteilt, rechts die Dunkel-Variante.
+  // Play zeigt keine Apple-Geräte: Karte ohne Statusleiste, Telefon aus den
+  // iPhone-, Tablet aus den iPad-Rohscreens.
   function device(target, slide) {
-    if (target === 'play') {
-      const l = LAYOUT.play;
-      const imgH = l.cardW * RAW_RATIO.iphone;
+    if (target === 'play' || target === 'playtablet') {
+      const l = LAYOUT[target];
+      const imgH = l.cardW * RAW_RATIO[l.raw];
       const crop = imgH * l.cropTop;
       const img = (scene, dark) => `<div class="screen-layer ${dark ? 'dark' : ''}" style="${dark ? splitStyle(slide) : ''}">
-          <img class="raw" src="raw/iphone/${scene}.png${bust}" style="margin-top:${-crop}px" alt=""></div>`;
+          <img class="raw" src="${raw(l.raw, scene)}" style="margin-top:${-crop}px" alt=""></div>`;
       return `<div class="device" style="bottom:${l.bottom}px">
           <div class="play-card" style="width:${l.cardW}px;height:${imgH - crop}px;border-radius:${l.radius}px">
             ${img(slide.scene, false)}${slide.sceneDark ? img(slide.sceneDark, true) : ''}
@@ -88,5 +107,5 @@ window.StoreRender = (() => {
     }
   }
 
-  return { device, watermark, defaultStyle, bust };
+  return { device, watermark, defaultStyle, text, raw, lang };
 })();

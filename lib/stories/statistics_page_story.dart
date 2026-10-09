@@ -73,6 +73,7 @@ class StatisticsPageStoryScene extends StatelessWidget {
     this.textScale = 1,
     this.datensatz = StatistikBeispielDatensatz.silberfels,
     this.thema = StatistikThema.ueberblick,
+    this.locale = const Locale('de'),
   });
 
   final AppearanceBackgroundId? background;
@@ -82,6 +83,7 @@ class StatisticsPageStoryScene extends StatelessWidget {
   final double textScale;
   final StatistikBeispielDatensatz datensatz;
   final StatistikThema thema;
+  final Locale locale;
 
   @override
   Widget build(BuildContext context) {
@@ -95,13 +97,14 @@ class StatisticsPageStoryScene extends StatelessWidget {
     return StoryTabPage(
       key: ValueKey(
         '$background-$dark-$bundesstatistik-$textScale-'
-        '$datensatz-$thema',
+        '$datensatz-$thema-$locale',
       ),
       tabIndex: 1,
       background: background,
       dark: dark,
       simulateTopInset: simulateTopInset,
       textScale: textScale,
+      locale: locale,
       providers: [
         ChangeNotifierProvider<BundesstatistikModel>(
           create: (_) => storyBundesstatistikModel(

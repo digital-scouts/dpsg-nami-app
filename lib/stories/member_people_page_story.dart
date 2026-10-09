@@ -74,6 +74,7 @@ class MemberPeopleStoryShell extends StatefulWidget {
     this.bottomNavigationBar,
     this.appearance,
     this.themeMode = ThemeMode.system,
+    this.locale = const Locale('de'),
   });
 
   final List<Mitglied> cached;
@@ -81,6 +82,7 @@ class MemberPeopleStoryShell extends StatefulWidget {
   final Widget? bottomNavigationBar;
   final AppearanceSettings? appearance;
   final ThemeMode themeMode;
+  final Locale locale;
 
   @override
   State<MemberPeopleStoryShell> createState() => _MemberPeopleStoryShellState();
@@ -179,7 +181,7 @@ class _MemberPeopleStoryShellState extends State<MemberPeopleStoryShell> {
               AppLocalizations.delegate,
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
-            locale: const Locale('de'),
+            locale: widget.locale,
             home: Scaffold(
               // Wie in NavigationHomeScreen: die Shell liefert die SafeArea.
               body: SupporterBackdrop(

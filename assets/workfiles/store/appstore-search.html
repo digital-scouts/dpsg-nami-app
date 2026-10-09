@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
   App-Store-Suchergebnis 3840 × 2560 (3:2). Zeigt auf einen Blick, was die App macht.
-  Parameter: ?style=navy|hell|stufen
+  Parameter: ?style=navy|hell|stufen&lang=de|en
 -->
 <html lang="de">
 <head>
@@ -28,6 +28,7 @@
 <script>
   const style = new URLSearchParams(location.search).get('style') || StoreRender.defaultStyle();
   const s = STORE.appStore.search;
+  const copy = StoreRender.text(s);
   const canvas = document.getElementById('canvas');
   canvas.classList.add('s-' + style);
   canvas.style.setProperty('--accent', '#5A9AD8');
@@ -35,8 +36,8 @@
     ${StoreRender.watermark(2600, -700, -500)}
     <div class="copy">
       <div class="accent-bar"></div>
-      <h1>${s.headline}</h1>
-      <p class="subline">${s.subline}</p>
+      <h1>${copy.headline}</h1>
+      <p class="subline">${copy.subline}</p>
     </div>
     <div class="phones">
       ${s.scenes.map((scene) => StoreRender.device('iphone', { scene })).join('')}
