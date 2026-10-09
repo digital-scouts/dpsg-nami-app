@@ -1,0 +1,94 @@
+# Store-Eintraege fuer App Store und Google Play: Texte und Screenshots.
+# Metadaten und Bilder erzeugt assets/workfiles/store/export_fastlane.mjs
+# nach fastlane/build/. Zugangsdaten stehen nur lokal in fastlane/.env
+# (Vorlage .env.example). Ablauf: assets/workfiles/store/README.md.
+
+require "deliver"
+
+opt_out_usage
+default_platform(:ios)
+
+BUILD = File.expand_path("build", __dir__)
+
+def pubspec_version
+  File.read(File.expand_path("../pubspec.yaml", __dir__))[/^version:\s*([0-9.]+)/, 1]
+end
+
+def build_vorhanden!
+  return if Dir.exist?(BUILD)
+
+  UI.user_error!("fastlane/build fehlt – zuerst node assets/workfiles/store/export_fastlane.mjs ausfuehren")
+end
+
+def env!(key)
+  value = ENV[key].to_s
+  UI.user_error!("#{key} fehlt in fastlane/.env (Vorlage fastlane/.env.example)") if value.empty?
+  UI.user_error!("#{key}: Datei #{value} nicht gefunden") unless File.exist?(value)
+  value
+end
+
+platform :ios do
+  desc "Prueft Screenshots lokal und ob die App-Version in App Store Connect bearbeitbar ist; laedt nichts hoch"
+  lane :store_check do
+    build_vorhanden!
+    # Wirft bei unbekannten Formaten oder falschen Groessen.
+    screenshots = Deliver::Loader.load_app_screenshots(File.join(BUILD, "screenshots/ios"), false)
+    screenshots.group_by(&:language).each do |language, shots|
+      UI.message("#{language}: #{shots.group_by(&:display_type).map { |type, list| "#{list.size}x #{type}" }.join(', ')}")
+    end
+
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from_json_file(env!("APP_STORE_CONNECT_API_KEY_PATH"))
+    app = Spaceship::ConnectAPI::App.find(CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier))
+    UI.user_error!("App nicht in App Store Connect gefunden") unless app
+    version = app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+    if version.nil?
+      UI.important("Keine bearbeitbare Version. Vor dem Upload Version #{pubspec_version} in App Store Connect anlegen.")
+    elsif version.version_string != pubspec_version
+      UI.important("Bearbeitbare Version ist #{version.version_string}, pubspec.yaml hat #{pubspec_version}.")
+    else
+      UI.success("Version #{pubspec_version} ist bearbeitbar (#{version.app_store_state}).")
+    end
+  end
+
+  desc "Laedt Texte und Screenshots fuer die Version aus pubspec.yaml hoch, ohne Build und ohne Einreichung"
+  lane :store_upload do
+    build_vorhanden!
+    deliver(
+      api_key_path: env!("APP_STORE_CONNECT_API_KEY_PATH"),
+      app_version: pubspec_version,
+      metadata_path: File.join(BUILD, "metadata/ios"),
+      screenshots_path: File.join(BUILD, "screenshots/ios"),
+      skip_binary_upload: true,
+      skip_app_version_update: true,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      run_precheck_before_submit: false,
+      force: true
+    )
+  end
+end
+
+platform :android do
+  desc "Laesst Google Play die Aenderungen pruefen, ohne sie zu veroeffentlichen"
+  lane :store_check do
+    build_vorhanden!
+    upload_to_play_store(play_optionen.merge(validate_only: true))
+  end
+
+  desc "Laedt Texte und Bilder hoch; Versionshinweise nur mit changelogs:true (braucht ein Release im Track)"
+  lane :store_upload do |options|
+    build_vorhanden!
+    upload_to_play_store(play_optionen(changelogs: options[:changelogs]))
+  end
+
+  def play_optionen(changelogs: false)
+    {
+      json_key: env!("SUPPLY_JSON_KEY"),
+      metadata_path: File.join(BUILD, "metadata/android"),
+      track: "production",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_changelogs: !changelogs
+    }
+  end
+end

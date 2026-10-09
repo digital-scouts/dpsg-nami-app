@@ -2,7 +2,8 @@
 // Aufloesung. Ausfuehren ueber tool/store_screenshots/run_store_screenshots.sh.
 // STORE_SCREENSHOT_SET waehlt die Szenen: `store` (Standard), `docs`
 // (Store- und Handbuch-Szenen fuer GitHub Pages) oder `review` (Kaufpruefung
-// in App Store Connect). Im
+// in App Store Connect). STORE_SCREENSHOT_LOCALE setzt die Sprache der
+// Store-Szenen (`de` oder `en`). Im
 // iOS-Simulator schreibt die App direkt in STORE_SCREENSHOT_DIR auf dem Host,
 // weil `flutter test` die App danach wieder deinstalliert.
 import 'dart:io';
@@ -28,7 +29,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Store-Szenen als PNG exportieren', (tester) async {
-    await initializeDateFormatting('de');
+    // Store-Szenen gibt es auf Deutsch und Englisch (STORE_SCREENSHOT_LOCALE).
+    await initializeDateFormatting();
     final outDir = _outDirDefine.isNotEmpty
         ? Directory(_outDirDefine)
         : Directory(

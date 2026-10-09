@@ -182,6 +182,7 @@ class StufenwechselPageStoryScene extends StatelessWidget {
     this.mitDatum = true,
     this.simulateTopInset = true,
     this.textScale = 1,
+    this.locale = const Locale('de'),
   });
 
   final AppearanceBackgroundId? background;
@@ -189,6 +190,7 @@ class StufenwechselPageStoryScene extends StatelessWidget {
   final bool mitDatum;
   final bool simulateTopInset;
   final double textScale;
+  final Locale locale;
 
   @override
   Widget build(BuildContext context) {
@@ -197,12 +199,13 @@ class StufenwechselPageStoryScene extends StatelessWidget {
         ? DateTime(today.year + 1, 9, 1)
         : DateTime(today.year, 9, 1);
     return StoryTabPage(
-      key: ValueKey('$background-$dark-$mitDatum-$textScale'),
+      key: ValueKey('$background-$dark-$mitDatum-$textScale-$locale'),
       tabIndex: 2,
       background: background,
       dark: dark,
       simulateTopInset: simulateTopInset,
       textScale: textScale,
+      locale: locale,
       child: SettingsStufenwechselPage(
         showAppBar: false,
         debugReadModel: StoreShowcaseData.readModel(today: today),

@@ -96,6 +96,7 @@ class StoryTabPage extends StatelessWidget {
     this.badge,
     this.textScale = 1,
     this.disableAnimations = false,
+    this.locale = const Locale('de'),
   });
 
   final int tabIndex;
@@ -115,6 +116,9 @@ class StoryTabPage extends StatelessWidget {
 
   /// Simuliert „Bewegung reduzieren“.
   final bool disableAnimations;
+
+  /// Sprache der Oberflaeche, z. B. fuer englische Store-Screenshots.
+  final Locale locale;
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +140,7 @@ class StoryTabPage extends StatelessWidget {
         theme: buildTheme(AppPaletteId.standard, Brightness.light),
         darkTheme: buildTheme(AppPaletteId.standard, Brightness.dark),
         themeMode: dark ? ThemeMode.dark : ThemeMode.light,
-        locale: const Locale('de'),
+        locale: locale,
         localizationsDelegates: [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
