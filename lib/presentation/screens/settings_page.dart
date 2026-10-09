@@ -53,6 +53,9 @@ class SettingsPage extends StatefulWidget {
   final Future<List<AppHubNotification>> Function()?
   unreadExternalNotificationsLoader;
 
+  /// `false`, solange die Seitenleiste den Schnellzugriff zeigt.
+  final bool zeigeSchnellzugriff;
+
   const SettingsPage({
     super.key,
     this.onStammSettings,
@@ -72,6 +75,7 @@ class SettingsPage extends StatefulWidget {
     this.appVersion,
     this.namiAiAccessLoader,
     this.unreadExternalNotificationsLoader,
+    this.zeigeSchnellzugriff = true,
   });
 
   @override
@@ -330,95 +334,97 @@ class _SettingsPageState extends State<SettingsPage> {
                                   ),
                                   const SizedBox(height: 12),
                                 ],
-                                const DpsgSectionHeader(
-                                  label: 'Schnellzugriff',
-                                ),
-                                Card(
-                                  margin: EdgeInsets.zero,
-                                  child: Column(
-                                    children: [
-                                      _SettingsNavTile(
-                                        icon: Icons.receipt_long_outlined,
-                                        iconBackgroundColor: const Color(
-                                          0xFF8E8E93,
+                                if (widget.zeigeSchnellzugriff) ...[
+                                  const DpsgSectionHeader(
+                                    label: 'Schnellzugriff',
+                                  ),
+                                  Card(
+                                    margin: EdgeInsets.zero,
+                                    child: Column(
+                                      children: [
+                                        _SettingsNavTile(
+                                          icon: Icons.receipt_long_outlined,
+                                          iconBackgroundColor: const Color(
+                                            0xFF8E8E93,
+                                          ),
+                                          title: t.t('settings_quick_invoices'),
+                                          subtitle: t.t(
+                                            'settings_quick_placeholder',
+                                          ),
                                         ),
-                                        title: t.t('settings_quick_invoices'),
-                                        subtitle: t.t(
-                                          'settings_quick_placeholder',
-                                        ),
-                                      ),
-                                      const _SettingsRowDivider(),
-                                      _SettingsNavTile(
-                                        icon: Icons.event_outlined,
-                                        iconBackgroundColor: const Color(
-                                          0xFF8E8E93,
-                                        ),
-                                        title: t.t('settings_quick_events'),
-                                        subtitle: t.t(
-                                          'settings_quick_placeholder',
-                                        ),
-                                      ),
-                                      const _SettingsRowDivider(),
-                                      _SettingsNavTile(
-                                        icon: Icons.alternate_email,
-                                        iconBackgroundColor: const Color(
-                                          0xFF8E8E93,
-                                        ),
-                                        title: t.t(
-                                          'settings_quick_subscriptions',
-                                        ),
-                                        subtitle: t.t(
-                                          'settings_quick_placeholder',
-                                        ),
-                                      ),
-                                      const _SettingsRowDivider(),
-                                      _SettingsNavTile(
-                                        icon: Icons.map,
-                                        iconBackgroundColor: const Color(
-                                          0xFF007AFF,
-                                        ),
-                                        title: t.t('settings_map'),
-                                        subtitle: 'Stammes- und DV-Karte',
-                                        onTap: widget.onMapSettings,
-                                      ),
-                                      const _SettingsRowDivider(),
-                                      _SettingsNavTile(
-                                        icon: Icons.verified_outlined,
-                                        iconBackgroundColor: const Color(
-                                          0xFF34C759,
-                                        ),
-                                        title: t.t('quali_titel'),
-                                        subtitle: _qualiUntertitel(
-                                          t,
-                                          readModel,
-                                          qualiEinstellungen,
-                                        ),
-                                        badge: qualiGesperrt
-                                            ? t.t('quali_supporter_schild')
-                                            : null,
-                                        onTap: widget.onQualifikationen,
-                                      ),
-                                      if (!namiAiDecision.isHidden) ...[
                                         const _SettingsRowDivider(),
                                         _SettingsNavTile(
-                                          icon: Icons.auto_awesome,
-                                          iconBackgroundColor:
-                                              namiAiDecision.isEnabled
-                                              ? const Color(0xFF34C759)
-                                              : const Color(0xFFFF9500),
-                                          title: 'NaMi AI',
-                                          subtitle: namiAiDecision.isEnabled
-                                              ? 'AI-Chat (Test)'
-                                              : 'Premium erforderlich',
-                                          onTap: namiAiDecision.isEnabled
-                                              ? widget.onNamiAi
-                                              : widget.onNamiAiPaywall,
+                                          icon: Icons.event_outlined,
+                                          iconBackgroundColor: const Color(
+                                            0xFF8E8E93,
+                                          ),
+                                          title: t.t('settings_quick_events'),
+                                          subtitle: t.t(
+                                            'settings_quick_placeholder',
+                                          ),
                                         ),
+                                        const _SettingsRowDivider(),
+                                        _SettingsNavTile(
+                                          icon: Icons.alternate_email,
+                                          iconBackgroundColor: const Color(
+                                            0xFF8E8E93,
+                                          ),
+                                          title: t.t(
+                                            'settings_quick_subscriptions',
+                                          ),
+                                          subtitle: t.t(
+                                            'settings_quick_placeholder',
+                                          ),
+                                        ),
+                                        const _SettingsRowDivider(),
+                                        _SettingsNavTile(
+                                          icon: Icons.map,
+                                          iconBackgroundColor: const Color(
+                                            0xFF007AFF,
+                                          ),
+                                          title: t.t('settings_map'),
+                                          subtitle: 'Stammes- und DV-Karte',
+                                          onTap: widget.onMapSettings,
+                                        ),
+                                        const _SettingsRowDivider(),
+                                        _SettingsNavTile(
+                                          icon: Icons.verified_outlined,
+                                          iconBackgroundColor: const Color(
+                                            0xFF34C759,
+                                          ),
+                                          title: t.t('quali_titel'),
+                                          subtitle: _qualiUntertitel(
+                                            t,
+                                            readModel,
+                                            qualiEinstellungen,
+                                          ),
+                                          badge: qualiGesperrt
+                                              ? t.t('quali_supporter_schild')
+                                              : null,
+                                          onTap: widget.onQualifikationen,
+                                        ),
+                                        if (!namiAiDecision.isHidden) ...[
+                                          const _SettingsRowDivider(),
+                                          _SettingsNavTile(
+                                            icon: Icons.auto_awesome,
+                                            iconBackgroundColor:
+                                                namiAiDecision.isEnabled
+                                                ? const Color(0xFF34C759)
+                                                : const Color(0xFFFF9500),
+                                            title: 'NaMi AI',
+                                            subtitle: namiAiDecision.isEnabled
+                                                ? 'AI-Chat (Test)'
+                                                : 'Premium erforderlich',
+                                            onTap: namiAiDecision.isEnabled
+                                                ? widget.onNamiAi
+                                                : widget.onNamiAiPaywall,
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
+                                  const SizedBox(height: 12),
+                                ],
                                 const DpsgSectionHeader(label: 'Einstellungen'),
                                 Card(
                                   margin: EdgeInsets.zero,

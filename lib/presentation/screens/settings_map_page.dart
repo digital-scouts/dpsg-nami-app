@@ -29,6 +29,7 @@ class SettingsMapPage extends StatefulWidget {
     this.externalUrlOpener,
     this.initialSelectedBoundaryId,
     this.initialSelectedStammMarkerId,
+    this.zeigeZurueck = true,
   });
 
   final DioceseBoundaryRepository? repository;
@@ -38,6 +39,9 @@ class SettingsMapPage extends StatefulWidget {
   final ExternalUrlOpener? externalUrlOpener;
   final String? initialSelectedBoundaryId;
   final String? initialSelectedStammMarkerId;
+
+  /// `false` neben der Seitenleiste, wo die Karte ein Hauptbereich ist.
+  final bool zeigeZurueck;
 
   @override
   State<SettingsMapPage> createState() => _SettingsMapPageState();
@@ -428,21 +432,22 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
     return Stack(
       children: [
         Center(child: child),
-        Positioned.fill(
-          child: SafeArea(
-            minimum: const EdgeInsets.all(12),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: _MapOverlayButton(
-                key: const ValueKey('settings-map-back-button'),
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                label: 'Zurück',
-                icon: Icons.arrow_back,
-                onPressed: () => Navigator.of(context).maybePop(),
+        if (widget.zeigeZurueck)
+          Positioned.fill(
+            child: SafeArea(
+              minimum: const EdgeInsets.all(12),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: _MapOverlayButton(
+                  key: const ValueKey('settings-map-back-button'),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  label: 'Zurück',
+                  icon: Icons.arrow_back,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -620,18 +625,20 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
 
                       return Stack(
                         children: [
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: _MapOverlayButton(
-                              key: const ValueKey('settings-map-back-button'),
-                              tooltip: MaterialLocalizations.of(
-                                context,
-                              ).backButtonTooltip,
-                              label: 'Zurück',
-                              icon: Icons.arrow_back,
-                              onPressed: () => Navigator.of(context).maybePop(),
+                          if (widget.zeigeZurueck)
+                            Align(
+                              alignment: Alignment.topLeft,
+                              child: _MapOverlayButton(
+                                key: const ValueKey('settings-map-back-button'),
+                                tooltip: MaterialLocalizations.of(
+                                  context,
+                                ).backButtonTooltip,
+                                label: 'Zurück',
+                                icon: Icons.arrow_back,
+                                onPressed: () =>
+                                    Navigator.of(context).maybePop(),
+                              ),
                             ),
-                          ),
                           Align(
                             alignment: Alignment.topRight,
                             child: Column(

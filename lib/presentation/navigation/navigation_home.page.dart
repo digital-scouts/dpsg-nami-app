@@ -12,18 +12,24 @@ import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
+import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_page.dart';
+import 'package:nami/presentation/screens/nami_ai/nami_ai_paywall_page.dart';
+import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
+import 'package:nami/presentation/screens/settings_qualifikationen_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/abmeldung_hinweis_karte.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/app_lesebreite.dart';
+import 'package:nami/presentation/widgets/app_seitenleiste.dart';
 import 'package:nami/presentation/widgets/demo_zugang_sheet.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/services/achievement_service.dart';
 import 'package:nami/services/app_mode_controller.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/nami_ai/nami_ai_access_service.dart';
 import 'package:provider/provider.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
@@ -33,8 +39,48 @@ class NavigationHomeScreen extends StatefulWidget {
   State<NavigationHomeScreen> createState() => _NavigationHomeScreenState();
 }
 
+/// Ziel im Schnellzugriff der Seitenleiste. Auf schmalen Fenstern stehen
+/// dieselben Ziele in den Einstellungen und oeffnen sich als eigene Seite.
+class _Schnellziel {
+  const _Schnellziel({
+    required this.id,
+    required this.eintrag,
+    required this.route,
+    required this.seite,
+  });
+
+  final String id;
+  final AppSeitenleisteEintrag eintrag;
+  final String route;
+
+  /// Seite neben der Seitenleiste, ohne Zurueck-Pfeil.
+  final WidgetBuilder seite;
+}
+
 class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
+  /// 0-3: Hauptbereiche, ab 4: Schnellziele der Seitenleiste.
   int _index = 0;
+  NamiAiAccessDecision _namiAi = const NamiAiAccessDecision(
+    state: NamiAiAccessState.hidden,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_ladeNamiAiFreigabe());
+  }
+
+  Future<void> _ladeNamiAiFreigabe() async {
+    NamiAiAccessDecision entscheidung;
+    try {
+      entscheidung = await context.read<NamiAiAccessService>().evaluate();
+    } catch (_) {
+      entscheidung = await NamiAiAccessService().evaluate();
+    }
+    if (mounted) {
+      setState(() => _namiAi = entscheidung);
+    }
+  }
 
   /// Der Hinweis auf veraltete Daten verschwindet nach dieser Zeit von
   /// selbst. Gespeicherte Daten sind innerhalb der Datenfrist normal nutzbar.
@@ -89,6 +135,29 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       // Nach dem Abmelden zeigt die Mitgliederliste den Anmeldebildschirm,
       // statt dass die Person auf einem leeren Tab zurueckbleibt.
       _index = 0;
+    }
+    final t = AppLocalizations.of(context);
+    final seitenleiste = AppSeitenleiste.sichtbar(
+      MediaQuery.sizeOf(context).width,
+    );
+    final schnellziele = _schnellziele(context, t);
+    if (_index >= _tabIds.length) {
+      final ziel = _index - _tabIds.length < schnellziele.length
+          ? schnellziele[_index - _tabIds.length]
+          : null;
+      if (!seitenleiste || ziel == null) {
+        // Fenster zu schmal (Duo zugeklappt, Split View) oder Ziel nicht mehr
+        // verfuegbar: zurueck in die Einstellungen, die offene Seite bleibt
+        // als eigene Seite erhalten.
+        _index = 3;
+        if (ziel != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              Navigator.pushNamed(context, ziel.route);
+            }
+          });
+        }
+      }
     }
     Widget body;
     switch (_index) {
@@ -148,50 +217,121 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               : () => Navigator.pushNamed(context, AppRoutes.debugTools),
           onNotificationSettings: () =>
               Navigator.pushNamed(context, AppRoutes.settingsNotification),
+          // Mit Seitenleiste steht der Schnellzugriff dort.
+          zeigeSchnellzugriff: !seitenleiste,
         );
         break;
       default:
         body = const MemberPeoplePage();
     }
 
-    return Scaffold(
-      body: _buildMainTabShell(
-        context,
-        content: body,
-        urgentNotification: urgentNotification,
-        authModel: authModel,
-        arbeitskontextModel: arbeitskontextModel,
-        // Die Einstellungen bleiben ohne Sync- und Lade-Banner.
-        showStatusBanners: _index != 3,
-      ),
-      bottomNavigationBar: AppBottomNavigation(
-        currentIndex: _index,
-        onTap: (i) {
-          if (i == _index) {
-            return;
-          }
-
-          final logger = context.read<LoggerService>();
-          final previousTab = _tabIds[_index];
-          final nextTab = _tabIds[i];
-          logger.logNavigationAction(
-            'tab_switch',
-            fromRoute: previousTab,
-            toRoute: nextTab,
+    final inhalt = _index >= _tabIds.length
+        ? schnellziele[_index - _tabIds.length].seite(context)
+        : _buildMainTabShell(
+            context,
+            content: body,
+            urgentNotification: urgentNotification,
+            authModel: authModel,
+            arbeitskontextModel: arbeitskontextModel,
+            // Die Einstellungen bleiben ohne Sync- und Lade-Banner.
+            showStatusBanners: _index != 3,
           );
-          if (nextTab == 'statistics') {
-            context.read<AchievementService>().recordDaily(
-              AchievementIds.statisticsOpened,
-            );
-          }
-          setState(() => _index = i);
-        },
+
+    return Scaffold(
+      // Der Inhalt behaelt seinen Zustand, wenn die Seitenleiste beim Auf-
+      // oder Zuklappen erscheint oder verschwindet.
+      body: Row(
+        children: [
+          if (seitenleiste)
+            AppSeitenleiste(
+              hauptbereiche: AppBottomNavigation.hauptbereiche(t),
+              schnellzugriff: [for (final z in schnellziele) z.eintrag],
+              ausgewaehlt: _index,
+              breit:
+                  MediaQuery.sizeOf(context).width >= AppSeitenleiste.breitAb,
+              onAuswahl: (i) => _wechsle(i, schnellziele),
+            ),
+          Expanded(key: const ValueKey('shell-inhalt'), child: inhalt),
+        ],
       ),
+      bottomNavigationBar: seitenleiste
+          ? null
+          : AppBottomNavigation(
+              currentIndex: _index,
+              onTap: (i) => _wechsle(i, schnellziele),
+            ),
     );
   }
 
+  /// Karte, Qualifikationen und NaMi AI (sofern sichtbar), wie im
+  /// Schnellzugriff der Einstellungen ohne die Platzhalter.
+  List<_Schnellziel> _schnellziele(BuildContext context, AppLocalizations t) {
+    final qualiGesperrt =
+        context.watch<AppearanceModel?>()?.access.qualifikationenFrei == false;
+    return [
+      _Schnellziel(
+        id: 'map',
+        eintrag: AppSeitenleisteEintrag(
+          icon: Icons.map_outlined,
+          label: t.t('settings_map'),
+        ),
+        route: AppRoutes.settingsMap,
+        seite: (_) => const SettingsMapPage(zeigeZurueck: false),
+      ),
+      _Schnellziel(
+        id: 'qualifications',
+        eintrag: AppSeitenleisteEintrag(
+          icon: Icons.verified_outlined,
+          label: t.t('quali_titel'),
+          gesperrt: qualiGesperrt,
+        ),
+        route: AppRoutes.settingsQualifikationen,
+        seite: (_) => const SettingsQualifikationenPage(),
+      ),
+      if (!_namiAi.isHidden)
+        _Schnellziel(
+          id: 'nami_ai',
+          eintrag: const AppSeitenleisteEintrag(
+            icon: Icons.auto_awesome,
+            label: 'NaMi AI',
+          ),
+          route: _namiAi.isEnabled
+              ? AppRoutes.namiAiChat
+              : AppRoutes.namiAiPaywall,
+          seite: (_) => _namiAi.isEnabled
+              ? const NamiAiChatPage()
+              : const NamiAiPaywallPage(),
+        ),
+    ];
+  }
+
+  String _zielId(int index, List<_Schnellziel> schnellziele) =>
+      index < _tabIds.length
+      ? _tabIds[index]
+      : schnellziele[index - _tabIds.length].id;
+
+  void _wechsle(int i, List<_Schnellziel> schnellziele) {
+    if (i == _index) {
+      return;
+    }
+    final logger = context.read<LoggerService>();
+    final previousTab = _zielId(_index, schnellziele);
+    final nextTab = _zielId(i, schnellziele);
+    logger.logNavigationAction(
+      'tab_switch',
+      fromRoute: previousTab,
+      toRoute: nextTab,
+    );
+    if (nextTab == 'statistics') {
+      context.read<AchievementService>().recordDaily(
+        AchievementIds.statisticsOpened,
+      );
+    }
+    setState(() => _index = i);
+  }
+
   PullNotification? _currentUrgentNotification(BuildContext context) {
-    if (_index == 3) {
+    if (_index >= 3) {
       return null;
     }
     return context.watch<UrgentNotificationModel>().notification;

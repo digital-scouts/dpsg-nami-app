@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'app_seitenleiste.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int>? onTap;
 
   const AppBottomNavigation({super.key, this.currentIndex = 0, this.onTap});
+
+  /// Die vier Hauptbereiche, gemeinsam mit der [AppSeitenleiste].
+  static List<AppSeitenleisteEintrag> hauptbereiche(AppLocalizations t) => [
+    AppSeitenleisteEintrag(icon: Icons.groups, label: t.t('nav_members')),
+    AppSeitenleisteEintrag(
+      icon: Icons.insert_chart,
+      label: t.t('nav_statistics'),
+    ),
+    AppSeitenleisteEintrag(
+      icon: Icons.swap_horiz,
+      label: t.t('nav_stage_change'),
+    ),
+    AppSeitenleisteEintrag(icon: Icons.settings, label: t.t('nav_settings')),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -19,22 +34,11 @@ class AppBottomNavigation extends StatelessWidget {
       selectedItemColor: theme.colorScheme.primary,
       unselectedItemColor: theme.colorScheme.onSurfaceVariant,
       items: [
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.groups),
-          label: t.t('nav_members'),
-        ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.insert_chart),
-          label: t.t('nav_statistics'),
-        ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.swap_horiz),
-          label: t.t('nav_stage_change'),
-        ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.settings),
-          label: t.t('nav_settings'),
-        ),
+        for (final eintrag in hauptbereiche(t))
+          BottomNavigationBarItem(
+            icon: Icon(eintrag.icon),
+            label: eintrag.label,
+          ),
       ],
     );
   }
