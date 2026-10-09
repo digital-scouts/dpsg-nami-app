@@ -584,4 +584,25 @@ void main() {
       );
     },
   );
+
+  test('vergisst nach dem App-Reset die Einwilligung', () async {
+    final model = await modelMitEinwilligung();
+    expect(model.hatEinwilligung, isTrue);
+
+    model.zuruecksetzen();
+    // Der App-Reset leert danach den Speicher.
+    teilnahme.stored = BundesstatistikTeilnahme.leer;
+    now = now.add(const Duration(days: 8));
+    await model.aktualisiereKontext(
+      personId: '42',
+      readModel: _readModel(),
+      datenstand: now,
+      abdeckung: const StatistikAbdeckung.stamm(),
+    );
+
+    expect(model.hatEinwilligung, isFalse);
+    expect(model.installationsId, isNull);
+    expect(teilnahme.stored.einwilligungen, isEmpty);
+    expect(repository.sendungen, hasLength(1));
+  });
 }

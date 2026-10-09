@@ -907,6 +907,8 @@ class AppLocalizations {
       'debug_reset_confirm_action': 'Jetzt löschen',
       'debug_reset_done':
           'Alle Daten wurden gelöscht. Bitte jetzt App beenden und neu starten.',
+      'debug_reset_partial':
+          'Nicht alle Daten konnten gelöscht werden. Bitte App beenden, neu starten und den Reset wiederholen.',
       'common_remove': 'Entfernen',
       'common_copy': 'Kopieren',
       'common_retry': 'Erneut versuchen',
@@ -2537,6 +2539,8 @@ class AppLocalizations {
       'debug_reset_confirm_action': 'Delete now',
       'debug_reset_done':
           'All data was deleted. Please close and restart the app now.',
+      'debug_reset_partial':
+          'Not all data could be deleted. Please close and restart the app and run the reset again.',
       'common_remove': 'Remove',
       'common_copy': 'Copy',
       'common_retry': 'Retry',

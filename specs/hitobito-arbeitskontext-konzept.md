@@ -132,7 +132,7 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Eine sichtbare Abweichungsmarkierung am Filter-Icon bedeutet, dass Sortierung, Zusatztext oder aktive eigene Gruppen vom Standard abweichen.
 - Die Kachel-Belegung der Stammstatistik (Überblick, eigene Zählkacheln, Zielwerte, ausgeblendete Themen) wird wie die eigenen Gruppen je Layer gespeichert. Ein Kontextwechsel lädt die Belegung des neuen Layers und beendet das Bearbeiten.
 - Eigene Zählkacheln verwenden dieselben Regeln wie die eigenen Gruppen der Mitgliederliste, sind aber eigenständige Kopien und zählen unabhängig davon, ob ein Filter-Chip aktiv ist.
-- Der Statistik-Verlauf zeichnet je Layer höchstens einen Eintrag pro Monat auf, nur wenn die Rollen vollständig geladen sind und nie aus einem Zwischenstand des Ladens. Gespeichert werden nur Summen, längstens 24 Monate.
+- Der Statistik-Verlauf zeichnet je Layer höchstens einen Eintrag pro Monat auf, nur wenn die Rollen vollständig geladen sind und nie aus einem Zwischenstand des Ladens. Gespeichert werden nur Summen, längstens 24 Monate. Abmelden, Kontowechsel und Datenablauf löschen ihn, weil er zum Konto gehört.
 
 ### 7. Meine Gruppe
 

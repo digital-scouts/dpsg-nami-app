@@ -108,4 +108,19 @@ void main() {
     final eintraege = await repo.loadForLayer(StoreShowcaseData.layerId);
     expect(eintraege.single.monat, '2026-09');
   });
+
+  test('SharedPreferences: clearAll loescht nur den Verlauf', () async {
+    SharedPreferences.setMockInitialValues({'andererWert': 'bleibt'});
+    final repo = SharedPrefsStatistikVerlaufRepository();
+    final eintrag = StatistikVerlaufEintrag.aus(statistik, heute);
+    await repo.saveForLayer(1, [eintrag]);
+    await repo.saveForLayer(2, [eintrag]);
+
+    await repo.clearAll();
+
+    expect(await repo.loadForLayer(1), isEmpty);
+    expect(await repo.loadForLayer(2), isEmpty);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('andererWert'), 'bleibt');
+  });
 }
