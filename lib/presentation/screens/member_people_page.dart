@@ -516,6 +516,9 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       allowMobileDataOverride = true;
     }
 
+    // Eine erneut gescheiterte Aktualisierung meldet sich wieder, auch mit
+    // demselben Text wie beim letzten Mal.
+    _lastShownIssueKey = null;
     await authModel.syncHitobitoData(
       force: true,
       trigger: 'member_list_pull_refresh',
