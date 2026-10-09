@@ -29,6 +29,34 @@ Story memberEditResolutionMixedFieldsStory() => Story(
       _MemberResolutionStoryShell(pendingEntry: _buildMixedFieldsEntry()),
 );
 
+Story memberEditResolutionRejectedStory() => Story(
+  name: 'Mitglieder/Screens/Bearbeiten/Problemlosung/Abgelehnt',
+  builder: (context) =>
+      _MemberResolutionStoryShell(pendingEntry: _buildRejectedEntry()),
+);
+
+/// Hitobito hat die Aenderung als Ganzes abgelehnt: Grund, keine Felder.
+PendingPersonUpdate _buildRejectedEntry() {
+  final basis = _buildBaseMember();
+  final ziel = basis.copyWith(vorname: 'Juliane');
+  return PendingPersonUpdate(
+    entryId: 'story-${ziel.personId}',
+    personId: ziel.personId!,
+    mitgliedsnummer: ziel.mitgliedsnummer,
+    displayName: ziel.fullName,
+    basisMitglied: basis,
+    zielMitglied: ziel,
+    queuedAt: DateTime(2026, 4, 16, 11, 0),
+    status: PendingPersonUpdateStatus.needsResolution,
+    resolutionCase: MemberResolutionCase(
+      remoteMitglied: basis,
+      items: const <MemberResolutionItem>[],
+      source: MemberResolutionSource.pendingRetry,
+      hinweis: 'Keine Berechtigung, diese Person zu bearbeiten.',
+    ),
+  );
+}
+
 class _MemberResolutionStoryShell extends StatelessWidget {
   const _MemberResolutionStoryShell({required this.pendingEntry});
 

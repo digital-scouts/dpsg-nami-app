@@ -1939,6 +1939,93 @@ void main() {
       },
     );
   });
+
+  group('Verlassen und Tastatur (#190, #200)', () {
+    Future<_RecordingMemberEditModel> oeffne(WidgetTester tester) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(success: true, wasQueued: false),
+      );
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          _EditPageLauncher(
+            pageBuilder: () =>
+                MemberEditPage(mitglied: _buildMember(gender: 'w')),
+            onResult: (_) {},
+          ),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.tap(find.text('Editor oeffnen'));
+      await tester.pumpAndSettle();
+      return model;
+    }
+
+    Future<void> zurueck(WidgetTester tester) async {
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('verlaesst ohne Aenderung ohne Rueckfrage', (tester) async {
+      await oeffne(tester);
+
+      await zurueck(tester);
+
+      expect(find.byType(MemberEditPage), findsNothing);
+    });
+
+    testWidgets('fragt bei Aenderungen nach und bleibt bei Weiter', (
+      tester,
+    ) async {
+      await oeffne(tester);
+      await _aendereVorname(tester);
+
+      await zurueck(tester);
+      expect(find.text('Nicht gespeicherte Änderungen'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('member-edit-leave-continue')));
+      await tester.pumpAndSettle();
+      expect(find.byType(MemberEditPage), findsOneWidget);
+    });
+
+    testWidgets('Verwerfen schliesst ohne zu senden', (tester) async {
+      final model = await oeffne(tester);
+      await _aendereVorname(tester);
+
+      await zurueck(tester);
+      await tester.tap(find.byKey(const Key('member-edit-leave-discard')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MemberEditPage), findsNothing);
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('Speichern im Sheet sendet und schliesst', (tester) async {
+      final model = await oeffne(tester);
+      await _aendereVorname(tester);
+
+      await zurueck(tester);
+      await tester.tap(find.byKey(const Key('member-edit-leave-save')));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls.single.zielMitglied.vorname, 'Juliane');
+      expect(find.byType(MemberEditPage), findsNothing);
+    });
+
+    testWidgets('Bearbeiten-Felder lernen nicht und korrigieren nicht', (
+      tester,
+    ) async {
+      await oeffne(tester);
+
+      final felder = tester.widgetList<TextField>(find.byType(TextField));
+      expect(felder, isNotEmpty);
+      for (final feld in felder) {
+        expect(feld.enableIMEPersonalizedLearning, isFalse);
+        expect(feld.autocorrect, isFalse);
+        expect(feld.enableSuggestions, isFalse);
+      }
+    });
+  });
 }
 
 Widget _buildTestApp(

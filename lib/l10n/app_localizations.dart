@@ -881,6 +881,13 @@ class AppLocalizations {
       'auth_session_reminder_title': 'Angemeldet bleiben',
       'auth_session_reminder_body':
           'Öffne die App kurz, sonst meldet Hitobito dich morgen ab. Deine Daten bleiben erhalten.',
+      'auth_logout_expired_title': 'Daten abgelaufen',
+      'auth_logout_expired_body':
+          'Die App hatte 90 Tage keine Verbindung zu Hitobito und hat die gespeicherten Daten zum Schutz gelöscht. Melde dich neu an, um den aktuellen Stand zu laden.',
+      'auth_logout_expired_lost_title':
+          'Daten abgelaufen, {count} Änderungen verloren',
+      'auth_logout_expired_lost_body':
+          'Die App hatte 90 Tage keine Verbindung zu Hitobito und hat die gespeicherten Daten zum Schutz gelöscht. {count} vorgemerkte Änderungen konnten vorher nicht mehr gesendet werden. Trage sie nach dem Anmelden bitte erneut ein.',
       'auth_logout_rights_changed_title': 'Rechte geändert',
       'auth_logout_rights_changed_body':
           'Die App hat dich abgemeldet und die gespeicherten Daten gelöscht, weil sich deine Rechte in Hitobito geändert haben. Melde dich neu an, um den aktuellen Stand zu laden.',
@@ -971,6 +978,18 @@ class AppLocalizations {
       'member_detail_pending_paused_banner':
           'Für diese Person liegt eine noch nicht gesendete Änderung vor. Das automatische Senden ist nach mehreren Fehlversuchen pausiert.',
       'member_detail_send_now_action': 'Jetzt senden',
+      'member_detail_pending_rejected_banner':
+          'Hitobito hat eine vorgemerkte Änderung abgelehnt. Prüfe die betroffenen Felder und sende sie danach erneut.',
+      'member_detail_discard_action': 'Verwerfen',
+      'member_detail_discarded': 'Änderung verworfen.',
+      'member_detail_send_now_offline':
+          'Hitobito ist gerade nicht erreichbar. Die Änderung bleibt vorgemerkt.',
+      'member_pending_rejected_snack':
+          'Hitobito hat eine Änderung an {name} abgelehnt.',
+      'member_pending_rejected_snack_many':
+          'Hitobito hat {count} vorgemerkte Änderungen abgelehnt.',
+      'common_show': 'Anzeigen',
+      'common_undo': 'Rückgängig',
       'member_detail_send_now_success': 'Die Änderung wurde gesendet.',
       'member_detail_send_now_retained':
           'Die Änderung konnte nicht gesendet werden und bleibt vorgemerkt.',
@@ -1013,6 +1032,14 @@ class AppLocalizations {
       'member_edit_resolution_keep_local': 'Lokal behalten',
       'member_edit_resolution_use_server': 'Serverstand verwenden',
       'member_edit_resolution_discard_local': 'Lokale Änderung verwerfen',
+      'member_edit_leave_title': 'Nicht gespeicherte Änderungen',
+      'member_edit_leave_body':
+          'Willst du deine Eingaben speichern, bevor du gehst?',
+      'member_edit_leave_save': 'Speichern',
+      'member_edit_leave_continue': 'Weiter bearbeiten',
+      'member_edit_leave_discard': 'Verwerfen',
+      'member_edit_resolution_rejected': 'Hitobito: „{details}“',
+      'member_edit_resolution_discard_all': 'Änderung verwerfen',
       'member_edit_field_first_name': 'Vorname',
       'member_edit_field_last_name': 'Nachname',
       'member_edit_field_nickname': 'Fahrtenname',
@@ -2545,6 +2572,12 @@ class AppLocalizations {
       'auth_session_reminder_title': 'Stay signed in',
       'auth_session_reminder_body':
           'Open the app briefly, otherwise Hitobito will sign you out tomorrow. Your data is kept.',
+      'auth_logout_expired_title': 'Data expired',
+      'auth_logout_expired_body':
+          'The app had no connection to Hitobito for 90 days and deleted the stored data for protection. Sign in again to load the current data.',
+      'auth_logout_expired_lost_title': 'Data expired, {count} changes lost',
+      'auth_logout_expired_lost_body':
+          'The app had no connection to Hitobito for 90 days and deleted the stored data for protection. {count} pending changes could not be sent before. Please enter them again after signing in.',
       'auth_logout_rights_changed_title': 'Permissions changed',
       'auth_logout_rights_changed_body':
           'The app signed you out and deleted the stored data because your permissions in Hitobito changed. Sign in again to load the current data.',
@@ -2633,6 +2666,17 @@ class AppLocalizations {
       'member_detail_pending_paused_banner':
           'There is an unsent change for this person. Automatic sending is paused after several failed attempts.',
       'member_detail_send_now_action': 'Send now',
+      'member_detail_pending_rejected_banner':
+          'Hitobito rejected a pending change. Check the affected fields and send it again.',
+      'member_detail_discard_action': 'Discard',
+      'member_detail_discarded': 'Change discarded.',
+      'member_detail_send_now_offline':
+          'Hitobito cannot be reached right now. The change stays queued.',
+      'member_pending_rejected_snack': 'Hitobito rejected a change to {name}.',
+      'member_pending_rejected_snack_many':
+          'Hitobito rejected {count} pending changes.',
+      'common_show': 'Show',
+      'common_undo': 'Undo',
       'member_detail_send_now_success': 'The change was sent.',
       'member_detail_send_now_retained':
           'The change could not be sent and remains queued.',
@@ -2675,6 +2719,14 @@ class AppLocalizations {
       'member_edit_resolution_keep_local': 'Keep local',
       'member_edit_resolution_use_server': 'Use server value',
       'member_edit_resolution_discard_local': 'Discard local change',
+      'member_edit_leave_title': 'Unsaved changes',
+      'member_edit_leave_body':
+          'Do you want to save your input before leaving?',
+      'member_edit_leave_save': 'Save',
+      'member_edit_leave_continue': 'Keep editing',
+      'member_edit_leave_discard': 'Discard',
+      'member_edit_resolution_rejected': 'Hitobito: “{details}”',
+      'member_edit_resolution_discard_all': 'Discard change',
       'member_edit_field_first_name': 'First name',
       'member_edit_field_last_name': 'Last name',
       'member_edit_field_nickname': 'Nickname',

@@ -340,6 +340,49 @@ void main() {
     },
   );
 
+  test('meldet abgelehnte Aenderungen nach dem automatischen Senden', () {
+    fakeAsync((async) {
+      final harness = _Harness(
+        async,
+        connectivity: FakeConnectivity.wifi(),
+        writeError: const MemberWriteRejectedException('Keine Berechtigung'),
+      );
+
+      harness.coordinator.start();
+      unawaited(
+        harness.coordinator.checkCurrentConnectivity(trigger: 'startup'),
+      );
+      async.flushMicrotasks();
+
+      final ergebnis = harness.summaries.single.results.single;
+      expect(
+        ergebnis.disposition,
+        PendingPersonUpdateRetryDisposition.needsResolution,
+      );
+      expect(ergebnis.entry.resolutionCase?.hinweis, 'Keine Berechtigung');
+      harness.dispose();
+    });
+  });
+
+  test('erlaubt nach einem Sync ohne Netz einen neuen Versuch', () {
+    fakeAsync((async) {
+      final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
+      harness.authModel.ergebnis = SyncAttemptResult.networkError;
+
+      harness.coordinator.start();
+      unawaited(
+        harness.coordinator.checkCurrentConnectivity(trigger: 'startup'),
+      );
+      async.flushMicrotasks();
+      // Dieselbe Verbindung meldet sich erneut, z. B. beim Resume.
+      unawaited(harness.coordinator.checkCurrentConnectivity(trigger: 'again'));
+      async.flushMicrotasks();
+
+      expect(harness.authModel.syncTriggers, <String>['startup', 'again']);
+      harness.dispose();
+    });
+  });
+
   test('dispose beendet Listener und Timer', () {
     fakeAsync((async) {
       final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
@@ -382,11 +425,12 @@ class _Harness {
     bool noMobileDataEnabled = false,
     bool pendingRetryEnabled = true,
     List<PendingPersonUpdate>? entries,
+    Object? writeError,
   }) {
     DateTime now() => _start.add(async.elapsed);
     writeRepository = _RecordingMemberWriteRepository(
       elapsed: () => async.elapsed,
-    );
+    )..error = writeError;
     memberEditModel = MemberEditModel(
       memberWriteRepository: writeRepository,
       pendingRepository: InMemoryPendingPersonUpdateRepository(
@@ -405,6 +449,7 @@ class _Harness {
       noMobileDataEnabled: () => noMobileDataEnabled,
       syncMembers: () async {},
       pendingRetryEnabled: pendingRetryEnabled,
+      onRetrySummary: summaries.add,
     );
     async.flushMicrotasks();
   }
@@ -415,6 +460,8 @@ class _Harness {
   late final MemberEditModel memberEditModel;
   late final _StubAuthSessionModel authModel;
   late final PendingSyncCoordinator coordinator;
+  final List<PendingPersonUpdateRetrySummary> summaries =
+      <PendingPersonUpdateRetrySummary>[];
 
   void dispose() {
     coordinator.dispose();
@@ -446,6 +493,10 @@ class _StubAuthSessionModel extends AuthSessionModel {
       );
 
   final List<String> syncTriggers = <String>[];
+  SyncAttemptResult? ergebnis;
+
+  @override
+  SyncAttemptResult? get lastSyncAttemptResult => ergebnis;
   Future<void> Function()? onSync;
   bool hasSession = true;
   bool requiresInteractiveLoginOverride = false;

@@ -769,17 +769,25 @@ void main() {
       final remaining = await pendingRepository.loadAll();
 
       expect(summary.successCount, 1);
-      expect(summary.discardedCount, 2);
+      // Konflikt und fehlendes updatedAt bleiben als Problemfall stehen.
+      expect(summary.needsResolutionCount, 2);
       expect(summary.retainedCount, 1);
       expect(updatedMembers, hasLength(1));
       expect(updatedMembers.single.personId, 1);
-      expect(remaining, hasLength(1));
-      expect(remaining.single.entryId, 'retain-4');
-      expect(remaining.single.attemptCount, 1);
-      expect(remaining.single.lastAttemptAt, DateTime(2026, 4, 14, 11, 0));
-      expect(model.pendingUpdates.map((entry) => entry.entryId), <String>[
+      expect(remaining.map((entry) => entry.entryId).toSet(), <String>{
+        'conflict-2',
+        'missing-3',
         'retain-4',
-      ]);
+      });
+      final retained = remaining.singleWhere((e) => e.entryId == 'retain-4');
+      expect(retained.attemptCount, 1);
+      expect(retained.lastAttemptAt, DateTime(2026, 4, 14, 11, 0));
+      expect(
+        remaining
+            .where((e) => e.entryId != 'retain-4')
+            .every((e) => e.needsResolution && e.resolutionCase!.istAbgelehnt),
+        isTrue,
+      );
     },
   );
 
@@ -1392,13 +1400,29 @@ void main() {
       );
     }
 
-    test('behaelt Eintraege bei fehlender Anmeldung', () async {
+    test('behaelt Eintraege bei fehlender Anmeldung ohne Versuch', () async {
       final result = await retryWith(<int, Object>{
         1: const MemberWriteAuthRequiredException('Login noetig'),
       });
 
       expect(result.summary.retainedCount, 1);
-      expect(result.remaining.single.attemptCount, 1);
+      expect(result.summary.results.single.grund, PendingRetryGrund.anmeldung);
+      expect(result.remaining.single.attemptCount, 0);
+    });
+
+    test('zaehlt fehlendes Netz nicht als Versuch und bricht ab', () async {
+      final result = await retryWith(<int, Object>{
+        1: const MemberWriteNetworkUnavailableException('Timeout'),
+        2: _mitglied(personId: 2, mitgliedsnummer: '2'),
+      });
+
+      expect(result.summary.results, hasLength(1));
+      expect(result.summary.results.single.grund, PendingRetryGrund.netz);
+      expect(result.remaining, hasLength(2));
+      expect(
+        result.remaining.every((entry) => entry.attemptCount == 0),
+        isTrue,
+      );
     });
 
     test('behaelt Eintraege bei gesperrtem Netzwerk', () async {
@@ -1419,13 +1443,16 @@ void main() {
       expect(result.remaining, hasLength(1));
     });
 
-    test('verwirft vom Server abgelehnte Eintraege', () async {
+    test('macht abgelehnte Eintraege zum Problemfall mit Grund', () async {
       final result = await retryWith(<int, Object>{
-        1: const MemberWriteRejectedException('403'),
+        1: const MemberWriteRejectedException('Keine Berechtigung'),
       });
 
-      expect(result.summary.discardedCount, 1);
-      expect(result.remaining, isEmpty);
+      expect(result.summary.needsResolutionCount, 1);
+      final entry = result.remaining.single;
+      expect(entry.needsResolution, isTrue);
+      expect(entry.resolutionCase?.hinweis, 'Keine Berechtigung');
+      expect(entry.resolutionCase?.items, isEmpty);
     });
 
     test(
@@ -1615,9 +1642,6 @@ void main() {
       );
       final cases = <String, Map<int, Object>>{
         'retained': <int, Object>{1: Exception('Timeout')},
-        'discarded': <int, Object>{
-          1: const MemberWriteRejectedException('403'),
-        },
         'needs_resolution': <int, Object>{1: needsResolution},
         'mixed': <int, Object>{
           1: _mitglied(personId: 1, mitgliedsnummer: '1'),
@@ -2057,6 +2081,91 @@ void main() {
       );
 
       expect(result.success, isTrue);
+    });
+  });
+
+  group('Schreibpfad absichern (#190)', () {
+    test('merkt die Aenderung vor dem ersten Senden vor', () async {
+      final pendingRepository = InMemoryPendingPersonUpdateRepository();
+      List<PendingPersonUpdate>? waehrendDesSendens;
+      final basis = _mitglied(personId: 23, mitgliedsnummer: '4711');
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          onUpdate: (basisMitglied, ziel) async {
+            waehrendDesSendens = await pendingRepository.loadAll();
+            return ziel;
+          },
+        ),
+        pendingRepository: pendingRepository,
+        logger: FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+      );
+
+      final result = await model.submitUpdate(
+        accessToken: 'token-123',
+        basisMitglied: basis,
+        zielMitglied: basis.copyWith(vorname: 'Juliane'),
+      );
+
+      expect(result.success, isTrue);
+      expect(waehrendDesSendens?.single.zielMitglied.vorname, 'Juliane');
+      expect(await pendingRepository.loadAll(), isEmpty);
+    });
+
+    test('stellt bei Ablehnung den vorherigen Eintrag wieder her', () async {
+      final vorher = _pendingEntry(
+        entryId: 'person-23',
+        personId: 23,
+        mitgliedsnummer: '4711',
+      );
+      final pendingRepository = InMemoryPendingPersonUpdateRepository(
+        entries: <PendingPersonUpdate>[vorher],
+      );
+      final basis = _mitglied(personId: 23, mitgliedsnummer: '4711');
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          updateResultsByPersonId: <int, Object>{
+            23: const MemberWriteRejectedException('403'),
+          },
+        ),
+        pendingRepository: pendingRepository,
+        logger: FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+      );
+
+      final result = await model.submitUpdate(
+        accessToken: 'token-123',
+        basisMitglied: basis,
+        zielMitglied: basis.copyWith(vorname: 'Juliane'),
+      );
+
+      expect(result.success, isFalse);
+      final remaining = await pendingRepository.loadAll();
+      expect(remaining.single.zielMitglied, vorher.zielMitglied);
+    });
+
+    test('verwirft einen Eintrag und stellt ihn wieder her', () async {
+      final entry = _pendingEntry(
+        entryId: 'person-23',
+        personId: 23,
+        mitgliedsnummer: '4711',
+      );
+      final pendingRepository = InMemoryPendingPersonUpdateRepository(
+        entries: <PendingPersonUpdate>[entry],
+      );
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(),
+        pendingRepository: pendingRepository,
+        logger: FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+      );
+      await model.loadPending();
+
+      final verworfen = await model.discardPending('person-23');
+      expect(model.pendingUpdates, isEmpty);
+
+      await model.restorePending(verworfen!);
+      expect(model.pendingUpdates.single.entryId, 'person-23');
     });
   });
 }

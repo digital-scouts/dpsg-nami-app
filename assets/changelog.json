@@ -108,7 +108,9 @@
       "version": "1.0.0",
       "data_reset": true,
       "features": [
+        "Bevor die gespeicherten Daten nach 90 Tagen ablaufen, sendet die App noch vorgemerkte Änderungen. Was nicht mehr gesendet werden konnte, nennt sie beim Anmelden.",
         "Die App verwendet nun NaMi 3.0 (Hitobito) und wurde komplett neu gestaltet.",
+        "Wer beim Bearbeiten eines Mitglieds mit ungespeicherten Änderungen zurückgeht, kann sie speichern, weiter bearbeiten oder verwerfen. Die Tastatur lernt in Bearbeiten- und Suchfeldern keine Mitgliederdaten mehr.",
         "Arbeitskontext: Wer Rechte auf mehreren Ebenen hat, wechselt im Profil zwischen Stamm, Bezirk und weiteren Ebenen.",
         "Mitgliedsdetails mit Rollenverlauf, nächstem Stufenwechsel, Geschwistern und Qualifikationen.",
         "Mitglieder bearbeiten, auch offline: Änderungen werden vorgemerkt und später gesendet, parallele Änderungen automatisch zusammengeführt.",
@@ -148,6 +150,8 @@
         "Lässt sich beim Melden eines Problems keine Mail öffnen, bietet die App an, die Logs stattdessen zu teilen. Logs und Fehlerberichte enthalten keine E-Mail-Adressen, Telefonnummern oder Namen von Gruppenebenen mehr.",
         "Mit eingeschränkten mobilen Daten bleibt die Anmeldung auch bei Nutzung im Mobilfunk erhalten.",
         "Beendet das Gerät die App während der Anmeldung, erklärt sie beim nächsten Start den Grund.",
+        "Lehnt Hitobito eine vorgemerkte Änderung ab, verschwindet sie nicht mehr still: Sie wird ein Problemfall mit dem Grund von Hitobito, und die App weist darauf hin. Pausierte Änderungen lassen sich verwerfen, mit Rückgängig.",
+        "Änderungen an Mitgliedern gehen nicht mehr verloren, wenn die App während des Speicherns beendet wird. Ohne Netz zählt ein Sendeversuch nicht mehr gegen das automatische Nachsenden.",
         "Meldet man sich nach abgelaufener Anmeldung mit einem anderen Konto an, bleiben die gespeicherten Daten und vorgemerkten Änderungen des bisherigen Kontos erhalten.",
         "Nach dem Abmelden zeigt die App wieder die Mitgliederliste mit Anmeldung und Demo, statt auf dem Profil zu bleiben.",
         "Texte und Meldungen schreiben Umlaute richtig, und die Mitgliederliste zeigt „vor 1 Minute“ statt „vor 1 Minuten“.",

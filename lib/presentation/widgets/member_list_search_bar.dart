@@ -97,6 +97,9 @@ class _MemberSearchBarState extends State<MemberSearchBar> {
             const SizedBox(width: 8),
             Expanded(
               child: TextField(
+                // Eingaben koennen Mitgliederdaten enthalten; die Tastatur soll sie
+                // nicht lernen.
+                enableIMEPersonalizedLearning: false,
                 controller: _controller,
                 focusNode: _focusNode,
                 onChanged: (value) {

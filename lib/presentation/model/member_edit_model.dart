@@ -16,6 +16,18 @@ enum PendingPersonUpdateRetryDisposition {
   needsResolution,
 }
 
+/// Warum ein Eintrag beim Nachsenden stehen geblieben ist.
+enum PendingRetryGrund {
+  /// Kein Netz oder Netz gesperrt; zaehlt nicht als Versuch.
+  netz,
+
+  /// Anmeldung noetig; zaehlt nicht als Versuch.
+  anmeldung,
+
+  /// Hitobito hat geantwortet, aber nicht gespeichert.
+  server,
+}
+
 enum MemberEditSubmitNotice { success, warning, error }
 
 class UiMessageSpec {
@@ -101,12 +113,14 @@ class PendingPersonUpdateRetryItemResult {
     required this.disposition,
     this.message,
     this.updatedMember,
+    this.grund,
   });
 
   final PendingPersonUpdate entry;
   final PendingPersonUpdateRetryDisposition disposition;
   final String? message;
   final Mitglied? updatedMember;
+  final PendingRetryGrund? grund;
 }
 
 class PendingPersonUpdateRetrySummary {
@@ -525,6 +539,7 @@ class MemberEditModel extends ChangeNotifier {
 
     _isSubmitting = true;
     _setBusy(true);
+    List<PendingPersonUpdate>? vorherigeEintraege;
     try {
       // Nicht parallel zu einem laufenden Retry senden. Die Basis bleibt die
       // des Entwurfs: Hat der Retry den Eintrag inzwischen zum Konfliktfall
@@ -548,6 +563,19 @@ class MemberEditModel extends ChangeNotifier {
         action: 'submit_started',
         trigger: trigger,
         personId: personId,
+      );
+      // Erst vormerken, dann senden: Endet die App waehrend des Requests,
+      // ist die Aenderung nicht verloren. Verwerfende Ausgaenge stellen den
+      // vorherigen Stand wieder her.
+      vorherigeEintraege = (await _pendingRepository.loadAll())
+          .where((entry) => entry.personId == personId)
+          .toList(growable: false);
+      await _pendingRepository.save(
+        _buildPendingEntry(
+          personId: personId,
+          basisMitglied: basisMitglied,
+          zielMitglied: zielMitglied,
+        ),
       );
       final updated = await _memberWriteRepository.updateMember(
         accessToken: accessToken,
@@ -583,6 +611,7 @@ class MemberEditModel extends ChangeNotifier {
         updatedMember: updated,
       );
     } on MemberWriteUpdatedAtMissingException catch (error) {
+      await _stellePendingWiederHer(personId, vorherigeEintraege);
       await _logMemberEditFailure(
         trigger: trigger,
         personId: personId,
@@ -601,6 +630,7 @@ class MemberEditModel extends ChangeNotifier {
         message: error.message,
       );
     } on MemberWriteConflictException catch (error) {
+      await _stellePendingWiederHer(personId, vorherigeEintraege);
       await _logMemberEditFailure(
         trigger: trigger,
         personId: personId,
@@ -760,6 +790,7 @@ class MemberEditModel extends ChangeNotifier {
         }),
       );
     } on MemberWriteRejectedException catch (error) {
+      await _stellePendingWiederHer(personId, vorherigeEintraege);
       await _logMemberEditFailure(
         trigger: trigger,
         personId: personId,
@@ -814,6 +845,7 @@ class MemberEditModel extends ChangeNotifier {
           validationErrors: error.errors,
         );
       }
+      await _stellePendingWiederHer(personId, vorherigeEintraege);
       await _logMemberEditFailure(
         trigger: trigger,
         personId: personId,
@@ -972,21 +1004,19 @@ class MemberEditModel extends ChangeNotifier {
             ),
           );
         } on MemberWriteUpdatedAtMissingException catch (error) {
-          await _pendingRepository.remove(attemptedEntry.entryId);
           results.add(
-            PendingPersonUpdateRetryItemResult(
-              entry: attemptedEntry,
-              disposition: PendingPersonUpdateRetryDisposition.discarded,
-              message: error.message,
+            await _alsAbgelehntenProblemfall(
+              attemptedEntry,
+              error.message,
+              trigger: trigger,
             ),
           );
         } on MemberWriteConflictException catch (error) {
-          await _pendingRepository.remove(attemptedEntry.entryId);
           results.add(
-            PendingPersonUpdateRetryItemResult(
-              entry: attemptedEntry,
-              disposition: PendingPersonUpdateRetryDisposition.discarded,
-              message: error.message,
+            await _alsAbgelehntenProblemfall(
+              attemptedEntry,
+              error.message,
+              trigger: trigger,
             ),
           );
         } on MemberWriteNeedsResolutionException catch (error) {
@@ -1019,13 +1049,41 @@ class MemberEditModel extends ChangeNotifier {
             ),
           );
         } on MemberWriteAuthRequiredException catch (error) {
+          // Ohne Anmeldung hat Hitobito nichts geprueft: kein Versuch.
+          await _pendingRepository.save(entry);
           results.add(
             PendingPersonUpdateRetryItemResult(
-              entry: attemptedEntry,
+              entry: entry,
               disposition: PendingPersonUpdateRetryDisposition.retained,
               message: error.message,
+              grund: PendingRetryGrund.anmeldung,
             ),
           );
+          break;
+        } on MemberWriteNetworkBlockedException catch (error) {
+          await _pendingRepository.save(entry);
+          results.add(
+            PendingPersonUpdateRetryItemResult(
+              entry: entry,
+              disposition: PendingPersonUpdateRetryDisposition.retained,
+              message: error.message,
+              grund: PendingRetryGrund.netz,
+            ),
+          );
+          break;
+        } on MemberWriteNetworkUnavailableException catch (error) {
+          // Hitobito nicht erreicht: zaehlt nicht als Versuch, und die
+          // uebrigen Eintraege scheitern gerade genauso.
+          await _pendingRepository.save(entry);
+          results.add(
+            PendingPersonUpdateRetryItemResult(
+              entry: entry,
+              disposition: PendingPersonUpdateRetryDisposition.retained,
+              message: error.message,
+              grund: PendingRetryGrund.netz,
+            ),
+          );
+          break;
         } on MemberWriteValidationException catch (error) {
           final resolutionEntry = attemptedEntry.copyWith(
             status: PendingPersonUpdateStatus.needsResolution,
@@ -1048,12 +1106,11 @@ class MemberEditModel extends ChangeNotifier {
             ),
           );
         } on MemberWriteRejectedException catch (error) {
-          await _pendingRepository.remove(attemptedEntry.entryId);
           results.add(
-            PendingPersonUpdateRetryItemResult(
-              entry: attemptedEntry,
-              disposition: PendingPersonUpdateRetryDisposition.discarded,
-              message: error.message,
+            await _alsAbgelehntenProblemfall(
+              attemptedEntry,
+              error.message,
+              trigger: trigger,
             ),
           );
         } catch (error) {
@@ -1062,6 +1119,7 @@ class MemberEditModel extends ChangeNotifier {
               entry: attemptedEntry,
               disposition: PendingPersonUpdateRetryDisposition.retained,
               message: 'member_edit_retry_failed',
+              grund: PendingRetryGrund.server,
             ),
           );
         }
@@ -1111,6 +1169,87 @@ class MemberEditModel extends ChangeNotifier {
     } finally {
       _setBusy(false);
     }
+  }
+
+  /// Nimmt die vor dem Senden vorgemerkte Aenderung zurueck und stellt die
+  /// Eintraege wieder her, die es fuer die Person vorher gab.
+  Future<void> _stellePendingWiederHer(
+    int personId,
+    List<PendingPersonUpdate>? vorherige,
+  ) async {
+    if (vorherige == null) {
+      return;
+    }
+    final current = await _pendingRepository.loadAll();
+    for (final entry in current.where((entry) => entry.personId == personId)) {
+      await _pendingRepository.remove(entry.entryId);
+    }
+    for (final entry in vorherige) {
+      await _pendingRepository.save(entry);
+    }
+  }
+
+  /// Hitobito hat die Aenderung als Ganzes abgelehnt. Erneutes Senden hilft
+  /// dann nicht; die Aenderung wird ein Problemfall mit dem Grund und bleibt
+  /// stehen, bis sie geloest oder verworfen ist.
+  Future<PendingPersonUpdateRetryItemResult> _alsAbgelehntenProblemfall(
+    PendingPersonUpdate entry,
+    String hinweis, {
+    required String trigger,
+  }) async {
+    final problemfall = entry.copyWith(
+      status: PendingPersonUpdateStatus.needsResolution,
+      resolutionCase: MemberResolutionCase(
+        remoteMitglied: entry.basisMitglied,
+        items: const <MemberResolutionItem>[],
+        source: MemberResolutionSource.pendingRetry,
+        hinweis: hinweis,
+      ),
+    );
+    await _pendingRepository.save(problemfall);
+    await _logResolutionCreated(
+      trigger: trigger,
+      entry: problemfall,
+      outcome: 'rejected_needs_resolution',
+    );
+    return PendingPersonUpdateRetryItemResult(
+      entry: problemfall,
+      disposition: PendingPersonUpdateRetryDisposition.needsResolution,
+      message: hinweis,
+      grund: PendingRetryGrund.server,
+    );
+  }
+
+  /// Verwirft einen wartenden Eintrag und liefert ihn fuer „Rueckgaengig“.
+  Future<PendingPersonUpdate?> discardPending(String entryId) async {
+    final current = await _pendingRepository.loadAll();
+    PendingPersonUpdate? entry;
+    for (final candidate in current) {
+      if (candidate.entryId == entryId) {
+        entry = candidate;
+      }
+    }
+    if (entry == null) {
+      return null;
+    }
+    await _pendingRepository.remove(entryId);
+    await _logger.logInfo(
+      'member_edit',
+      'pending_discarded person_id=${entry.personId} '
+          'status=${entry.status.name}',
+    );
+    await _logger.trackEvent('member_edit', <String, Object?>{
+      'action': 'pending_discarded',
+      'status': entry.status.name,
+    });
+    await loadPending();
+    return entry;
+  }
+
+  /// Stellt einen eben verworfenen Eintrag wieder her.
+  Future<void> restorePending(PendingPersonUpdate entry) async {
+    await _pendingRepository.save(entry);
+    await loadPending();
   }
 
   Future<void> _removePendingForPerson(int personId) async {

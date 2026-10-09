@@ -116,6 +116,9 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
                     (context, textController, focusNode, onSubmitted) {
                       textController.text = _controller.text;
                       return TextFormField(
+                        // Eingaben koennen Mitgliederdaten enthalten; die Tastatur soll sie
+                        // nicht lernen.
+                        enableIMEPersonalizedLearning: false,
                         controller: textController,
                         focusNode: focusNode,
                         style: theme.textTheme.bodySmall,

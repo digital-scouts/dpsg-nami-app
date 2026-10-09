@@ -18,12 +18,17 @@ Story abmeldungHinweisKarteStory() => Story(
       ],
     );
     final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
-    final unterbrochen = context.knobs.options<bool>(
+    final grund = context.knobs.options<String>(
       label: 'Grund',
-      initial: false,
+      initial: 'rechte',
       options: const [
-        Option(label: 'Rechte geändert', value: false),
-        Option(label: 'Anmeldung unterbrochen', value: true),
+        Option(label: 'Rechte geändert', value: 'rechte'),
+        Option(label: 'Anmeldung unterbrochen', value: 'unterbrochen'),
+        Option(label: 'Daten abgelaufen', value: 'abgelaufen'),
+        Option(
+          label: 'Daten abgelaufen, Änderungen verloren',
+          value: 'verloren',
+        ),
       ],
     );
 
@@ -52,9 +57,17 @@ Story abmeldungHinweisKarteStory() => Story(
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      unterbrochen
-                          ? const AbmeldungHinweisKarte.anmeldungUnterbrochen()
-                          : const AbmeldungHinweisKarte(),
+                      switch (grund) {
+                        'unterbrochen' =>
+                          const AbmeldungHinweisKarte.anmeldungUnterbrochen(),
+                        'abgelaufen' =>
+                          const AbmeldungHinweisKarte.datenAbgelaufen(),
+                        'verloren' =>
+                          const AbmeldungHinweisKarte.datenAbgelaufen(
+                            verloren: 2,
+                          ),
+                        _ => const AbmeldungHinweisKarte(),
+                      },
                       const SizedBox(height: 20),
                       FilledButton.icon(
                         onPressed: () {},

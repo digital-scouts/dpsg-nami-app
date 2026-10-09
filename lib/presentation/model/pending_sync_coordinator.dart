@@ -26,7 +26,9 @@ class PendingSyncCoordinator {
     WifiSyncTrigger? wifiSyncTrigger,
     bool pendingRetryEnabled = true,
     Duration pendingRetryInterval = const Duration(minutes: 1),
-  }) : _connectivity = connectivity,
+    void Function(PendingPersonUpdateRetrySummary summary)? onRetrySummary,
+  }) : _onRetrySummary = onRetrySummary,
+       _connectivity = connectivity,
        _authModel = authModel,
        _memberEditModel = memberEditModel,
        _noMobileDataEnabled = noMobileDataEnabled,
@@ -43,6 +45,10 @@ class PendingSyncCoordinator {
   final WifiSyncTrigger _wifiSyncTrigger;
   final bool _pendingRetryEnabled;
   final Duration _pendingRetryInterval;
+
+  /// Ergebnis jedes automatischen Nachsendens, z. B. fuer einen Hinweis bei
+  /// abgelehnten Aenderungen.
+  final void Function(PendingPersonUpdateRetrySummary summary)? _onRetrySummary;
 
   bool _isPaused = false;
   bool _isForegroundSyncRunning = false;
@@ -176,6 +182,13 @@ class PendingSyncCoordinator {
         trigger: trigger,
         userInitiated: false,
       );
+      // Hat der Sync Hitobito nicht erreicht, darf dieselbe Verbindung ihn
+      // spaeter erneut ausloesen.
+      final ergebnis = _authModel.lastSyncAttemptResult;
+      if (ergebnis == SyncAttemptResult.networkError ||
+          ergebnis == SyncAttemptResult.wifiOnly) {
+        _wifiSyncTrigger.reset();
+      }
       await _retryPendingPersonUpdatesIfPossible(trigger: '${trigger}_pending');
     } finally {
       _isForegroundSyncRunning = false;
@@ -212,10 +225,13 @@ class PendingSyncCoordinator {
       return;
     }
 
-    await _memberEditModel.retryPending(
+    final summary = await _memberEditModel.retryPending(
       accessToken: accessToken,
       trigger: trigger,
       automatic: true,
     );
+    if (summary.results.isNotEmpty) {
+      _onRetrySummary?.call(summary);
+    }
   }
 }

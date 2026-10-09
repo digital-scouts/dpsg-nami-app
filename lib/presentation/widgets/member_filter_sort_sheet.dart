@@ -774,6 +774,9 @@ class _CustomGroupEditorSheetState extends State<_CustomGroupEditorSheet> {
                   Expanded(
                     flex: 1,
                     child: TextField(
+                      // Eingaben koennen Mitgliederdaten enthalten; die Tastatur soll sie
+                      // nicht lernen.
+                      enableIMEPersonalizedLearning: false,
                       controller: _shortLabelController,
                       maxLength: 8,
                       decoration: InputDecoration(
