@@ -93,3 +93,17 @@ Janneck Lange, privat, `dev@jannecklange.de`. Es gibt keinen Datenschutzbeauftra
 - Mitgliederdaten liegen verschlüsselt auf dem Gerät (Hive-Boxen mit Schlüssel im Keychain bzw. Keystore, nur dieses Gerät) und werden beim Abmelden gelöscht.
 - Optionale App-Sperre per Face ID oder Fingerabdruck.
 - Traffic-Log nur mit Methode, Status, Quelle und URI, ohne Inhalte; Logs werden nach sieben Tagen gelöscht.
+
+## Privacy-Manifest (iOS)
+
+`ios/Runner/PrivacyInfo.xcprivacy` gibt die Verarbeitungen oben für Apple an, alle ohne Tracking und nicht mit der Person verknüpft. Bei neuen Verarbeitungen hier und dort nachziehen, ebenso die App-Datenschutzangaben in App Store Connect.
+
+| Datentyp im Manifest | Verarbeitung |
+|---|---|
+| CrashData, OtherDiagnosticData | V2 (Fehlerberichte, Ping) |
+| ProductInteraction | V2 (Nutzungsanalyse, nur mit Einwilligung) |
+| CustomerSupport, EmailAddress, PhotosorVideos | V2 (Feedback mit optionaler Mail und Screenshot), V7 |
+| PhysicalAddress | V3 (Geokodierung) |
+| OtherDataTypes | V1 (Zählwerte der Bundesstatistik) |
+
+APIs mit Begründungspflicht, die der eigene Dart-Code nutzt: Dateizeitstempel (`C617.1`, Aufräumen der Logs), Systemlaufzeit (`35F9.1`, Zeitmessung in der Sitzung) und UserDefaults (`CA92.1`, SharedPreferences). Die Plugins bringen eigene Manifeste mit.
