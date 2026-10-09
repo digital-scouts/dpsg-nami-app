@@ -1,8 +1,8 @@
 <!doctype html>
 <!--
   Ein Store-Screenshot in exakter Pixelgröße.
-  Parameter: ?target=iphone|duo|ipad|play&slide=<index>&style=navy|hell|stufen
-  Wird von preview.html (verkleinert) und render.mjs (Export) genutzt.
+  Parameter: ?target=iphone|duo|ipad|play|playtablet&slide=<index>&style=navy|hell|stufen&lang=de|en
+  Wird von preview.html (verkleinert) und render.sh (Export) genutzt.
 -->
 <html lang="de">
 <head>
@@ -48,6 +48,13 @@
   .t-play .subline { font-size: 40px; margin-top: 26px; }
   .t-play .accent-bar { width: 90px; height: 11px; margin-bottom: 32px; }
   .t-play .device { margin-top: 60px; }
+
+  /* Google Play Tablet – 1600 × 2560, Karte aus den iPad-Rohscreens */
+  .t-playtablet { width: 1600px; height: 2560px; }
+  .t-playtablet .copy { padding: 190px 140px 0; }
+  .t-playtablet .headline { font-size: 116px; }
+  .t-playtablet .subline { font-size: 56px; margin-top: 32px; }
+  .t-playtablet .accent-bar { width: 130px; height: 15px; margin-bottom: 44px; }
 </style>
 </head>
 <body>
@@ -59,6 +66,8 @@
   const index = Number(params.get('slide') || 0);
   const style = params.get('style') || StoreRender.defaultStyle();
   const slide = STORE.slides[index];
+  const copy = StoreRender.text(slide);
+  document.documentElement.lang = StoreRender.lang;
   const canvas = document.getElementById('canvas');
   canvas.classList.add('t-' + target, 's-' + style);
   canvas.style.setProperty('--accent', slide.accent);
@@ -67,8 +76,8 @@
     ${StoreRender.watermark()}
     <div class="copy">
       <div class="accent-bar"></div>
-      <h1 class="headline">${slide.headline}</h1>
-      <p class="subline">${slide.subline}</p>
+      <h1 class="headline">${copy.headline}</h1>
+      <p class="subline">${copy.subline}</p>
     </div>
     ${StoreRender.device(target, slide)}
   `;

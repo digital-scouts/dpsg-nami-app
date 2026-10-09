@@ -20,10 +20,8 @@
 
 ## Versionierung und Release
 
-- Aendere Release-Dateien nur bewusst und konsistent.
-- Halte pubspec.yaml, assets/changelog.json und docs/version.json inhaltlich stimmig, wenn eine Release-Aufgabe dies erfordert; validiere mit `dart tool/validate_versions.dart`.
-- Pflege assets/changelog.json direkt mit: Jede nutzerseitig sichtbare Aenderung bekommt im selben PR einen kurzen Eintrag unter der Version aus pubspec.yaml (bis zum Livegang 1.0.0), als Feature oder Bugfix, aus Nutzersicht formuliert, ohne Technikdetails. Interne Umbauten ohne sichtbare Wirkung brauchen keinen Eintrag.
-- Wenn Env-Keys geaendert werden, halte .env.example, lokale .env, ios/ci_scripts/ci_pre_xcodebuild.sh und die GitHub-Workflow-Env-Erzeugung synchron; validiere mit `dart tool/validate_env_files.dart`.
+- Aendere Version in pubspec.yaml und docs/version.json nur bei Release-Aufgaben und konsistent; validiere mit `dart tool/validate_versions.dart`.
+- Changelog-Eintraege und Env-Abgleich prueft der Skill `aufgabe-abschliessen` vor jedem PR.
 
 ## Dokumentation
 
@@ -52,3 +50,4 @@
 - Vermeide unnoetige Massenreformatierung und unangrenzende Refactorings.
 - Benenne Annahmen, Risiken oder offene Punkte knapp, wenn sie fuer die Aufgabe relevant bleiben.
 - Sichtbare Aenderungen vor der Umsetzung mit dem Skill `feedbackrunde` (.claude/skills/feedbackrunde/) klaeren. Im Repo landet nur die Entscheidung unter design/entscheidung/, keine Rundendateien.
+- Schliesse Aufgaben mit dem Skill `aufgabe-abschliessen` (.claude/skills/aufgabe-abschliessen/) ab: Vollstaendigkeit, Changelog, Validierung, Issues und PR.

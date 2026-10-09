@@ -75,6 +75,7 @@ class MemberPeopleStoryShell extends StatefulWidget {
     this.navigationIndex,
     this.appearance,
     this.themeMode = ThemeMode.system,
+    this.locale = const Locale('de'),
   });
 
   final List<Mitglied> cached;
@@ -84,6 +85,7 @@ class MemberPeopleStoryShell extends StatefulWidget {
   final int? navigationIndex;
   final AppearanceSettings? appearance;
   final ThemeMode themeMode;
+  final Locale locale;
 
   @override
   State<MemberPeopleStoryShell> createState() => _MemberPeopleStoryShellState();
@@ -182,7 +184,7 @@ class _MemberPeopleStoryShellState extends State<MemberPeopleStoryShell> {
               AppLocalizations.delegate,
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
-            locale: const Locale('de'),
+            locale: widget.locale,
             home: Builder(
               builder: (context) {
                 // Wie in NavigationHomeScreen: die Shell liefert die SafeArea.

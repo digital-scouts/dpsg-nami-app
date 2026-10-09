@@ -47,6 +47,12 @@ List<Story> storeSceneStories() => <Story>[
 
 /// Erscheinungsbild der Mitgliederliste: animierter Hintergrund und eigenes
 /// Supporter-Badge.
+/// Sprache der Store-Szenen. `run_store_screenshots.sh --lang en` setzt sie
+/// ueber `STORE_SCREENSHOT_LOCALE`; Storybook und Handbuch bleiben deutsch.
+const Locale storeSceneLocale = Locale(
+  String.fromEnvironment('STORE_SCREENSHOT_LOCALE', defaultValue: 'de'),
+);
+
 const AppearanceSettings storeShowcaseAppearance = AppearanceSettings(
   background: AppearanceBackgroundId.waldsee,
   badge: SupporterBadgeId.kompassPfadfinder,
@@ -59,6 +65,7 @@ Story storeMitgliederStory() => Story(
     appearance: storeShowcaseAppearance,
     themeMode: ThemeMode.light,
     navigationIndex: 0,
+    locale: storeSceneLocale,
   ),
 );
 
@@ -74,6 +81,7 @@ Story storeStatistikStory() => Story(
   builder: (context) => StatisticsPageStoryScene(
     background: storeShowcaseAppearance.background,
     simulateTopInset: false,
+    locale: storeSceneLocale,
   ),
 );
 
@@ -81,7 +89,12 @@ Story storeBundesvergleichStory() => Story(
   name: 'Store/Bundesvergleich',
   builder: (context) => StoreSceneApp(
     home: Scaffold(
-      appBar: AppBar(title: const Text('Bundesweiter Vergleich')),
+      appBar: AppBar(
+        title: Builder(
+          builder: (context) =>
+              Text(AppLocalizations.of(context).t('bund_page_title')),
+        ),
+      ),
       body: BundesvergleichView(
         status: BundesstatistikStatus.bereit,
         hatEinwilligung: true,
@@ -106,6 +119,7 @@ Story storeStufenwechselStory() => Story(
   builder: (context) => StufenwechselPageStoryScene(
     background: storeShowcaseAppearance.background,
     simulateTopInset: false,
+    locale: storeSceneLocale,
   ),
 );
 
@@ -173,7 +187,7 @@ class StoreSceneApp extends StatelessWidget {
     super.key,
     required this.home,
     this.dark = false,
-    this.locale = const Locale('de'),
+    this.locale = storeSceneLocale,
   });
 
   final Widget home;
