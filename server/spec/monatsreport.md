@@ -4,7 +4,7 @@ Der Server hält monatlich fest, wie groß der Kreis der Teilnehmenden ist, dami
 
 ## Auslieferung
 
-- **Web-Ansicht** `GET /admin`, geschützt mit HTTP Basic Auth (ein einziger Zugang aus `ADMIN_USER` und `ADMIN_PASSWORD_HASH`, keine Accountverwaltung). Sie zeigt den laufenden Monat live bis zum aktuellen Zeitpunkt, die Regionen und den Verlauf aller gespeicherten Monate. Antworten tragen `Cache-Control: no-store`, `X-Robots-Tag: noindex` und eine Content-Security-Policy ohne Skripte. Die Route ist pro IP begrenzt. Ohne Zugangsdaten gibt es die Route nicht (404).
+- **Web-Ansicht** `GET /admin`, geschützt mit HTTP Basic Auth (ein einziger Zugang aus `ADMIN_USER` und `ADMIN_PASSWORD_HASH`, keine Accountverwaltung). Sie zeigt den laufenden Monat live bis zum aktuellen Zeitpunkt, die Regionen und den Verlauf aller gespeicherten Monate. Antworten tragen `Cache-Control: no-store`, `X-Robots-Tag: noindex` und eine Content-Security-Policy ohne Skripte. Die Route ist pro IP begrenzt. Ohne Zugangsdaten gibt es die Route nicht (404). Mit demselben Zugang zeigt `GET /admin/betrieb` Betrieb und Feeds der App (`admin_betrieb.md`).
 - **Telegram:** Nach Monatsende eine kurze Nachricht mit den Kernzahlen und dem Link auf `/admin`, sofern `REPORT_TELEGRAM_BOT_TOKEN` und `REPORT_TELEGRAM_CHAT_ID` gesetzt sind.
 
 ## Zeitpunkt

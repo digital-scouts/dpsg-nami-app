@@ -4,7 +4,7 @@ import { STUFEN, type Stufe } from '../stammesSnapshot/schema.js';
 // Serverseitig gerenderte Uebersicht ohne Skripte. DV- und Bezirks-IDs stammen aus den
 // Snapshots der Apps und werden deshalb immer escaped.
 
-const escapeHtml = (value: string): string =>
+export const escapeHtml = (value: string): string =>
     value.replace(/[&<>"']/g, (zeichen) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[zeichen] ?? zeichen);
 
 const STUFEN_NAMEN: Record<Stufe, string> = {
@@ -15,9 +15,28 @@ const STUFEN_NAMEN: Record<Stufe, string> = {
     rover: 'Rover',
 };
 
-const datum = (date: Date): string =>
+export const datum = (date: Date): string =>
     `${String(date.getUTCDate()).padStart(2, '0')}.${String(date.getUTCMonth() + 1).padStart(2, '0')}.${date.getUTCFullYear()}, `
     + `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')} UTC`;
+
+// Gemeinsamer Stil der Admin-Seiten (Statistik und Betrieb).
+export const ADMIN_STYLE = `body{font:15px/1.45 system-ui,sans-serif;margin:0;background:#f5f5f7;color:#1c1c1e}
+main{max-width:960px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:32px 0 10px}h3{font-size:15px;margin:0 0 8px}
+.muted,.legende{color:#8e8e93;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpi{background:#fff;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column}
+.kpi b{font-size:30px;color:#003056}.kpi small{color:#8e8e93;font-size:12.5px;margin-top:4px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid #ececf0;text-align:left;font-variant-numeric:tabular-nums}
+th{font-size:12px;color:#8e8e93;font-weight:600}.r{text-align:right}.ok{color:#24561a;font-weight:700}
+.regionen{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+svg{width:100%;height:auto;background:#fff;border-radius:14px}svg text{font-size:9px;fill:#8e8e93}
+nav.admin{display:flex;gap:6px;margin:12px 0 4px}nav.admin a{padding:5px 12px;border-radius:999px;background:#e5e5ea;color:#3a3a3c;font-size:13px;text-decoration:none}
+nav.admin a[aria-current]{background:#003056;color:#fff}`;
+
+export const adminNav = (aktiv: 'statistik' | 'betrieb'): string =>
+    `<nav class="admin"><a href="/admin"${aktiv === 'statistik' ? ' aria-current="page"' : ''}>Statistik</a><a href="/admin/betrieb"${aktiv === 'betrieb' ? ' aria-current="page"' : ''}>Betrieb</a></nav>`;
 
 const kennzahlen = (figures: ReportFigures): string => {
     const kachel = (wert: number, label: string, unter = '') =>
@@ -82,21 +101,11 @@ export const renderAdminPage = (
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex"><title>NaMi-Statistik</title>
 <style>
-body{font:15px/1.45 system-ui,sans-serif;margin:0;background:#f5f5f7;color:#1c1c1e}
-main{max-width:960px;margin:0 auto;padding:24px 16px 48px}
-h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:32px 0 10px}h3{font-size:15px;margin:0 0 8px}
-.muted,.legende{color:#8e8e93;font-size:13px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.kpi{background:#fff;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column}
-.kpi b{font-size:30px;color:#003056}.kpi small{color:#8e8e93;font-size:12.5px;margin-top:4px}
-table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;font-size:14px}
-th,td{padding:7px 10px;border-bottom:1px solid #ececf0;text-align:left;font-variant-numeric:tabular-nums}
-th{font-size:12px;color:#8e8e93;font-weight:600}.r{text-align:right}.ok{color:#24561a;font-weight:700}
-.regionen{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-svg{width:100%;height:auto;background:#fff;border-radius:14px}svg text{font-size:9px;fill:#8e8e93}
+${ADMIN_STYLE}
 </style></head><body><main>
 <h1>NaMi-Statistik</h1>
 <p class="muted">Stand ${escapeHtml(datum(aktuell.stichtag))} · Version ${escapeHtml(version)} · nur Zählwerte, keine Stammes- oder Personendaten</p>
+${adminNav('statistik')}
 <h2>Laufender Monat ${escapeHtml(aktuell.month)} (bis heute)</h2>
 ${kennzahlen(aktuell)}
 <h2>Regionen</h2>

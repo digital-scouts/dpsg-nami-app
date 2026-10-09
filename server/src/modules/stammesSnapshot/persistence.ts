@@ -25,6 +25,8 @@ export type RawSnapshotsRepository = {
     findBySender(senderPseudonym: string): Promise<RawSnapshotDocument[]>;
     // Loescht alle Snapshots eines Senders (Loeschung auf Anfrage), liefert die Anzahl.
     deleteBySender(senderPseudonym: string): Promise<number>;
+    // Eingang des aeltesten gespeicherten Snapshots (jede Schema-Version), fuer die naechste Loeschung.
+    findOldestReceivedAt(): Promise<Date | null>;
 };
 
 export const buildRawSnapshotDocument = (

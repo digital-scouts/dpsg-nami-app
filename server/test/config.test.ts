@@ -110,7 +110,7 @@ describe('loadConfig', () => {
             PUBLIC_BASE_URL: 'https://namiapp.example.org/',
         });
 
-        expect(config.admin).toEqual({ user: 'betrieb', passwordHash });
+        expect(config.admin).toMatchObject({ user: 'betrieb', passwordHash });
         expect(config.telegram).toEqual({ botToken: '123:abc', chatId: '-10042' });
         expect(config.publicBaseUrl).toBe('https://namiapp.example.org');
     });
@@ -120,5 +120,17 @@ describe('loadConfig', () => {
         expect(() => loadConfig({ ...requiredEnv, ADMIN_USER: 'betrieb', ADMIN_PASSWORD_HASH: 'klartext' }))
             .toThrow(/npm run admin:hash/);
         expect(() => loadConfig({ ...requiredEnv, REPORT_TELEGRAM_BOT_TOKEN: '123:abc' })).toThrow(/REPORT_TELEGRAM/);
+    });
+
+    test('defaults the admin feed urls to GitHub Pages and requires https', () => {
+        const admin = {
+            ...requiredEnv,
+            ADMIN_USER: 'betrieb',
+            ADMIN_PASSWORD_HASH: hashAdminPassword('ein-langes-passwort'),
+        };
+
+        expect(loadConfig(admin).admin?.notificationsUrl).toBe('https://digital-scouts.github.io/dpsg-nami-app/notifications.json');
+        expect(loadConfig({ ...admin, ADMIN_VERSION_URL: '' }).admin?.versionUrl).toBe('https://digital-scouts.github.io/dpsg-nami-app/version.json');
+        expect(() => loadConfig({ ...admin, ADMIN_VERSION_URL: 'http://example.org/version.json' })).toThrow();
     });
 });
