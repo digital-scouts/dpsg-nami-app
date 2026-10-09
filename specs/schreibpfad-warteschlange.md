@@ -43,6 +43,11 @@ Stand: 2026-10-09. Wie Änderungen an Mitgliedern nach Hitobito gelangen und was
 - Der Login zeigt die Karte „Daten abgelaufen“. Gingen Änderungen verloren, erscheint sie als Warnung mit der Zahl.
 - Läuft der Ablauf schon, warten weitere Auslöser auf ihn. Während des Sendens prüft der Remote-Zugriff die Frist nicht erneut.
 
+## Bearbeiten
+
+- Mit Eingaben seit dem Öffnen fragt die Bearbeiten-Seite beim Zurückgehen (Knopf und Geste) in einem Sheet nach: „Speichern“, „Weiter bearbeiten“, „Verwerfen“. Ohne Änderung geht es ohne Rückfrage zurück.
+- Bearbeiten-Felder schalten das Lernen der Tastatur, Autokorrektur und Vorschläge ab. In Suche, Filter, Stammesadresse, KI-Chat, „Problem melden“ und Log-Suche ist nur das Lernen der Tastatur aus (#200).
+
 ## Bewusste Entscheidungen
 
 - **Kein Entwurf über Prozessende:** Ungespeicherte Eingaben im Bearbeiten werden nicht gespeichert (Datensparsamkeit). Beim Verlassen mit Änderungen fragt die App nach. Gespeicherte Änderungen bleiben in der Warteschlange.

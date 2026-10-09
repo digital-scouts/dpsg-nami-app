@@ -110,6 +110,7 @@
       "features": [
         "Bevor die gespeicherten Daten nach 90 Tagen ablaufen, sendet die App noch vorgemerkte Änderungen. Was nicht mehr gesendet werden konnte, nennt sie beim Anmelden.",
         "Die App verwendet nun NaMi 3.0 (Hitobito) und wurde komplett neu gestaltet.",
+        "Wer beim Bearbeiten eines Mitglieds mit ungespeicherten Änderungen zurückgeht, kann sie speichern, weiter bearbeiten oder verwerfen. Die Tastatur lernt in Bearbeiten- und Suchfeldern keine Mitgliederdaten mehr.",
         "Arbeitskontext: Wer Rechte auf mehreren Ebenen hat, wechselt im Profil zwischen Stamm, Bezirk und weiteren Ebenen.",
         "Mitgliedsdetails mit Rollenverlauf, nächstem Stufenwechsel, Geschwistern und Qualifikationen.",
         "Mitglieder bearbeiten, auch offline: Änderungen werden vorgemerkt und später gesendet, parallele Änderungen automatisch zusammengeführt.",

@@ -119,6 +119,9 @@ class _AppLogViewState extends State<AppLogView> {
         children: [
           Expanded(
             child: TextField(
+              // Eingaben koennen Mitgliederdaten enthalten; die Tastatur soll sie
+              // nicht lernen.
+              enableIMEPersonalizedLearning: false,
               key: const Key('applog_search'),
               decoration: InputDecoration(
                 hintText: t.t('debug_applog_search'),
