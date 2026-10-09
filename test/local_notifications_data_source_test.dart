@@ -42,6 +42,25 @@ void main() {
     expect(stored.map((item) => item.id), containsAll(<String>['1', '2']));
   });
 
+  test('entfernt zurueckgezogene Notifications samt Bestaetigung', () async {
+    await dataSource.saveNotifications([
+      buildNotification('1'),
+      buildNotification('2'),
+    ]);
+    await dataSource.acknowledge('1');
+    await dataSource.acknowledge('2');
+
+    await dataSource.saveNotifications([buildNotification('2')]);
+
+    expect(dataSource.getNotifications().map((item) => item.id), ['2']);
+    expect(await dataSource.getAcknowledgedIds(), {'2'});
+
+    await dataSource.saveNotifications(const []);
+
+    expect(dataSource.getNotifications(), isEmpty);
+    expect(await dataSource.getAcknowledgedIds(), isEmpty);
+  });
+
   test('persistiert den letzten Fetch-Zeitpunkt', () async {
     final timestamp = DateTime(2026, 3, 26, 12, 30);
 

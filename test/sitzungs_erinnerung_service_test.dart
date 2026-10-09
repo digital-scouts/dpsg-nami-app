@@ -15,6 +15,15 @@ class _FakeMitteilungen implements LokaleMitteilungen {
   Future<List<int>> geplanteIds() async => geplant.keys.toList();
 
   @override
+  Future<void> abbrechenBereich(int erste, int letzte) async {
+    for (final id in geplant.keys.toList()) {
+      if (id >= erste && id <= letzte) {
+        await abbrechen(id);
+      }
+    }
+  }
+
+  @override
   Future<void> abbrechen(int id) async {
     geplant.remove(id);
   }
