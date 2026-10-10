@@ -1,6 +1,6 @@
 # Update-Hinweise und Sicherheitsupdate
 
-Stand: 2026-10-10. Die App liest `docs/version.json` (GitHub Pages, Adresse unverändert) höchstens alle `APP_UPDATE_MIN_FETCH_INTERVAL_HOURS` Stunden. Offline nutzt sie den zuletzt geladenen Stand. Gestaltung: `design/entscheidung/2026-10-09-schreibpfad-sicherheitsupdate.md` (#197).
+Stand: 2026-10-10. Die App liest die Versionsangaben über `GET /app/version` vom Statistikserver (`APP_UPDATE_URL`, Schnittstelle in `server/spec/app_feeds.md`) höchstens alle `APP_UPDATE_MIN_FETCH_INTERVAL_HOURS` Stunden. Offline nutzt sie den zuletzt geladenen Stand. Gestaltung: `design/entscheidung/2026-10-09-schreibpfad-sicherheitsupdate.md` (#197).
 
 ## Normale Updates
 
@@ -33,9 +33,16 @@ Liegt die installierte Version unter `min_version`:
 
 Zustand: `SharedPreferences` unter `app_update_security_state`. Regel: `lib/domain/app_update/sicherheits_update_regel.dart`, Ablauf: `SicherheitsUpdateModel`.
 
+## Pflege
+
+Der Betreiber pflegt die Angaben je Plattform im Admin des Statistikservers unter `/admin/versionen`. Jede Änderung geht über eine Vorschau mit der Wirkung im Klartext und löst eine Telegram-Nachricht aus.
+
+- `latest` nach der Freigabe im Store von Hand setzen. Es gibt keine Erinnerung; ein vergessenes `latest` kostet nur den Hinweis „Update verfügbar“.
+- Fehlen beide Plattformen, antwortet der Server mit 404 und die App behält ihren letzten Stand.
+
 ## Auslösen und zurücknehmen
 
-- **Auslösen:** In `docs/version.json` bei der betroffenen Plattform den Block `security` mit der ersten behobenen Version als `min_version` eintragen, erst nachdem diese Version in dem Store verfügbar ist. Bei einem Datenleck `daten_loeschen: true` setzen.
+- **Auslösen:** Unter `/admin/versionen` bei der betroffenen Plattform den Bereich „Sicherheitsupdate“ aktivieren und die erste behobene Version eintragen, erst nachdem diese Version im Store verfügbar ist. Bei einem Datenleck „Daten beim Sperren löschen“ ankreuzen.
 - **Wirkung:** Spätestens nach dem Abrufintervall. „Erneut prüfen“ auf der Sperre lädt das Manifest sofort.
-- **Zurücknehmen:** Den Block entfernen. Beim nächsten Abruf verschwinden Nachfrage, Countdown und Sperre; der gespeicherte Stand wird gelöscht. Bereits gelöschte Daten lädt die App nach dem Anmelden neu.
+- **Zurücknehmen:** Das Sicherheitsupdate abwählen und speichern. Beim nächsten Abruf verschwinden Nachfrage, Countdown und Sperre; der gespeicherte Stand wird gelöscht. Bereits gelöschte Daten lädt die App nach dem Anmelden neu.
 - Ältere App-Versionen kennen den Block nicht und zeigen weiter nur die normalen Hinweise.

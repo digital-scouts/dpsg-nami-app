@@ -113,9 +113,7 @@ void main() {
     }
     expect(
       RemoteNotificationsDataSource.istErlaubt(
-        Uri.parse(
-          'https://digital-scouts.github.io/dpsg-nami-app/notifications.json',
-        ),
+        Uri.parse('https://namiapp.scout-link.de/app/notifications'),
       ),
       isTrue,
     );

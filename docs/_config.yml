@@ -2,10 +2,9 @@
 # Gebaut von GitHub Pages (legacy, Branch develop, Ordner /docs).
 # Lokal: cd docs && bundle exec jekyll serve
 #
-# Die App ruft diese Adressen direkt ab, sie dürfen sich nicht ändern:
+# Die App ruft diese Adresse direkt ab, sie darf sich nicht ändern:
 #   /app-privacy-policy   (lib/domain/rechtliches/anbieter.dart)
-#   /notifications.json   (PULL_NOTIFICATIONS_URL)
-#   /version.json         (APP_UPDATE_URL)
+# Meldungen und Versionen liefert der Statistikserver (server/spec/app_feeds.md).
 
 title: NaMi App
 description: >-

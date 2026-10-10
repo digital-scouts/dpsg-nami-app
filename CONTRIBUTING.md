@@ -52,10 +52,10 @@ Dann muss der höchste Eintrag im Changelog `1.0.0` sein.
 Wenn dieselbe Release-Version erneut deployed werden soll, wird nur die Build-Metadaten-Komponente in [pubspec.yaml](pubspec.yaml) erhöht, zum Beispiel von `1.0.0+1` auf `1.0.0+2`.
 Der Changelog bleibt dabei auf `1.0.0`, weil nur die Release-Version ohne Build-Metadaten relevant ist.
 
-Für Update-Hinweise in der App gibt es zusätzlich eine manuell gepflegte Remote-Datei unter [docs/version.json](docs/version.json).
-Sie enthält pro Plattform die zuletzt als verfügbar markierte Version, die minimale unterstützte Version und den Store-Link.
-Diese Datei beschreibt bewusst nicht den aktuellen Entwicklungsstand, sondern den tatsächlich freigegebenen Stand pro Plattform.
-Die App lädt diese Datei über `APP_UPDATE_URL` aus der `.env` und cached die Antwort lokal. Die Fetch-Frequenz und das Timeout werden über `APP_UPDATE_MIN_FETCH_INTERVAL_HOURS` und `APP_UPDATE_FETCH_TIMEOUT_SECONDS` gesteuert.
+Für Update-Hinweise in der App pflegt der Betreiber die Versionsangaben im Admin des Statistikservers unter `/admin/versionen` (siehe [server/spec/app_feeds.md](server/spec/app_feeds.md)).
+Sie enthalten pro Plattform die zuletzt als verfügbar markierte Version, die minimale unterstützte Version, den Store-Link und optional ein Sicherheitsupdate.
+Sie beschreiben bewusst nicht den aktuellen Entwicklungsstand, sondern den tatsächlich freigegebenen Stand pro Plattform; `latest` wird nach der Freigabe im Store von Hand gesetzt.
+Die App lädt sie über `APP_UPDATE_URL` aus der `.env` (`/app/version`) und cached die Antwort lokal. Die Fetch-Frequenz und das Timeout werden über `APP_UPDATE_MIN_FETCH_INTERVAL_HOURS` und `APP_UPDATE_FETCH_TIMEOUT_SECONDS` gesteuert.
 
 Die Prüfung kann lokal manuell ausgeführt werden:
 
@@ -97,9 +97,9 @@ Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 
 Die Workflows laufen nur für den Bereich, der sich geändert hat:
 
-- In [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) entscheidet der Job `changes` anhand der geänderten Pfade. Die Flutter-Validierung und `Update check Android` laufen nur bei App-Änderungen (`lib/`, `test/`, `integration_test/`, `assets/`, `android/`, `ios/`, `tool/`, `pubspec.*`, `analysis_options.yaml`, `.env.example`), der macOS-Job nur bei Änderungen an `ios/` oder `pubspec.*`. Übersprungene Pflicht-Checks gelten als bestanden, reine Server- oder Doku-PRs sind also ohne App-Lauf mergebar. PRs, die nur `docs/version.json` oder den Changelog ändern, prüfen ausschließlich die Versionskonsistenz. Auch der Versionssprung für `master`-PRs wird nur bei App-Änderungen verlangt.
+- In [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) entscheidet der Job `changes` anhand der geänderten Pfade. Die Flutter-Validierung und `Update check Android` laufen nur bei App-Änderungen (`lib/`, `test/`, `integration_test/`, `assets/`, `android/`, `ios/`, `tool/`, `pubspec.*`, `analysis_options.yaml`, `.env.example`), der macOS-Job nur bei Änderungen an `ios/` oder `pubspec.*`. Übersprungene Pflicht-Checks gelten als bestanden, reine Server- oder Doku-PRs sind also ohne App-Lauf mergebar. PRs, die nur `pubspec.yaml` oder den Changelog ändern, prüfen ausschließlich die Versionskonsistenz. Auch der Versionssprung für `master`-PRs wird nur bei App-Änderungen verlangt.
 - [server-validate.yml](.github/workflows/server-validate.yml) und [server-deploy.yml](.github/workflows/server-deploy.yml) laufen nur bei Änderungen unter `server/`.
-- Deploy nach Play (ohne `ios/`), GitHub Release und Version-Reminder-PRs laufen nur, wenn der Merge App-Dateien enthält; `docs/version.json` allein löst sie nicht aus.
+- Deploy nach Play (ohne `ios/`) und GitHub Release laufen nur, wenn der Merge App-Dateien enthält.
 - Ein neuer Push auf einen PR bricht den noch laufenden Validierungslauf ab.
 
 Neue App-Verzeichnisse oder -Dateien müssen in diese Pfadlisten aufgenommen werden.
@@ -116,17 +116,9 @@ Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch
 
 Der iOS-Release-Pfad läuft weiterhin außerhalb von GitHub Actions über Xcode Cloud beziehungsweise App Store Connect.
 Das Xcode-Cloud-Skript [ios/ci_scripts/ci_pre_xcodebuild.sh](ios/ci_scripts/ci_pre_xcodebuild.sh) erzeugt die lokale [.env](.env) dabei anhand der Keys aus [.env.example](.env.example).
-Wenn Env-Keys geändert werden, müssen deshalb Xcode-Cloud-Variablen und [.env.example](.env.example) synchron gehalten werden.
+Xcode Cloud übernimmt dabei keine Werte aus [.env.example](.env.example), nur die Variablen aus App Store Connect. Wenn Env-Keys oder Default-Werte wie URLs geändert werden, müssen deshalb die Xcode-Cloud-Variablen nachgezogen werden.
 
-Beim Merge eines Pull Requests nach `master` erstellt [version-reminder-prs.yml](.github/workflows/version-reminder-prs.yml) automatisch zwei Pull Requests:
-
-- einen für Android
-- einen für iOS
-
-Diese PRs aktualisieren jeweils den passenden Eintrag in [docs/version.json](docs/version.json) auf die neue Versionsnummer.
-Sie dienen als Erinnerung und sollen erst dann gemerged werden, wenn die jeweilige Store-Version wirklich verfügbar ist.
-
-Direkte Pushes nach `master` werden als Hotfixes behandelt und lösen bewusst keine Release-, Deploy- oder Versionierungs-Workflows aus.
+Direkte Pushes nach `master` werden als Hotfixes behandelt und lösen bewusst keine Release- oder Deploy-Workflows aus.
 
 ## Storybook und Screenshots
 

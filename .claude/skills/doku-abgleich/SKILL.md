@@ -10,7 +10,7 @@ Ein Durchlauf bringt README, CONTRIBUTING und `docs/` auf den Stand der App: Än
 **Abgrenzung:**
 - `aufgabe-abschliessen` pflegt je PR Changelog, `specs/`, Env, Tests und Storybook und erstellt Commit und PR. Dieser Skill übergibt am Ende dorthin.
 - `store-seite` pflegt Store-Texte, Rohscreens, Fastlane und die README-Store-Bilder unter `docs/assets/img/store/`. Beim Versionswechsel läuft er zuerst, danach dieser Skill.
-- Hier: README-Text, CONTRIBUTING, `docs/index.html`, Handbuch, Technik, Datenschutz, Szenen unter `lib/stories/docs/`, Bilder unter `docs/assets/img/screens/`, News-Posts, `docs/notifications.json`.
+- Hier: README-Text, CONTRIBUTING, `docs/index.html`, Handbuch, Technik, Datenschutz, Szenen unter `lib/stories/docs/`, Bilder unter `docs/assets/img/screens/`, News-Posts, Vorschlag für eine In-App-Mitteilung (eingetragen im Admin).
 
 ## 0. Basis und Branch
 
@@ -56,7 +56,7 @@ Je Datei kurz: was veraltet ist, was neu hinein muss, welche Bilder betroffen si
 - **README.md** stellt das Projekt vor (Funktionsumfang, Store-Bilder, Links). Nur anpassen, wenn eine Funktion neu dazukommt oder entfällt.
 - **CONTRIBUTING.md** enthält Entwickler-Setup, CI und Release-Ablauf.
 - **docs/** ist die GitHub-Pages-Seite (Jekyll, just-the-docs, gebaut aus `develop:/docs`). Texte knapp und auf den Punkt, Anleitungen als nummerierte Schritte mit Screenshots (`{% include shots.html items="name:Bildunterschrift|…" %}`). Echte Umlaute und ß, technische Literale bleiben ASCII.
-- `/app-privacy-policy`, `/notifications.json` und `/version.json` ruft die App direkt ab, sie dürfen sich nicht ändern. Verschobene Seiten bekommen ein `redirect_from`.
+- `/app-privacy-policy` ruft die App direkt ab, die Adresse darf sich nicht ändern. Meldungen und Versionen liefert der Statistikserver (`/app/notifications`, `/app/version`). Verschobene Seiten bekommen ein `redirect_from`.
 - Ein neues Seitenlayout oder ein Umbau von `docs/index.html` geht vorher durch den Skill `feedbackrunde`. Textpflege braucht keine Runde.
 
 ## 4. Handbuch-Screenshots
@@ -97,19 +97,11 @@ Fehler und Warnungen zu fehlenden Seiten oder Links beheben. Format, Analyse und
   - Ton wie dort: Ich-Perspektive, Leser mit „ihr“ angesprochen, nutzernah, ohne Technikdetails.
   - Bilder über `shots.html`, Links ins Handbuch mit `{{ '/handbuch/…/' | relative_url }}`.
   - Den Entwurf im Chat zusammenfassen und abstimmen.
-- Danach per AskUserQuestion fragen, ob zusätzlich eine In-App-Mitteilung in `docs/notifications.json` entsteht. Felder siehe `lib/core/notifications/pull_notification.dart`:
-  ```json
-  {
-    "id": "news-JJJJ-MM-TT-<slug>",
-    "title": { "de": "…", "en": "…" },
-    "body": { "de": "…", "en": "…" },
-    "type": "info",
-    "created_at": "JJJJ-MM-TTT10:00:00+02:00",
-    "external_link": "https://digital-scouts.github.io/dpsg-nami-app/…",
-    "platform": "all"
-  }
-  ```
-  `type` ist `info`, `warn` oder `urgent`; für News immer `info`. Die `id` nie wiederverwenden: Die App merkt sich bestätigte IDs, eine wiederverwendete Mitteilung sähen viele nicht. Laut `lib/core/notifications/README.md` wertet die App `external_link` noch nicht aus; den Text so schreiben, dass er ohne Link verständlich ist.
+- Danach per AskUserQuestion fragen, ob zusätzlich eine In-App-Mitteilung entsteht. Mitteilungen pflegt der Betreiber im Admin des Statistikservers unter `https://namiapp.scout-link.de/admin/meldungen` (siehe `server/spec/app_feeds.md`). Der Skill schlägt die Formularwerte vor, der Nutzer trägt sie ein:
+  - Typ `info` (für News immer), Plattform `all`
+  - Titel und Text auf Deutsch und Englisch
+  - externer Link auf den News-Post
+  - die ID leer lassen, der Server leitet sie aus dem Titel ab. Eine ID nie wiederverwenden: Die App merkt sich bestätigte IDs, eine wiederverwendete Mitteilung sähen viele nicht.
 
 ## 7. Merker und Übergabe
 

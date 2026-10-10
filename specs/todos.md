@@ -64,12 +64,6 @@ Nächste Aufgaben:
 - Erstes Laden: Skeleton oder gleichwertige Fortschrittsanzeige prüfen.
 - Erststart nach Update von Versionen vor 1.0.0: alten Datenstand vollständig entfernen und App neu initialisieren, wenn die alte Datenstruktur nicht kompatibel ist.
 
-## Priorität 7: Meldungen und Versionen vom eigenen Server (#269)
-
-- Nach dem Deploy von #270 Inhalte unter `/admin/versionen` eintragen und `/app/version` prüfen.
-- App-URLs in `.env.example` auf `/app/notifications` und `/app/version` umstellen, `docs/*.json`, Version-Reminder-Workflow und `tool/update_remote_version.dart` entfernen.
-- Regeln, Specs und Datenschutztexte auf den eigenen Server anpassen.
-
 ## Spätere Ausbaustufen
 
 Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzung eigens geplant.

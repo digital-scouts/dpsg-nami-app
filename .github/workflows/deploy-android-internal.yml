@@ -3,7 +3,7 @@ name: Deploy Android Internal
 on:
   push:
     branches: [develop]
-    # Nur Android-relevante App-Aenderungen; docs/version.json (Version-Reminder) bewusst nicht.
+    # Nur Android-relevante App-Aenderungen.
     paths:
       - "lib/**"
       - "test/**"

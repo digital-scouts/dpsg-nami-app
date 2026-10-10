@@ -78,7 +78,7 @@ Regeln:
 
 ### Quelle und Laden
 
-- Quelle bleibt eine JSON-Datei über URL aus `.env`: `docs/notifications.json`, ausgeliefert über GitHub Pages (`https://digital-scouts.github.io/dpsg-nami-app/notifications.json`) wie `version.json`. Neue Mitteilungen entstehen durch einen Commit auf `master`.
+- Quelle ist `GET /app/notifications` des Statistikservers (`PULL_NOTIFICATIONS_URL`, Schnittstelle in `server/spec/app_feeds.md`). Mitteilungen pflegt der Betreiber im Admin unter `/admin/meldungen`; sie erscheinen beim nächsten Abruf.
 - Die App akzeptiert nur https-URLs (http nur für Loopback in Tests) und bricht nach 5 s ab.
 - Der Cache gibt nach jedem erfolgreichen Abruf zurückgezogene Mitteilungen samt Bestätigung wieder frei.
 - Cache-first mit gedrosseltem Remote-Check. Das Intervall gilt auch nach einem fehlgeschlagenen Abruf.
