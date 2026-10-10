@@ -1,6 +1,6 @@
 # JSON:API: An Events und Kursen anmelden und abmelden
 
-Entwurf, noch nicht eingereicht. Baut auf hitobito#4563 auf.
+Eingereicht als [hitobito#4564](https://github.com/hitobito/hitobito/issues/4564) am 2026-10-10. Baut auf hitobito#4563 auf. Der Text unten entspricht dem eingereichten Stand.
 
 ## Ausgangslage
 

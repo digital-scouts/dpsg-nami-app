@@ -117,7 +117,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 - Offen:
   - „Meine Termine“ über `filter[participant_id]` (Core).
   - Erinnerungen an Anmeldeschluss und Beginn.
-  - Anmelden und Abmelden in der App, sobald die Upstream-Issues umgesetzt sind: hitobito#4563 (eingereicht), weitere Entwürfe in `specs/hitobito-issues/`.
+  - Anmelden und Abmelden in der App, sobald die Upstream-Issues umgesetzt sind: hitobito#4563 und #4564 (eingereicht), weitere Entwürfe in `specs/hitobito-issues/`.
   - Spike zur Datenqualität und Last nach dem Livegang.
   - Kurs-Admin-Ansicht.
 

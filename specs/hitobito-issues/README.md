@@ -7,7 +7,7 @@ Upstream-Issues für hitobito/hitobito, die die App braucht. Jede Datei ist ein 
 | # | Thema | Datei | Stand |
 |---|---|---|---|
 | 1 | Teilnahmen aus Sicht der Teilnehmenden lesen | `01-teilnahmen-lesen.md` | eingereicht: hitobito#4563 |
-| 2 | An Events und Kursen anmelden und abmelden | `02-anmelden-abmelden.md` | Entwurf, wartet auf #4563 |
+| 2 | An Events und Kursen anmelden und abmelden | `02-anmelden-abmelden.md` | eingereicht: hitobito#4564 |
 | 3 | Teilnehmende verwalten (Veranstaltende) | `03-teilnehmende-verwalten.md` | Entwurf |
 | 4 | Events anlegen, bearbeiten und löschen | `04-events-bearbeiten.md` | Entwurf |
 

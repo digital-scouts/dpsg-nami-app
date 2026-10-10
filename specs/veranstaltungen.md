@@ -105,6 +105,6 @@ Ein Spike zur Datenqualität mit echten Daten folgt nach dem Livegang. Vorher gi
 Die App braucht für die nächsten Schritte Erweiterungen der JSON:API. Die Texte stehen in `specs/hitobito-issues/`. Grundsatz: Funktionsumfang und Rechte sind mit der Weboberfläche identisch oder geringer und laufen über bestehende Core-Funktionen.
 
 1. Teilnahmen aus Sicht der Teilnehmenden lesen: eingereicht als hitobito#4563.
-2. An Events und Kursen anmelden und abmelden: Entwurf.
+2. An Events und Kursen anmelden und abmelden: eingereicht als hitobito#4564.
 3. Teilnehmende verwalten (Veranstaltende): Entwurf.
 4. Events anlegen, bearbeiten und löschen: Entwurf.
