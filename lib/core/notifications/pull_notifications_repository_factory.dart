@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_ce/hive.dart';
 
 import '../../services/logger_service.dart';
 import '../../services/network_access_policy.dart';
+import 'asset_notifications_data_source.dart';
 import 'local_notifications_data_source.dart';
 import 'pull_notifications_env.dart';
 import 'pull_notifications_repository_impl.dart';
@@ -14,11 +16,10 @@ Future<PullNotificationsRepositoryImpl> createPullNotificationsRepository({
   await Hive.openBox('notifications_box');
   final box = Hive.box('notifications_box');
   final local = LocalNotificationsDataSource(box);
-  // TODO(#210): Fuer Entwicklungszwecke optionalen Asset-Fallback statt Remote-Quelle ergaenzen.
-  final remote = RemoteNotificationsDataSource(
-    PullNotificationsEnv.url,
-    logger: logger,
-  );
+  final assetPath = PullNotificationsEnv.assetPath;
+  final remote = !kReleaseMode && assetPath.isNotEmpty
+      ? AssetNotificationsDataSource(assetPath, logger: logger)
+      : RemoteNotificationsDataSource(PullNotificationsEnv.url, logger: logger);
 
   return PullNotificationsRepositoryImpl(
     remote: remote,

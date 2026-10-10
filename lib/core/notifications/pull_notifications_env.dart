@@ -3,6 +3,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class PullNotificationsEnv {
   static String get url => dotenv.env['PULL_NOTIFICATIONS_URL'] ?? '';
 
+  /// Nur außerhalb von Release-Builds: Asset statt Remote-Quelle.
+  static String get assetPath =>
+      (dotenv.env['PULL_NOTIFICATIONS_ASSET'] ?? '').trim();
+
   static Duration get minFetchInterval {
     final hoursRaw = dotenv.env['PULL_NOTIFICATIONS_MIN_FETCH_INTERVAL_HOURS'];
     final hours = int.tryParse(hoursRaw ?? '');

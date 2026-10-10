@@ -156,4 +156,52 @@ void main() {
       expect(local.lastFetchAt, isNotNull);
     });
   });
+
+  group('PullNotificationsRepositoryImpl Filter', () {
+    final jetzt = DateTime.utc(2026, 6, 4, 12);
+    PullNotification meldung(String id, {String? platform, DateTime? endsAt}) =>
+        PullNotification(
+          id: id,
+          title: const LocalizedString(de: 'A', en: 'A'),
+          body: const LocalizedString(de: 'B', en: 'B'),
+          platform: platform,
+          endsAt: endsAt,
+        );
+
+    test('filtert Cache-Ausgabe nach Plattform und Zeitfenster', () async {
+      final cached = [
+        meldung('alle'),
+        meldung('android', platform: 'android'),
+        meldung('abgelaufen', endsAt: jetzt),
+      ];
+      final local = FakeLocal(cached: cached, lastFetchAt: jetzt);
+      final repo = PullNotificationsRepositoryImpl(
+        remote: FakeRemote(cached),
+        local: local,
+        nowProvider: () => jetzt,
+        platformProvider: () => 'ios',
+      );
+
+      final result = await repo.fetchNotifications();
+
+      expect(result.map((n) => n.id), ['alle']);
+    });
+
+    test('speichert Remote ungefiltert und liefert gefiltert', () async {
+      final fresh = [meldung('alle'), meldung('ios', platform: 'ios')];
+      final local = FakeLocal(cached: const []);
+      final repo = PullNotificationsRepositoryImpl(
+        remote: FakeRemote(fresh),
+        local: local,
+        nowProvider: () => jetzt,
+        platformProvider: () => 'android',
+      );
+
+      final result = await repo.fetchNotifications();
+
+      expect(result.map((n) => n.id), ['alle']);
+      expect(local.savedNotifications, fresh);
+      expect(local.lastFetchAt, jetzt);
+    });
+  });
 }

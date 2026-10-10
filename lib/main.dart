@@ -1442,26 +1442,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       return;
     }
 
-    AppHubNotification? urgent;
-    final visibleExternal = NotificationsHub.mapVisibleExternal(
-      notifications: state.notifications,
-      acknowledged: state.acknowledged,
+    final urgent = NotificationsHub.mergeSorted(
+      internal: const [],
+      external: NotificationsHub.mapVisibleExternal(
+        notifications: state.notifications,
+        acknowledged: state.acknowledged,
+      ),
+    ).where((n) => n.severity == AppNotificationSeverity.urgent);
+
+    _urgentNotificationModel.setNotifications(
+      urgent.map(_toPullNotification).toList(),
     );
-    try {
-      urgent = visibleExternal.firstWhere(
-        (notification) =>
-            notification.severity == AppNotificationSeverity.urgent,
-      );
-    } catch (_) {
-      urgent = null;
-    }
-
-    if (urgent == null) {
-      _urgentNotificationModel.setNotification(null);
-      return;
-    }
-
-    _urgentNotificationModel.setNotification(_toPullNotification(urgent));
   }
 
   PullNotification _toPullNotification(AppHubNotification message) {

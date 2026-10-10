@@ -2,10 +2,11 @@
 
 - `app_snackbar.dart`: App-weiter Snackbar-Helper und einheitlicher Snackbar-Content für Erfolg, Warnung, Fehler, Info und Help
 - `notifications_list.dart`: Listendarstellung aller Mitteilungen
-- `urgent_notification_modal.dart`: Modal/Dialog für dringende Mitteilungen
+- `notification_card.dart`: Meldungskarte mit Prioritätsstreifen, Link- und Bestätigen-Aktion
+- `notification_links.dart`: öffnet `deep_link` (nur erlaubte Ziele) und `external_link` (nur https, In-App-Browser)
 - `notifications_story.dart`: Storybook-Story für UI-Review
 - `app_snackbar_story.dart`: Storybook-Vorschau für alle Snackbar-Zustände und längere Nachrichten
-- `notifications_list_test.dart`, `urgent_notification_modal_test.dart`, `app_snackbar_test.dart`: Widget-Tests
+- `notifications_list_test.dart`, `notification_card_test.dart`, `app_snackbar_test.dart`: Widget-Tests
 
 ## Snackbar Usage
 

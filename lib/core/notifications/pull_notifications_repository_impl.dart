@@ -1,6 +1,7 @@
 import '../../services/network_access_policy.dart';
 import 'local_notifications_data_source.dart';
 import 'pull_notification.dart';
+import 'pull_notifications_filter.dart';
 import 'pull_notifications_repository.dart';
 import 'remote_notifications_data_source.dart';
 
@@ -11,6 +12,8 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
   final Duration cacheExpiration;
   final Duration minFetchInterval;
   final NetworkAccessPolicy? networkAccessPolicy;
+  final DateTime Function() nowProvider;
+  final String Function() platformProvider;
 
   PullNotificationsRepositoryImpl({
     required this.remote,
@@ -18,6 +21,8 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
     this.cacheExpiration = const Duration(days: 7),
     this.minFetchInterval = const Duration(hours: 1),
     this.networkAccessPolicy,
+    this.nowProvider = DateTime.now,
+    this.platformProvider = aktuellePlattformFuerMeldungen,
   });
 
   @override
@@ -26,9 +31,8 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
   }) async {
     // 1. Cache zuerst
     final cached = local.getNotifications();
-    // TODO(#210): Notifications hier zentral nach `platform` sowie `starts_at`/`ends_at` filtern, bevor sie an die UI gehen.
     final lastFetchAt = await local.getLastFetchAt();
-    final now = DateTime.now();
+    final now = nowProvider();
     final shouldSkipRemote =
         !forceRefresh &&
         lastFetchAt != null &&
@@ -39,11 +43,11 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
       if (!shouldSkipRemote) {
         _refreshInBackground();
       }
-      return cached;
+      return _sichtbar(cached, now);
     }
 
     if (shouldSkipRemote) {
-      return cached;
+      return _sichtbar(cached, now);
     }
 
     // 2. Remote holen (und speichern)
@@ -55,18 +59,23 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
       final fresh = await remote.fetch();
       await local.saveNotifications(fresh);
       await local.setLastFetchAt(now);
-      return fresh;
+      return _sichtbar(fresh, now);
     } on NetworkAccessBlockedException {
-      return cached;
+      return _sichtbar(cached, now);
     } catch (e) {
       // Auch ein Fehlschlag zaehlt fuer das Intervall, sonst wiederholt
       // jeder Aufruf die Fehlanfrage (A-50).
       await local.setLastFetchAt(now);
       // Bei Fehler: Fallback auf Cache
-      if (cached.isNotEmpty) return cached;
+      if (cached.isNotEmpty) return _sichtbar(cached, now);
       rethrow;
     }
   }
+
+  /// Der Cache bleibt vollständig; erst die Ausgabe wird nach Plattform und
+  /// Zeitfenster gefiltert.
+  List<PullNotification> _sichtbar(List<PullNotification> list, DateTime now) =>
+      filterAktiveMeldungen(list, now: now, platform: platformProvider());
 
   void _refreshInBackground() {
     (() async {
@@ -78,13 +87,13 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
         })()
         .then((fresh) async {
           await local.saveNotifications(fresh);
-          await local.setLastFetchAt(DateTime.now());
+          await local.setLastFetchAt(nowProvider());
         })
         .catchError((Object error) async {
           // Nur Hintergrund: Fehler nicht melden, aber das Intervall
           // beginnen, damit nicht jeder Aufruf erneut anfragt.
           if (error is! NetworkAccessBlockedException) {
-            await local.setLastFetchAt(DateTime.now());
+            await local.setLastFetchAt(nowProvider());
           }
         });
   }
@@ -94,6 +103,9 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
 
   @override
   Future<Set<String>> getAcknowledgedIds() => local.getAcknowledgedIds();
+
+  @override
+  Future<DateTime?> getLastFetchAt() => local.getLastFetchAt();
 
   @override
   Future<void> resetAcknowledgedNotifications() {

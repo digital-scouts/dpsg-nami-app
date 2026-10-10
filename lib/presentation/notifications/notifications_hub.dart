@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -134,34 +133,19 @@ class NotificationsHub {
     );
   }
 
+  /// Plattform und Zeitfenster filtert bereits das Repository; hier bleibt die
+  /// Bestätigung: Bestätigte Meldungen verschwinden, außer sie werden
+  /// ausdrücklich mit angezeigt.
   static List<AppHubNotification> mapVisibleExternal({
     required List<PullNotification> notifications,
     required Set<String> acknowledged,
     bool includeAcknowledged = false,
-    DateTime? now,
   }) {
-    final currentTime = now ?? DateTime.now();
-    final currentPlatform = _currentPlatform();
-
     return notifications
         .where(
           (notification) =>
-              _isVisibleForPlatform(notification.platform, currentPlatform) &&
-              !_isNotStarted(notification, currentTime) &&
-              !_isExpired(notification, currentTime),
+              includeAcknowledged || !acknowledged.contains(notification.id),
         )
-        .where((notification) {
-          final isAcknowledged = acknowledged.contains(notification.id);
-          if (includeAcknowledged) {
-            return true;
-          }
-
-          // Ack should hide only notifications without expiry date.
-          if (notification.endsAt == null) {
-            return !isAcknowledged;
-          }
-          return true;
-        })
         .map((notification) {
           final isAcknowledged = acknowledged.contains(notification.id);
           return AppHubNotification(
@@ -231,35 +215,6 @@ class NotificationsHub {
       default:
         return AppNotificationSeverity.info;
     }
-  }
-
-  static bool _isNotStarted(PullNotification notification, DateTime now) {
-    final startsAt = notification.startsAt;
-    return startsAt != null && startsAt.isAfter(now);
-  }
-
-  static bool _isExpired(PullNotification notification, DateTime now) {
-    final endsAt = notification.endsAt;
-    return endsAt != null && !endsAt.isAfter(now);
-  }
-
-  static String _currentPlatform() {
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.iOS:
-        return 'ios';
-      case TargetPlatform.android:
-        return 'android';
-      default:
-        return 'all';
-    }
-  }
-
-  static bool _isVisibleForPlatform(String platform, String currentPlatform) {
-    final normalized = platform.trim().toLowerCase();
-    if (normalized.isEmpty || normalized == 'all') {
-      return true;
-    }
-    return normalized == currentPlatform;
   }
 
   static AppHubNotification _buildUpdateNotification(AppUpdateInfo info) {

@@ -8,6 +8,8 @@ Dieses Modul implementiert die Kernlogik für Pull Notifications gemäß der Spe
 - `pull_notifications_repository.dart`: Repository-Interface
 - `remote_notifications_data_source.dart`: HTTP-Loader
 - `local_notifications_data_source.dart`: Hive-Cache & Ack-Logik
+- `asset_notifications_data_source.dart`: Asset-Quelle für die Entwicklung
+- `pull_notifications_filter.dart`: Plattform- und Zeitfenster-Filter
 - `notifications_parser_test.dart`: Unit-Tests für Model/Parser
 
 ## Hinweise
@@ -19,9 +21,8 @@ Dieses Modul implementiert die Kernlogik für Pull Notifications gemäß der Spe
 - Mehrsprachigkeit: `title` und `body` als Map (`de`, `en`).
 - ACK-Status wird lokal in Hive gespeichert (`notifications_ack_box`).
 
-## Nächste Schritte
+## Filter, Links und Entwicklung
 
-- Plattform-Filterung ueber `platform` zentral anwenden.
-- Aktivitaetsfenster ueber `starts_at` und `ends_at` auswerten.
-- Detailansicht bzw. `deep_link`/`external_link` umsetzen.
-- Optionalen Asset-Fallback fuer Entwicklungszwecke ergaenzen.
+- `pull_notifications_filter.dart` filtert nach `platform` und `starts_at`/`ends_at`; das Repository wendet es auf jede Ausgabe an.
+- Links öffnet `lib/presentation/notifications/notification_links.dart`.
+- `asset_notifications_data_source.dart` liest den Feed aus dem Asset in `PULL_NOTIFICATIONS_ASSET` (nur außerhalb von Release-Builds).

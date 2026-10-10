@@ -12,6 +12,7 @@ import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
+import 'package:nami/presentation/notifications/notification_links.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_page.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_paywall_page.dart';
@@ -603,14 +604,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               child: AppLesebreiteBox(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                  child: NotificationCard(
-                    notification: urgentNotification,
-                    onClose: () {
-                      context
-                          .read<UrgentNotificationModel>()
-                          .acknowledgeCurrent();
-                    },
-                  ),
+                  child: _UrgentBanner(notification: urgentNotification),
                 ),
               ),
             ),
@@ -1120,6 +1114,62 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Urgent-Banner über den Tabs: eine Meldung mit „1 von n“, nach dem
+/// Bestätigen rückt die nächste nach.
+class _UrgentBanner extends StatelessWidget {
+  const _UrgentBanner({required this.notification});
+
+  final PullNotification notification;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final count = context.watch<UrgentNotificationModel>().count;
+    final hatLink = hatMeldungsLink(
+      externalLink: notification.externalLink,
+      deepLink: notification.deepLink,
+    );
+    return NotificationCard(
+      key: const Key('urgent-banner'),
+      notification: notification,
+      kopfzeile: count > 1
+          ? Row(
+              children: [
+                Text(
+                  t.t('notif_urgent_position', {'n': 1, 'total': count}),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  key: const Key('urgent-banner-show-all'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(AppRoutes.settingsMessages),
+                  child: Text(t.t('notif_show_all')),
+                ),
+              ],
+            )
+          : null,
+      onOpenLink: hatLink
+          ? () => oeffneMeldungsLink(
+              context,
+              externalLink: notification.externalLink,
+              deepLink: notification.deepLink,
+            )
+          : null,
+      onAcknowledge: () =>
+          context.read<UrgentNotificationModel>().acknowledgeCurrent(),
     );
   }
 }
