@@ -57,7 +57,8 @@ Die Auswahl bleibt im `localStorage`, ein Neuladen ist also unschädlich. „Ent
 node .claude/skills/feedbackrunde/vorlage/render.mjs design/.runden/<thema>/runde-N.html [theme=beide ts=1.4 geraet=ipad <steuerung>=<wert>]
 ```
 
-- Schreibt `seite.png` und alle `[data-shot]` nach `design/.runden/<thema>/out/runde-N/`. Die Bilder selbst ansehen (Read) und Fehler beheben: Überlappungen, abgeschnittene Texte, falsche Farben in Dunkel, Umbruch bei 1,4.
+- Schreibt `seite.png` und alle `[data-shot]` nach `design/.runden/<thema>/out/runde-N/` und gibt eine Layoutprüfung als Text aus: abgeschnittene Texte, Text, der aus dem Rahmen ragt, und überlappender Text, je Ausschnitt. Befunde beheben und neu rendern, bis die Prüfung leer ist; mit `ts=1.4` und, falls relevant, `geraet=ipad` wiederholen.
+- Danach nur `seite.png` als Stichprobe ansehen, verkleinert (`sips --resampleWidth 900 seite.png --out <scratchpad>/seite.png`). Einzelne Ausschnitte nur lesen, wenn die Stichprobe eine Frage offen lässt. Dunkel nur ansehen, wenn Farben oder Kontraste Teil der Frage sind.
 - `--js '<ausdruck>'` wertet nach dem Laden JavaScript aus, z. B. um Klicks und `Runde.markdown()` zu prüfen.
 - Erst danach `open design/.runden/<thema>/runde-N.html`.
 

@@ -35,5 +35,7 @@
 - Lies zuerst die relevanten Dateien, bevor du groessere Aenderungen vornimmst.
 - Vermeide unnoetige Massenreformatierung und unangrenzende Refactorings.
 - Benenne Annahmen, Risiken oder offene Punkte knapp, wenn sie fuer die Aufgabe relevant bleiben.
+- Subagents nur fuer breite Suchen ueber unbekannte Bereiche starten; bekannte Dateien direkt lesen.
+- Bilder (PNG/JPG) nie in Originalgroesse lesen, sondern vorher verkleinern (`sips --resampleWidth 800 <bild> --out <scratchpad>/<bild>`), und dasselbe Bild nicht mehrfach lesen. Jedes gelesene Bild bleibt bis zum Sitzungsende im Kontext.
 - Sichtbare Aenderungen vor der Umsetzung mit dem Skill `feedbackrunde` (.claude/skills/feedbackrunde/) klaeren. Im Repo landet nur die Entscheidung unter design/entscheidung/, keine Rundendateien.
 - Schliesse Aufgaben mit dem Skill `aufgabe-abschliessen` (.claude/skills/aufgabe-abschliessen/) ab: Vollstaendigkeit, Changelog, Validierung, Issues und PR.
