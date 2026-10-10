@@ -66,7 +66,6 @@ const kachel = (wert: string, label: string, unter = '', info = '') =>
     + `${info ? `<details class="info"><summary aria-label="Erklärung zu ${escapeHtml(label)}">i</summary><p>${escapeHtml(info)}</p></details>` : ''}</div>`;
 
 const INFO = {
-    version: 'Git-Commit des laufenden Images. Ändert sich bei jedem Deploy, also bei jedem Push auf develop oder master mit Änderungen unter server/.',
     mongodb: 'Wird bei jedem Aufruf dieser Seite angepingt. Ohne Datenbank nimmt der Server keine Snapshots an und liefert kein Bundesaggregat aus.',
     snapshot: 'Eingang des neuesten Stammes-Snapshots (aktuelle Schema-Version, letzte 30 Tage). Apps senden nur mit Einwilligung. Bleibt der Wert lange stehen, hat keine App gesendet oder der Ingest klemmt.',
     backup: 'backup.sh läuft per Cron täglich um 03:15 Uhr Serverzeit, schreibt einen mongodump nach /opt/nami-statistics/backups und löscht dabei Archive, die älter als 14 Tage sind. Älter als ein Tag heißt: Cron oder Backup-Log prüfen.',
@@ -99,7 +98,6 @@ const loeschung = (d: BetriebsDaten): { wert: string; unter: string } => {
 const betrieb = (d: BetriebsDaten): string => {
     const l = loeschung(d);
     return `<div class="kpis klein">
-    ${kachel(escapeHtml(d.version), 'Server-Version', '', INFO.version)}
     ${kachel(d.datenbank === 'ok' ? '<span class="pill p-ok">erreichbar</span>' : '<span class="pill p-er">nicht erreichbar</span>', 'MongoDB', '', INFO.mongodb)}
     ${kachel(escapeHtml(vorher(d.stand, d.letzterSnapshot)), 'letzter Snapshot', `${d.snapshotsLetzte7Tage} in den letzten 7 Tagen`, INFO.snapshot)}
     ${kachel(escapeHtml(vorher(d.stand, d.letztesBackup)), 'letztes Backup', '', INFO.backup)}

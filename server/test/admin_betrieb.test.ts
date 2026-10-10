@@ -84,6 +84,8 @@ describe('admin betrieb view', () => {
         expect(response.headers['cache-control']).toBe('no-store');
         expect(response.headers['content-security-policy']).toContain("default-src 'none'");
         expect(response.body).toContain('aria-current="page">Betrieb</a>');
+        // Die Version steht nur im Kopf, eine Kachel mit dem langen SHA liefe über.
+        expect(response.body).not.toContain('Server-Version');
         expect(response.body).toContain('latest 1.0.0 liegt unter min_supported 1.1.0');
         expect(response.body).toContain('Meldung „update“: title.en fehlt.');
         expect(response.body).toContain('&lt;b&gt;Wartung&lt;/b&gt;');
