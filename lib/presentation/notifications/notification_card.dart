@@ -120,6 +120,13 @@ class NotificationCard extends StatelessWidget {
                               FilledButton.tonalIcon(
                                 key: const Key('notification-link-button'),
                                 onPressed: onOpenLink,
+                                // Zurückhaltender als Bestätigen: helle Fläche
+                                // in Primärfarbe statt der getönten Themefarbe.
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: theme.colorScheme.primary
+                                      .withValues(alpha: 0.1),
+                                  foregroundColor: theme.colorScheme.primary,
+                                ),
                                 icon: const Icon(Icons.north_east, size: 16),
                                 iconAlignment: IconAlignment.end,
                                 label: Text(t.t('notif_more_info')),
@@ -134,6 +141,13 @@ class NotificationCard extends StatelessWidget {
                                           0xFFCC1F2F,
                                         ),
                                         foregroundColor: Colors.white,
+                                      )
+                                    : isWarn
+                                    ? FilledButton.styleFrom(
+                                        backgroundColor: streifen,
+                                        foregroundColor: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF2A1D00),
                                       )
                                     : null,
                                 child: Text(t.t('acknowledge')),

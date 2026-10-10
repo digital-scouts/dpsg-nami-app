@@ -1115,7 +1115,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _startupFlowCompleted = false;
     _startupFlowRunning = false;
     _didCheckForAppUpdate = false;
-    _pendingNotificationsState = null;
+    // Der geladene Feed bleibt erhalten: Er gilt für alle Konten, und ohne ihn
+    // fehlt das Urgent-Banner nach der Anmeldung bis zum nächsten Abruf.
     _urgentNotificationModel.setNotification(null);
   }
 

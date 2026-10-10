@@ -312,10 +312,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.settingsMessages:
       return MaterialPageRoute(
         settings: settings,
-        builder: (context) => const NotificationsPage(
-          includeInternalMessages: true,
-          showStatusButtons: false,
-        ),
+        builder: (context) =>
+            const NotificationsPage(includeInternalMessages: true),
       );
     case AppRoutes.settingsRechtliches:
       return MaterialPageRoute(
