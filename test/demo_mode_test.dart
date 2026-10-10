@@ -357,6 +357,38 @@ void main() {
       );
     });
 
+    test(
+      'liefert kommende Veranstaltungen ohne Netz und nach Gruppe',
+      () async {
+        final service = DemoHitobitoEventsService(
+          DemoData(DemoZugang.stammesvorstand, now: () => _heute),
+        );
+
+        final alle = await service.fetchVeranstaltungen('demo', abTag: _heute);
+        expect(alle, isNotEmpty);
+        expect(
+          alle.every((v) => !v.ende!.isBefore(DateUtils.dateOnly(_heute))),
+          isTrue,
+        );
+        // Nur Core-Felder: kein externer Link, der das Netz oeffnen wuerde.
+        expect(alle.every((v) => v.anmeldeLinkExtern == null), isTrue);
+
+        final stamm = await service.fetchVeranstaltungen(
+          'demo',
+          abTag: _heute,
+          gruppenIds: {DemoBezirk.silberfelsId},
+        );
+        expect(
+          stamm.every((v) => v.gruppenIds.contains(DemoBezirk.silberfelsId)),
+          isTrue,
+        );
+        expect(stamm.length, lessThan(alle.length));
+        expect(await service.fetchGruppenNamen('demo', {DemoBezirk.bezirkId}), {
+          DemoBezirk.bezirkId: 'Bezirk Silbertal',
+        });
+      },
+    );
+
     test('merkt sich Modus und Zugang fuer den naechsten Start', () async {
       SharedPreferences.setMockInitialValues({});
       final store = AppModeStore();

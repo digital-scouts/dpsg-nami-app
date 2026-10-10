@@ -19,13 +19,16 @@ import '../domain/member/mitglied.dart';
 import '../domain/member_filters/member_filter_repository.dart';
 import '../domain/qualifikation/qualifikations_einstellungen.dart';
 import '../domain/qualifikation/qualifikations_einstellungen_repository.dart';
+import '../domain/veranstaltung/veranstaltung.dart';
 import '../services/hitobito_auth_env.dart';
 import '../services/hitobito_efz_service.dart';
+import '../services/hitobito_events_service.dart';
 import '../services/hitobito_groups_service.dart';
 import '../services/hitobito_oauth_service.dart';
 import '../services/logger_service.dart';
 import '../services/sensitive_storage_service.dart';
 import 'demo_data.dart';
+import 'demo_veranstaltungen.dart';
 
 /// Konfiguration ohne erreichbaren Server: Im Demo-Modus spricht keine
 /// Hitobito-Anfrage das Netz an.
@@ -182,6 +185,52 @@ class DemoArbeitskontextReadModelRepository
     required ArbeitskontextReadModel readModel,
   }) async {
     return readModel.copyWith(rolesSindGeladen: true);
+  }
+}
+
+/// Kurse und Veranstaltungen aus [demoVeranstaltungen], ohne Netz.
+class DemoHitobitoEventsService extends HitobitoEventsService {
+  DemoHitobitoEventsService(this.demoData) : super(config: demoAuthConfig);
+
+  final DemoData demoData;
+
+  @override
+  Future<List<Veranstaltung>> fetchVeranstaltungen(
+    String accessToken, {
+    required DateTime abTag,
+    Set<int>? gruppenIds,
+  }) async {
+    final ab = DateTime(abTag.year, abTag.month, abTag.day);
+    return demoData
+        .veranstaltungen()
+        .where(
+          (v) =>
+              !(v.ende ?? ab).isBefore(ab) &&
+              (gruppenIds == null || v.gruppenIds.any(gruppenIds.contains)),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<Veranstaltung> fetchVeranstaltung(
+    String accessToken, {
+    required int id,
+  }) async {
+    return demoData.veranstaltungen().firstWhere(
+      (v) => v.id == id,
+      orElse: () => throw const HitobitoEventsException(
+        'Events-Anfrage fehlgeschlagen (404).',
+        statusCode: 404,
+      ),
+    );
+  }
+
+  @override
+  Future<Map<int, String>> fetchGruppenNamen(
+    String accessToken,
+    Set<int> gruppenIds,
+  ) async {
+    return {for (final id in gruppenIds) id: ?demoVeranstalterNamen[id]};
   }
 }
 

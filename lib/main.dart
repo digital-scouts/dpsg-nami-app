@@ -53,6 +53,7 @@ import 'package:nami/presentation/theme/schrift_lizenzen.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
 import 'package:nami/services/hitobito_efz_service.dart';
+import 'package:nami/services/hitobito_events_service.dart';
 import 'package:nami/services/hitobito_qualifications_service.dart';
 import 'package:nami/services/hitobito_roles_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_corpus_lookup_service.dart';
@@ -92,6 +93,7 @@ import 'presentation/model/bundesstatistik_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
 import 'presentation/model/qualifikations_einstellungen_model.dart';
+import 'presentation/model/veranstaltungen_model.dart';
 import 'presentation/model/statistik_kacheln_model.dart';
 import 'presentation/model/urgent_notification_model.dart';
 import 'presentation/navigation/app_router.dart';
@@ -420,6 +422,13 @@ Future<void> _startApp({
     trafficLogService: hitobitoTrafficLogService,
     logger: logger,
   );
+  final hitobitoEventsService = isDemo
+      ? DemoHitobitoEventsService(demoData)
+      : HitobitoEventsService(
+          config: envAuthConfig,
+          trafficLogService: hitobitoTrafficLogService,
+          logger: logger,
+        );
   final hitobitoAuthConfigController = HitobitoAuthConfigController(
     sensitiveStorageService: sensitiveStorageService,
     oauthService: oauthService,
@@ -428,6 +437,7 @@ Future<void> _startApp({
     rolesService: hitobitoRolesService,
     efzService: hitobitoEfzService,
     qualificationsService: hitobitoQualificationsService,
+    eventsService: hitobitoEventsService,
     logger: logger,
     envConfig: envAuthConfig,
   );
@@ -508,6 +518,23 @@ Future<void> _startApp({
     onKeineBerechtigung: authModel.logoutWegenFehlenderRechte,
     logger: logger,
   );
+  // Kurse & Veranstaltungen laden nur auf Abruf und bleiben im Speicher.
+  final veranstaltungenModel = VeranstaltungenModel(
+    service: hitobitoEventsService,
+    remoteAccessExecutor: authModel.executeRemoteAccess,
+    readModel: () => arbeitskontextModel.readModel,
+    sessionGeneration: () => authModel.sessionGeneration,
+    // Im Demo gibt es keine Seite im Netz.
+    webSeite: isDemo
+        ? null
+        : (veranstaltung) => veranstaltung.gruppenIds.isEmpty
+              ? null
+              : hitobitoAuthConfigController.config.eventWebUri(
+                  groupId: veranstaltung.gruppenIds.first,
+                  eventId: veranstaltung.id,
+                ),
+  );
+  authModel.addListener(veranstaltungenModel.sitzungPruefen);
   // Im Demo sendet der erfundene Stamm an den Mock-Statistikserver und
   // erhaelt von dort synthetische Bundeswerte.
   final bundesstatistikServerUrl = isDemo
@@ -882,6 +909,9 @@ Future<void> _startApp({
         ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
         ChangeNotifierProvider<ArbeitskontextModel>.value(
           value: arbeitskontextModel,
+        ),
+        ChangeNotifierProvider<VeranstaltungenModel>.value(
+          value: veranstaltungenModel,
         ),
         ChangeNotifierProvider<BundesstatistikModel>.value(
           value: bundesstatistikModel,

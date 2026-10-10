@@ -7,9 +7,11 @@ import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/member/efz_einsichtnahme.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/qualifikation/qualifikation.dart';
+import 'package:nami/domain/veranstaltung/veranstaltung.dart';
 import 'package:nami/services/app_mode_controller.dart';
 
 import 'demo_staemme.dart';
+import 'demo_veranstaltungen.dart';
 
 /// Daten, die Hitobito fuer den gewaehlten [zugang] liefern wuerde.
 ///
@@ -171,6 +173,9 @@ class DemoData {
       ],
     );
   }
+
+  /// Kurse und Veranstaltungen, Termine relativ zu heute.
+  List<Veranstaltung> veranstaltungen() => demoVeranstaltungen(_now());
 
   /// Sichtbare Mitglieder eines Layers, z. B. fuer Tests.
   List<Mitglied> mitglieder(int layerId) {

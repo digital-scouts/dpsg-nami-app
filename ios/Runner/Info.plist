@@ -51,6 +51,8 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Um Termine von Kursen und Veranstaltungen auf Ihren Wunsch in den Kalender einzutragen.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Um Ihre Identität zu bestätigen und den Zugriff auf Ihre Daten zu schützen.</string>
 	<key>NSUserNotificationsUsageDescription</key>
