@@ -100,34 +100,11 @@ Ein Spike zur Datenqualität mit echten Daten folgt nach dem Livegang. Vorher gi
   - Native Anmeldung und Abmeldung nach den Upstream-Änderungen unten.
   - Kurs-Admin-Ansicht.
 
-## Entwürfe für Upstream-Issues (hitobito/hitobito)
+## Upstream-Issues (hitobito/hitobito)
 
-Noch nicht eingereicht. Einreichen erst nach Freigabe.
+Die App braucht für die nächsten Schritte Erweiterungen der JSON:API. Die Texte stehen in `specs/hitobito-issues/`. Grundsatz: Funktionsumfang und Rechte sind mit der Weboberfläche identisch oder geringer und laufen über bestehende Core-Funktionen.
 
-### JSON:API: Teilnahme aus Sicht der Teilnehmenden lesen
-
-Für Apps, die Teilnehmenden ihre Anmeldungen zeigen, fehlen in der JSON:API Lesedaten, die die Weboberfläche hat.
-
-- **Eigene offene Bewerbungen:** `Event::ParticipationResource#base_scope` filtert `.active`. Offene Kursbewerbungen fehlen dadurch auch für die Person selbst. Vorschlag: inaktive Teilnahmen für sich selbst und betreute Personen zulassen.
-- **Bewerbungsstatus:** eine lesbare `Event::ApplicationResource` mit `priority_1_id` bis `priority_3_id`, `waiting_list`, `approved` und `rejected`, eingebunden als `application` an der Teilnahme. Dazu eine Scope-Zuordnung in `ApiScopeAbility` (z. B. `event_participations`).
-- **Event-Felder:**
-  - `applications_cancelable`, `participations_visible`, `waiting_list`, `requires_approval`
-  - ein berechnetes `application_possible`
-  - `participant_count` auch für einfache Events (die alte API lieferte es)
-- **Anmeldefragen:** eine lesbare `Event::QuestionResource` für `application_questions`.
-- **Bezug:** #3789, #3726, #4357 (Tags), #2726 (OpenAPI für Events).
-
-### JSON:API: an Events anmelden und abmelden
-
-- **Endpunkte:** `POST` und `DELETE /api/event_participations`.
-- **Rechte:** über die bestehenden Regeln `her_own_if_application_possible` und `her_own_if_application_cancelable`.
-- **Domain-Service:** die Logik aus `Event::ParticipationsController#create` in einen gemeinsamen Domain-Service auslagern, damit Web und API gleich arbeiten. Dazu gehören:
-  - Antworten
-  - Prioritäten
-  - Warteliste
-  - `set_active` (Kurse bleiben offen)
-  - `ParticipantAssigner` bei `automatic_assignment`
-  - `ParticipationConfirmationJob` mit Freigabe-Mails und `ParticipationNotificationJob`
-  - `CancelApplicationJob` beim Abmelden
-- **Validierung:** Pflichtangaben aus `required_contact_attrs` prüfen, sonst 422.
-- **Basis:** der Stand nach #4523 (Readables und Autorisierung im `JsonApiController`).
+1. Teilnahmen aus Sicht der Teilnehmenden lesen: eingereicht als hitobito#4563.
+2. An Events und Kursen anmelden und abmelden: Entwurf.
+3. Teilnehmende verwalten (Veranstaltende): Entwurf.
+4. Events anlegen, bearbeiten und löschen: Entwurf.
