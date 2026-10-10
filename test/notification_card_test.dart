@@ -1,10 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
+import 'package:nami/domain/supporter/supporter_kauf_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/supporter_kauf_model.dart';
+import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/notifications/notification_links.dart';
+import 'package:provider/provider.dart';
+
+import 'support/fake_supporter_store_client.dart';
 
 Widget _app(Widget child) => MaterialApp(
   localizationsDelegates: [
@@ -63,11 +71,79 @@ void main() {
     expect(find.byKey(const Key('notification-ack-button')), findsNothing);
   });
 
-  test('Links: nur https extern, deep_link nur erlaubte Ziele', () {
-    expect(hatMeldungsLink(externalLink: 'https://example.org'), isTrue);
-    expect(hatMeldungsLink(externalLink: 'http://example.org'), isFalse);
-    expect(hatMeldungsLink(externalLink: 'javascript:alert(1)'), isFalse);
-    expect(hatMeldungsLink(deepLink: '/settings/notifications'), isTrue);
-    expect(hatMeldungsLink(deepLink: '/settings/debug'), isFalse);
+  Future<BuildContext> pumpeKontext(
+    WidgetTester tester, {
+    SupporterKaufModel? kauf,
+  }) async {
+    late BuildContext kontext;
+    final inhalt = Builder(
+      builder: (context) {
+        kontext = context;
+        return const SizedBox();
+      },
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: kauf == null
+            ? inhalt
+            : ChangeNotifierProvider<SupporterKaufModel>.value(
+                value: kauf,
+                child: inhalt,
+              ),
+        onGenerateRoute: (settings) => MaterialPageRoute(
+          settings: settings,
+          builder: (_) => Text('Ziel ${settings.name}'),
+        ),
+      ),
+    );
+    return kontext;
+  }
+
+  testWidgets('Links: nur https extern, deep_link nur erlaubte Ziele', (
+    tester,
+  ) async {
+    final context = await pumpeKontext(tester);
+    expect(
+      hatMeldungsLink(context, externalLink: 'https://example.org'),
+      isTrue,
+    );
+    expect(
+      hatMeldungsLink(context, externalLink: 'http://example.org'),
+      isFalse,
+    );
+    expect(
+      hatMeldungsLink(context, externalLink: 'javascript:alert(1)'),
+      isFalse,
+    );
+    expect(
+      hatMeldungsLink(context, deepLink: '/settings/notifications'),
+      isTrue,
+    );
+    expect(hatMeldungsLink(context, deepLink: '/settings/debug'), isFalse);
+  });
+
+  testWidgets('Unterstuetzen nur mit Store-Anbindung, sonst externer Link', (
+    tester,
+  ) async {
+    var context = await pumpeKontext(tester);
+    expect(hatMeldungsLink(context, deepLink: AppRoutes.supporter), isFalse);
+    expect(
+      hatMeldungsLink(
+        context,
+        deepLink: AppRoutes.supporter,
+        externalLink: 'https://example.org',
+      ),
+      isTrue,
+    );
+
+    final kauf = SupporterKaufModel(
+      client: FakeSupporterStoreClient(),
+      repository: InMemorySupporterKaufRepository(),
+    );
+    context = await pumpeKontext(tester, kauf: kauf);
+    expect(hatMeldungsLink(context, deepLink: AppRoutes.supporter), isTrue);
+    unawaited(oeffneMeldungsLink(context, deepLink: AppRoutes.supporter));
+    await tester.pumpAndSettle();
+    expect(find.text('Ziel /supporter'), findsOneWidget);
   });
 }
