@@ -83,7 +83,7 @@ Beendet das System die App, während der Login im Browser offen ist, erklärt de
 |:--|:--|
 | Sync erfolgreich | ersetzt, Löschfrist beginnt neu |
 | Sync fehlgeschlagen oder teilweise | alter Stand bleibt nutzbar |
-| 90 Tage ohne erfolgreichen Sync (`HITOBITO_DATA_MAX_AGE_DAYS`) | gelöscht |
+| 60 Tage ohne erfolgreichen Sync (`HITOBITO_DATA_MAX_AGE_DAYS`); die Frist beginnt mit dem ersten Laden nach der Anmeldung | gelöscht; 7, 3, 2 und 1 Tag vorher Hinweis und lokale Mitteilung |
 | Manuelles Abmelden | gelöscht; vorher Versuch, offene Änderungen zu senden, sonst Rückfrage |
 | Kein lesbarer Layer mehr | abgemeldet und gelöscht, Grund auf dem Anmeldebildschirm |
 | Wechsel des Arbeitskontexts | durch den neuen Kontext ersetzt |

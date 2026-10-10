@@ -214,6 +214,19 @@ class AuthSessionModel extends ChangeNotifier {
   Duration? get remainingUntilRelogin =>
       _retentionPolicy.remainingUntilRelogin(_lastSensitiveSyncAt);
 
+  /// Zeitpunkt, zu dem die lokalen Daten ohne neuen Sync verfallen; ohne
+  /// geladene Daten null.
+  DateTime? get dataExpiresAt =>
+      _lastSensitiveSyncAt?.add(_retentionPolicy.maxDataAge);
+
+  /// Die Daten verfallen bald, unabhaengig davon, ob ein Abruf fehlschlug.
+  bool get isDataExpirySoon {
+    final remaining = remainingUntilRelogin;
+    return remaining != null &&
+        remaining > Duration.zero &&
+        remaining <= HitobitoAuthEnv.ablaufWarnung;
+  }
+
   Future<void> initialize() async {
     await _logger.log('auth_flow', 'Initialisierung gestartet');
     _state = AuthState.initializing;
@@ -1512,6 +1525,19 @@ class AuthSessionModel extends ChangeNotifier {
     _lastSensitiveSyncAttemptAt = verifiedAt;
     await _sensitiveStorageService.saveLastSensitiveSyncAt(verifiedAt);
     await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(verifiedAt);
+  }
+
+  /// Startet die Aufbewahrungsfrist, wenn nach der Anmeldung Daten geladen
+  /// wurden, ohne dass ein Sync sie vermerkt hat. Ohne Sitzung oder mit
+  /// vorhandenem Stand passiert nichts.
+  Future<void> startRetentionAfterFirstLoad() async {
+    if (_session == null ||
+        _lastSensitiveSyncAt != null ||
+        _state != AuthState.signedIn) {
+      return;
+    }
+    await markSensitiveDataSynced();
+    notifyListeners();
   }
 
   Future<void> markSensitiveDataSyncAttempted() async {

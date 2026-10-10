@@ -295,7 +295,7 @@ class AppLocalizations {
       'legal_r_logmail_retention': 'bis die Fehlersuche abgeschlossen ist',
       'legal_device_title': 'Auf deinem Gerät',
       'legal_device_body':
-          'Mitgliederdaten liegen verschlüsselt auf deinem Gerät und werden beim Abmelden gelöscht, ebenso nach 90 Tagen ohne Aktualisierung. Der Statistik-Verlauf wird beim Abmelden und Kontowechsel gelöscht, Erfolge bleiben bis zum Zurücksetzen der App, Protokolle sieben Tage.',
+          'Mitgliederdaten liegen verschlüsselt auf deinem Gerät und werden beim Abmelden gelöscht, ebenso nach 60 Tagen ohne Aktualisierung. Der Statistik-Verlauf wird beim Abmelden und Kontowechsel gelöscht, Erfolge bleiben bis zum Zurücksetzen der App, Protokolle sieben Tage.',
       'legal_rights_title': 'Deine Rechte',
       'legal_rights_intro': 'Du kannst jederzeit verlangen:',
       'legal_rights_list':
@@ -809,8 +809,6 @@ class AppLocalizations {
       'settings_hitobito_issue_offline_body':
           'Du bist gerade offline. Die App zeigt lokale Daten an und verbindet sich wieder, sobald eine Verbindung verfügbar ist.',
       'settings_data_expiry_soon_title': 'Lokale Daten laufen bald ab',
-      'settings_data_expiry_soon_body':
-          'Melde dich innerhalb von {days} Tagen erneut an, damit die lokalen Daten verfügbar bleiben.',
       'settings_messages_retention_hint':
           'Hinweis: Externe Meldungen werden nach spätestens 3 Tagen automatisch ausgeblendet.',
       'logout': 'Abmelden',
@@ -1996,7 +1994,7 @@ class AppLocalizations {
       'legal_r_logmail_retention': 'until troubleshooting is finished',
       'legal_device_title': 'On your device',
       'legal_device_body':
-          'Member data is stored encrypted on your device and deleted when you sign out, or after 90 days without an update. The statistics history is deleted when you sign out or switch accounts, achievements remain until the app is reset, logs for seven days.',
+          'Member data is stored encrypted on your device and deleted when you sign out, or after 60 days without an update. The statistics history is deleted when you sign out or switch accounts, achievements remain until the app is reset, logs for seven days.',
       'legal_rights_title': 'Your rights',
       'legal_rights_intro': 'You can request at any time:',
       'legal_rights_list':
@@ -2503,8 +2501,6 @@ class AppLocalizations {
       'settings_hitobito_issue_offline_body':
           'You are currently offline. The app shows local data and reconnects automatically once network access is available.',
       'settings_data_expiry_soon_title': 'Local data will expire soon',
-      'settings_data_expiry_soon_body':
-          'Sign in again within {days} days to keep local data available.',
       'settings_messages_retention_hint':
           'Note: External notifications are automatically hidden after at most 3 days.',
       'logout': 'Logout',

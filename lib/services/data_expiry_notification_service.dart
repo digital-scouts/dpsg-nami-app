@@ -8,9 +8,8 @@ import 'benachrichtigungs_berechtigung.dart';
 import 'logger_service.dart';
 import 'lokale_mitteilungen.dart';
 
-/// Erinnert in den letzten Tagen vor dem Datenablauf taeglich um 9 Uhr an die
-/// erneute Anmeldung. Jeder Tag bekommt eine eigene Mitteilung mit der dann
-/// noch verbleibenden Tageszahl.
+/// Erinnert um 9 Uhr 7, 3, 2 und 1 Tag vor dem Datenablauf an die erneute
+/// Anmeldung. Jede Mitteilung nennt die dann noch verbleibende Tageszahl.
 class DataExpiryNotificationService {
   DataExpiryNotificationService({
     required LoggerService logger,
@@ -30,10 +29,10 @@ class DataExpiryNotificationService {
         );
   }
 
-  /// Reservierter Bereich; geplant werden hoechstens [vorlaufTage] + 1.
+  /// Reservierter Bereich; geplant werden hoechstens [erinnerungsTage].
   static const idErste = 94031;
   static const idLetzte = 94039;
-  static const vorlaufTage = 3;
+  static const erinnerungsTage = <int>{7, 3, 2, 1};
   static const stunde = 9;
 
   final LoggerService _logger;
@@ -81,20 +80,17 @@ class DataExpiryNotificationService {
     return _laufend;
   }
 
-  /// Zeitpunkte der Erinnerungen: 9 Uhr an jedem Tag, an dem der Ablauf
-  /// noch hoechstens [vorlaufTage] Tage entfernt ist.
+  /// Zeitpunkte der Erinnerungen: 9 Uhr an den Tagen, an denen noch
+  /// [erinnerungsTage] Tage bis [ablauf] bleiben. Sie liegen auch weit in der
+  /// Zukunft, damit die Warnung ohne erneutes Oeffnen der App kommt.
   List<DateTime> zeitpunkte(DateTime ablauf, DateTime jetzt) {
     final ergebnis = <DateTime>[];
-    for (var tag = 0; tag <= vorlaufTage; tag++) {
-      final zeitpunkt = DateTime(
-        jetzt.year,
-        jetzt.month,
-        jetzt.day + tag,
-        stunde,
-      );
+    final von = DateTime(ablauf.year, ablauf.month, ablauf.day - 8);
+    for (var tag = 0; tag <= 8; tag++) {
+      final zeitpunkt = DateTime(von.year, von.month, von.day + tag, stunde);
       if (zeitpunkt.isAfter(jetzt) &&
           zeitpunkt.isBefore(ablauf) &&
-          ablauf.difference(zeitpunkt) <= const Duration(days: vorlaufTage)) {
+          erinnerungsTage.contains(tageBis(ablauf, zeitpunkt))) {
         ergebnis.add(zeitpunkt);
       }
     }

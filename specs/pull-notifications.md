@@ -20,8 +20,8 @@ Ein einheitlicher Meldungsfluss für die gesamte App:
 - Prioritätsskala ist fix: `info`, `warn`, `urgent`.
 - Externe Meldungen sind lokal **acknowledgebar**.
 - Interne Meldungen sind **zustandsgetrieben** (kein manuelles Ack, solange der Zustand aktiv ist).
-- „Bald gelöscht“-Hinweis erscheint ab **3 Tagen Restlaufzeit**.
-- Für „bald gelöscht“ wird zusätzlich je Tag um 9 Uhr eine **lokale Push-Notification** geplant, solange der Zustand aktiv ist. Jede enthält die dann noch verbleibende Tageszahl, DE und EN. Der Schalter für Mitteilungen gilt auch hier.
+- „Bald gelöscht“-Hinweis erscheint ab **7 Tagen Restlaufzeit**, auch ohne fehlgeschlagenen Abruf.
+- Für „bald gelöscht“ wird zusätzlich 7, 3, 2 und 1 Tag vor dem Ablauf um 9 Uhr eine **lokale Push-Notification** geplant, schon im Voraus, ohne dass die App geöffnet werden muss, solange der Zustand aktiv ist. Jede enthält die dann noch verbleibende Tageszahl, DE und EN. Der Schalter für Mitteilungen gilt auch hier.
 
 ## Begriffe
 
@@ -104,7 +104,7 @@ Die folgende Liste bildet den aktuellen internen Meldungsumfang ab, inkl. Priori
 | `internal.hitobito.relogin_required` | Login abgelaufen, erneute Anmeldung erforderlich | `urgent` | `requiresInteractiveLogin == true` oder `AuthState.reloginRequired` | internal | Auth-Shell-Status, Settings-Stapel, Members-Snackbar | implementiert (Priorität im Hub anzupassen) |
 | `internal.member.sync_conflict` | Offene Problemlösungsfälle bei Mitgliedsänderungen | `warn` | `MemberEditModel.openResolutionCount > 0` | internal | Settings-Stapel, Member-Detail-Banner | implementiert |
 | `internal.member.sync_pending_retry` | Ausstehende Mitgliedsänderung ohne direkten Konflikt | `info` | `hasPending == true` und `needsResolution == false` im Detailkontext | internal | Member-Detail-Banner | implementiert |
-| `internal.data.expiry_soon` | Hitobito nicht erreichbar, Daten werden bald gelöscht | `urgent` | `remainingUntilRelogin <= 3 Tage` | internal | Settings-Stapel, appweites Banner (optional), tägliche lokale Push | geplant |
+| `internal.data.expiry_soon` | Lokale Daten werden bald gelöscht | `urgent` | `AuthSessionModel.isDataExpirySoon` (`remainingUntilRelogin <= 7 Tage`) | internal | Settings-Stapel, appweites Banner (optional), tägliche lokale Push | geplant |
 | `qualifikation-laeuft-ab` | Eigene Qualifikation läuft bald ab oder ist abgelaufen | `warn` | `PlaneQualifikationsErinnerungenUseCase.eigeneAblaeufe` liefert Einträge (Erinnerung „Meine Qualifikationen“ an, Art gewählt, innerhalb des Vorlaufs) | internal | Settings-Stapel, Meldungen; dazu lokale Push um 9 Uhr über `QualifikationsErinnerungService` | implementiert |
 | `internal.update.available` | Neuere App-Version verfügbar | `warn` | `AppUpdateService.checkForUpdate()` liefert `isRequired == false` | internal | Settings-Stapel, optional Dialog | implementiert |
 | `internal.update.required` | Update erforderlich | `urgent` | `AppUpdateService.checkForUpdate()` liefert `isRequired == true` | internal | Settings-Stapel, Startup-Dialog | implementiert |
@@ -126,13 +126,13 @@ Hinweise:
   - `warn`: kontextabhängig (z. B. Members-Snackbar einmalig)
   - `info`: primär im Hub/Listenkontext
 
-## „Bald gelöscht“-Regel (3 Tage + tägliche Push)
+## „Bald gelöscht“-Regel (7 Tage + Push)
 
 Fachregel:
 
-- Wenn Restlaufzeit bis Relogin (`remainingUntilRelogin`) `<= 3 Tage` ist, wird `internal.data.expiry_soon` aktiv.
-- Solange dieser Zustand aktiv ist, wird je Tag um 9 Uhr eine lokale Push-Notification mit der richtigen Tageszahl ausgelöst. Bei ausgeschalteten Mitteilungen entfällt sie.
-- Endet der Zustand (neuer Login/Sync), werden diese täglichen Erinnerungen beendet.
+- Wenn Restlaufzeit bis Relogin (`remainingUntilRelogin`) `<= 7 Tage` ist, unabhängig von Abruf-Fehlern, wird `internal.data.expiry_soon` aktiv.
+- 7, 3, 2 und 1 Tag vor dem Ablauf kommt um 9 Uhr eine lokale Push-Notification mit der richtigen Tageszahl. Sie wird nach jedem erfolgreichen Sync für den neuen Ablauf (`dataExpiresAt`) geplant. Bei ausgeschalteten Mitteilungen entfällt sie.
+- Endet der Zustand (neuer Login/Sync), werden die Erinnerungen neu geplant.
 
 Technische Notiz:
 

@@ -46,7 +46,7 @@ Nach dem ersten Laden liegen die Daten verschlüsselt auf dem Gerät. Mitglieder
 - Änderungen ohne Netz merkt die App vor und sendet sie später, siehe [Änderungen und Konflikte](../aenderungen/).
 
 {: .wichtig }
-Wurden die Daten 90 Tage lang nicht aktualisiert, löscht die App sie. Beim Abmelden ebenfalls.
+Wurden die Daten 60 Tage lang nicht aktualisiert, löscht die App sie. Beim Abmelden ebenfalls.
 
 ## Neu anmelden
 
