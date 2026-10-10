@@ -89,7 +89,7 @@ Regeln:
 - `type` wird auf `severity` gemappt (`info|warn|urgent`).
 - `platform`, `starts_at`, `ends_at` wertet das Repository (`PullNotificationsRepositoryImpl`) vor jeder Ausgabe aus. Der Cache bleibt vollständig, gefiltert wird nur die Ausgabe.
 - `external_link` öffnet die App nur für https-Adressen, im In-App-Browser.
-- `deep_link` öffnet nur freigegebene Ziele (`erlaubteMeldungsZiele` in `notification_links.dart`): Meldungen, Mitteilungs-Einstellungen, Qualifikationen, Erfolge, Supporter. Andere Ziele werden ignoriert. Hat eine Meldung beides, gewinnt der `deep_link`.
+- `deep_link` öffnet nur freigegebene Ziele (`erlaubteMeldungsZiele` in `notification_links.dart`): Meldungen, Mitteilungs-Einstellungen, Qualifikationen, Erfolge, Supporter. Andere Ziele werden ignoriert. Hat eine Meldung beides, gewinnt der `deep_link`. „Unterstützen“ öffnet sich nur mit Store-Anbindung (wie die übrigen Einstiege); im Demo-Modus oder ohne `SUPPORTER_STORE_ENABLED` gilt der `external_link`, fehlt er, zeigt die Karte keinen Link.
 - Der Link der Tagesmeldung öffnet ebenfalls im In-App-Browser.
 
 ### Ack

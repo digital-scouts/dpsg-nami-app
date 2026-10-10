@@ -300,6 +300,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               : null,
           onOpenLink:
               hatMeldungsLink(
+                context,
                 externalLink: message.externalLink,
                 deepLink: message.deepLink,
               )

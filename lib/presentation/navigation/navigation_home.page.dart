@@ -1146,6 +1146,7 @@ class _UrgentBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final count = context.watch<UrgentNotificationModel>().count;
     final hatLink = hatMeldungsLink(
+      context,
       externalLink: notification.externalLink,
       deepLink: notification.deepLink,
     );

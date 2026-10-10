@@ -48,6 +48,7 @@ class NotificationsList extends StatelessWidget {
               : () => onAcknowledge(notification),
           onOpenLink:
               hatMeldungsLink(
+                context,
                 externalLink: notification.externalLink,
                 deepLink: notification.deepLink,
               )
