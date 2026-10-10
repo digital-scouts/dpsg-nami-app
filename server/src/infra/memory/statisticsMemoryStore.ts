@@ -1,4 +1,5 @@
 import type { ServerDependencies } from '../../app/dependencies.js';
+import type { MeldungDocument, VersionDocument } from '../../modules/appFeeds/model.js';
 import type { WeeklyAggregateDocument } from '../../modules/aggregation/aggregation.js';
 import type { EffectiveStateDocument } from '../../modules/effectiveState/effectiveState.js';
 import type { MonthlyReportDocument } from '../../modules/report/report.js';
@@ -18,6 +19,8 @@ export type StatisticsMemoryStore = {
     weeklyAggregates: Map<string, WeeklyAggregateDocument>;
     lastBackupAt: Date | null;
     monthlyReports: Map<string, MonthlyReportDocument>;
+    meldungen: Map<string, MeldungDocument>;
+    versionen: Map<string, VersionDocument>;
 };
 
 export const createStatisticsMemoryStore = (): StatisticsMemoryStore => ({
@@ -27,7 +30,24 @@ export const createStatisticsMemoryStore = (): StatisticsMemoryStore => ({
     weeklyAggregates: new Map(),
     lastBackupAt: null,
     monthlyReports: new Map(),
+    meldungen: new Map(),
+    versionen: new Map(),
 });
+
+// Gleiche Regel wie in MongoDB: anlegen nur, wenn frei, ersetzen nur den gelesenen Stand.
+const speichereBedingt = <T extends { updated_at: Date }>(
+    map: Map<string, T>,
+    key: string,
+    document: T,
+    erwartet: Date | null,
+): boolean => {
+    const vorhanden = map.get(key);
+    if (erwartet == null ? vorhanden != null : vorhanden?.updated_at.getTime() !== erwartet.getTime()) {
+        return false;
+    }
+    map.set(key, structuredClone(document));
+    return true;
+};
 
 const isDuplicateRawSnapshot = (a: RawSnapshotDocument, b: RawSnapshotDocument): boolean =>
     a.stamm_pseudonym === b.stamm_pseudonym
@@ -155,6 +175,21 @@ export const buildMemoryDependencies = (
                     report.notified_at = notifiedAt;
                 }
             },
+        },
+        meldungenRepository: {
+            findAll: async () => [...store.meldungen.values()].map((m) => structuredClone(m)),
+            find: async (id) => structuredClone(store.meldungen.get(id) ?? null),
+            save: async (document, erwartet) => speichereBedingt(store.meldungen, document.id, document, erwartet),
+            delete: async (id, erwartet) => {
+                if (store.meldungen.get(id)?.updated_at.getTime() !== erwartet.getTime()) {
+                    return false;
+                }
+                return store.meldungen.delete(id);
+            },
+        },
+        versionenRepository: {
+            findAll: async () => [...store.versionen.values()].map((v) => structuredClone(v)),
+            save: async (document, erwartet) => speichereBedingt(store.versionen, document.plattform, document, erwartet),
         },
         readinessProbe: {
             pingDatabase: async () => undefined,

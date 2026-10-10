@@ -20,12 +20,15 @@ const config = loadConfig();
 // Im Speichermodus (Mock-Instanz) gibt es keine MongoDB; Daten gehen beim Neustart verloren.
 const mongoClient: MongoClient | null = config.storageBackend === 'mongodb' ? buildMongoDbClient(config) : null;
 const mongoDb = mongoClient?.db(config.mongoDbDatabase) ?? null;
-const dependencies: ServerDependencies = mongoDb != null ? buildMongoDependencies(mongoDb) : buildMemoryDependencies();
+const reportNotifier = config.telegram != null ? buildTelegramNotifier(config.telegram) : null;
+const dependencies: ServerDependencies = {
+    ...(mongoDb != null ? buildMongoDependencies(mongoDb) : buildMemoryDependencies()),
+    notifier: reportNotifier,
+};
 const server = buildServer(config, dependencies);
 let mockSeedTimer: NodeJS.Timeout | null = null;
 let reportTimer: NodeJS.Timeout | null = null;
 let publicationTimer: NodeJS.Timeout | null = null;
-const reportNotifier = config.telegram != null ? buildTelegramNotifier(config.telegram) : null;
 
 const runMockSeed = async (): Promise<void> => {
     await seedMockSnapshots(dependencies, config.pseudonymizationSecret, config.mockSeedStammCount, dependencies.clock());

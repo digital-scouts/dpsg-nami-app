@@ -1,4 +1,5 @@
 import type { ServerDependencies } from '../../app/dependencies.js';
+import type { Notifier } from '../../shared/notifier.js';
 import { subtractUtcMonths } from '../../shared/time.js';
 import {
     deriveStammState,
@@ -16,11 +17,6 @@ import { type Stufe, STUFEN } from '../stammesSnapshot/schema.js';
 export type ReportMessage = {
     subject: string;
     text: string;
-};
-
-// Kurze Nachricht nach Abschluss eines Monats, z. B. per Telegram.
-export type ReportNotifier = {
-    send(text: string): Promise<void>;
 };
 
 export type MonthlyReportDocument = {
@@ -282,7 +278,7 @@ export const REPORT_BACKFILL_MONTHS = 12;
 // ueber den Vormonat. Liefert den gemeldeten Monat oder null.
 export const runMonthlyReportIfDue = async (
     dependencies: Pick<ServerDependencies, 'rawSnapshotsRepository' | 'senderRepository' | 'monthlyReportsRepository'>,
-    notifier: ReportNotifier | null,
+    notifier: Notifier | null,
     options: { minStammCount: number; adminUrl: string | null },
     now: Date,
 ): Promise<string | null> => {
