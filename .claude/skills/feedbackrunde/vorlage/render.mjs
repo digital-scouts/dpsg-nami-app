@@ -35,6 +35,60 @@ const chrome = spawn(CHROME, [
   `--user-data-dir=${profil}`, '--allow-file-access-from-files', 'about:blank',
 ], { stdio: 'ignore' });
 
+// Prueft je Geraeterahmen die sichtbaren Textzeilen: abgeschnitten (scrollWidth
+// groesser als die Box), seitlich aus dem Rahmen ragend oder ueber anderem Text
+// liegend. Unterhalb eines `fest`-Rahmens abgeschnittener Inhalt ist gewollt.
+const LAYOUTPRUEFUNG = `(() => {
+  const befunde = [];
+  const kurz = (t) => { t = t.trim().replace(/\\s+/g, ' '); return t.length > 40 ? t.slice(0, 39) + '…' : t; };
+  for (const fig of document.querySelectorAll('[data-shot]')) {
+    const rahmen = fig.querySelector('.rahmen');
+    if (!rahmen) continue;
+    const R = rahmen.getBoundingClientRect();
+    const zeilen = [];
+    const gemeldet = new Set();
+    const walker = document.createTreeWalker(rahmen, NodeFilter.SHOW_TEXT);
+    for (let n; (n = walker.nextNode());) {
+      const el = n.parentElement;
+      if (!n.data.trim() || el.closest('.falz')) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || Number(cs.opacity) === 0) continue;
+      const abschneider = [el, ...ancestors(el, rahmen)].find((a) => {
+        const s = getComputedStyle(a);
+        return s.overflowX !== 'visible' && a.scrollWidth > a.clientWidth + 1;
+      });
+      if (abschneider && !gemeldet.has(abschneider)) {
+        gemeldet.add(abschneider);
+        befunde.push(fig.dataset.shot + ': abgeschnitten „' + kurz(abschneider.textContent) + '“ (' + abschneider.scrollWidth + ' > ' + abschneider.clientWidth + ' px)');
+      }
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      for (const r of range.getClientRects()) {
+        if (r.width < 1 || r.top >= R.bottom) continue;
+        if (r.right > R.right + 0.5 || r.left < R.left - 0.5) {
+          befunde.push(fig.dataset.shot + ': ragt aus dem Rahmen „' + kurz(n.data) + '“');
+          break;
+        }
+        zeilen.push({ r, text: n.data });
+      }
+    }
+    for (let i = 0; i < zeilen.length; i++) {
+      for (let j = i + 1; j < zeilen.length; j++) {
+        const a = zeilen[i].r, b = zeilen[j].r;
+        const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (w > 2 && h > 2) befunde.push(fig.dataset.shot + ': Text ueberlappt „' + kurz(zeilen[i].text) + '“ / „' + kurz(zeilen[j].text) + '“');
+      }
+    }
+  }
+  function ancestors(el, bis) {
+    const liste = [];
+    for (let a = el.parentElement; a && a !== bis; a = a.parentElement) liste.push(a);
+    return liste;
+  }
+  return befunde;
+})()`;
+
 const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 async function ziel() {
   for (let i = 0; i < 50; i++) {
@@ -97,6 +151,9 @@ try {
   });
   const { titel, hoehe, shots } = result.value;
   console.log(`Tab: ${titel}`);
+  const pruefung = await cdp('Runtime.evaluate', { expression: LAYOUTPRUEFUNG, returnByValue: true });
+  const befunde = pruefung.result.value ?? [];
+  console.log(befunde.length ? `Layoutpruefung, ${befunde.length} Befunde:\n${befunde.slice(0, 30).map((b) => `  ${b}`).join('\n')}` : 'Layoutpruefung: keine Befunde');
   const seite = await cdp('Page.captureScreenshot', {
     format: 'png', captureBeyondViewport: true,
     clip: { x: 0, y: 0, width: 1800, height: Math.min(hoehe, 16000), scale: 0.5 },
