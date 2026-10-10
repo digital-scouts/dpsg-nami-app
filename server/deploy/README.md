@@ -80,7 +80,7 @@ App im Simulator auf den Mock stellen: in der lokalen `.env` (nicht in `.env.exa
 
 ## Monatsreport und Web-Ansicht
 
-Der Server legt zu jedem abgeschlossenen Monat einen Bericht über den Kreis der Teilnehmenden an (Inhalt siehe `spec/monatsreport.md`). Ansehen lässt er sich unter `https://namiapp.scout-link.de/admin`, dazu gibt es optional eine kurze Telegram-Nachricht. Mit demselben Zugang zeigt `/admin/betrieb` den Betriebsstatus und prüft `notifications.json` und `version.json` der App (`spec/admin_betrieb.md`).
+Der Server legt zu jedem abgeschlossenen Monat einen Bericht über den Kreis der Teilnehmenden an (Inhalt siehe `spec/monatsreport.md`). Ansehen lässt er sich unter `https://namiapp.scout-link.de/admin`, dazu gibt es optional eine kurze Telegram-Nachricht. Mit demselben Zugang zeigt `/admin/betrieb` den Betriebsstatus (`spec/admin_betrieb.md`), und unter `/admin/meldungen` und `/admin/versionen` werden die Meldungen und Versionen gepflegt, die die App über `/app/notifications` und `/app/version` lädt (`spec/app_feeds.md`). Jede Änderung meldet der Server per Telegram, sofern eingerichtet.
 
 Web-Ansicht einrichten:
 
@@ -97,7 +97,7 @@ Telegram einrichten:
 2. Dem Bot schreiben (oder ihn in eine Gruppe aufnehmen) und die Chat-ID über `https://api.telegram.org/bot<TOKEN>/getUpdates` ablesen.
 3. `REPORT_TELEGRAM_BOT_TOKEN`, `REPORT_TELEGRAM_CHAT_ID` und `PUBLIC_BASE_URL=https://namiapp.scout-link.de` in `/opt/nami-statistics/.env` eintragen und neu deployen.
 
-- Ob ein Bericht fällig ist, prüft der Server beim Start und danach alle sechs Stunden. Fehlen Berichte, legt er bis zu zwölf Monate rückwirkend aus den Rohdaten an. Gespeichert werden sie in der Collection `monthly_reports`.
+- Ob ein Bericht fällig ist, prüft der Server beim Start und danach alle sechs Stunden. Fehlen Berichte, legt er bis zu zwölf Monate rückwirkend aus den Rohdaten an. Gespeichert werden sie in der Collection `monthly_reports`, Meldungen und Versionen in `app_notifications` und `app_versions`.
 - Schlägt die Telegram-Nachricht fehl, steht das im Log (`Monthly report failed`), und der nächste Durchlauf versucht es erneut.
 - Bericht als Text auf der Konsole:
 

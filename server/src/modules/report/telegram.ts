@@ -1,5 +1,5 @@
 import type { TelegramConfig } from '../../app/config.js';
-import type { ReportNotifier } from './report.js';
+import type { Notifier } from '../../shared/notifier.js';
 
 const TELEGRAM_API = 'https://api.telegram.org';
 
@@ -7,7 +7,7 @@ const TELEGRAM_API = 'https://api.telegram.org';
 export const buildTelegramNotifier = (
     config: TelegramConfig,
     fetchFn: typeof fetch = fetch,
-): ReportNotifier => ({
+): Notifier => ({
     send: async (text) => {
         const response = await fetchFn(`${TELEGRAM_API}/bot${config.botToken}/sendMessage`, {
             method: 'POST',

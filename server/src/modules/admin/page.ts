@@ -19,7 +19,7 @@ export const datum = (date: Date): string =>
     `${String(date.getUTCDate()).padStart(2, '0')}.${String(date.getUTCMonth() + 1).padStart(2, '0')}.${date.getUTCFullYear()}, `
     + `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')} UTC`;
 
-// Gemeinsamer Stil der Admin-Seiten (Statistik und Betrieb).
+// Gemeinsamer Stil der Admin-Seiten.
 export const ADMIN_STYLE = `body{font:15px/1.45 system-ui,sans-serif;margin:0;background:#f5f5f7;color:#1c1c1e}
 main{max-width:960px;margin:0 auto;padding:24px 16px 48px}
 h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:32px 0 10px}h3{font-size:15px;margin:0 0 8px}
@@ -33,10 +33,28 @@ th{font-size:12px;color:#8e8e93;font-weight:600}.r{text-align:right}.ok{color:#2
 .regionen{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
 svg{width:100%;height:auto;background:#fff;border-radius:14px}svg text{font-size:9px;fill:#8e8e93}
 nav.admin{display:flex;gap:6px;margin:12px 0 4px}nav.admin a{padding:5px 12px;border-radius:999px;background:#e5e5ea;color:#3a3a3c;font-size:13px;text-decoration:none}
-nav.admin a[aria-current]{background:#003056;color:#fff}`;
+nav.admin a[aria-current]{background:#003056;color:#fff}nav.admin{flex-wrap:wrap}
+a{color:#003056}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:#e5e5ea;color:#3a3a3c}
+.p-ok{background:#e3f3df;color:#24561a}.p-wa{background:#fff3cd;color:#795b00}.p-er{background:#fdecee;color:#7a1020}
+.sum{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.befund{border-radius:12px;padding:9px 12px;margin-bottom:6px;font-size:14px}
+.befund.fehler{background:#fdecee;color:#7a1020}.befund.warnung{background:#fff3cd;color:#795b00}.befund.ok{background:#e3f3df;color:#24561a}
+.item{background:#fff;border-radius:14px;padding:10px 14px;margin-bottom:8px;font-size:13.5px}
+.item b{font-size:15px}.item .pill{float:right}.item .z{color:#8e8e93;margin-top:3px;overflow-wrap:anywhere}
+.card{background:#fff;border-radius:14px;padding:12px 14px}`;
 
-export const adminNav = (aktiv: 'statistik' | 'betrieb'): string =>
-    `<nav class="admin"><a href="/admin"${aktiv === 'statistik' ? ' aria-current="page"' : ''}>Statistik</a><a href="/admin/betrieb"${aktiv === 'betrieb' ? ' aria-current="page"' : ''}>Betrieb</a></nav>`;
+const NAV: ReadonlyArray<[AdminBereich, string, string]> = [
+    ['statistik', '/admin', 'Statistik'],
+    ['betrieb', '/admin/betrieb', 'Betrieb'],
+    ['meldungen', '/admin/meldungen', 'Meldungen'],
+    ['versionen', '/admin/versionen', 'Versionen'],
+];
+
+export type AdminBereich = 'statistik' | 'betrieb' | 'meldungen' | 'versionen';
+
+export const adminNav = (aktiv: AdminBereich): string =>
+    `<nav class="admin">${NAV.map(([bereich, href, name]) => `<a href="${href}"${bereich === aktiv ? ' aria-current="page"' : ''}>${name}</a>`).join('')}</nav>`;
 
 const kennzahlen = (figures: ReportFigures): string => {
     const kachel = (wert: number, label: string, unter = '') =>

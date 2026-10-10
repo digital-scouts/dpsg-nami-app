@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 
 import { buildMemoryDependencies } from '../infra/memory/statisticsMemoryStore.js';
 import { registerAdminRoutes } from '../modules/admin/route.js';
+import { registerAppFeedRoutes } from '../modules/appFeeds/route.js';
 import { registerAggregateRoutes } from '../modules/aggregation/route.js';
 import { registerHealthRoutes } from '../modules/health/route.js';
 import { registerStammesSnapshotRoutes } from '../modules/stammesSnapshot/route.js';
@@ -54,6 +55,7 @@ export const buildServer = (
         registerHealthRoutes(instance, config, dependencies);
         registerStammesSnapshotRoutes(instance, config, dependencies);
         registerAggregateRoutes(instance, config, dependencies);
+        registerAppFeedRoutes(instance, config, dependencies);
         registerAdminRoutes(instance, config, dependencies);
     });
 

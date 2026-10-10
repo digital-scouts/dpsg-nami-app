@@ -1,6 +1,12 @@
-import { type Db, type IndexDescription, MongoServerError } from 'mongodb';
+import { type Collection, type Db, type Filter, type IndexDescription, MongoServerError, type OptionalUnlessRequiredId, type WithoutId } from 'mongodb';
 
 import type { ServerDependencies } from '../../app/dependencies.js';
+import type {
+    MeldungDocument,
+    MeldungenRepository,
+    VersionDocument,
+    VersionenRepository,
+} from '../../modules/appFeeds/model.js';
 import type { WeeklyAggregateDocument, WeeklyAggregatesRepository } from '../../modules/aggregation/aggregation.js';
 import type { EffectiveStateDocument, EffectiveStatesRepository } from '../../modules/effectiveState/effectiveState.js';
 import type { ReadinessProbe } from '../../modules/health/route.js';
@@ -18,6 +24,8 @@ export const statisticsCollectionNames = {
     senders: 'senders',
     monthlyReports: 'monthly_reports',
     opsStatus: 'ops_status',
+    appNotifications: 'app_notifications',
+    appVersions: 'app_versions',
 } as const;
 
 const rawSnapshotsIndexes: IndexDescription[] = [
@@ -150,6 +158,8 @@ export const initializeStatisticsPersistence = async (db: Db): Promise<void> => 
     await ensureCollectionExists(db, statisticsCollectionNames.weeklyAggregates);
     await ensureCollectionExists(db, statisticsCollectionNames.senders);
     await ensureCollectionExists(db, statisticsCollectionNames.monthlyReports);
+    await ensureCollectionExists(db, statisticsCollectionNames.appNotifications);
+    await ensureCollectionExists(db, statisticsCollectionNames.appVersions);
 
     const rawSnapshots = db.collection(statisticsCollectionNames.rawSnapshots);
     const existingRawIndexes = (await rawSnapshots.indexes()).map((index) => index.name);
@@ -352,6 +362,59 @@ export const buildMonthlyReportsRepository = (db: Db): MonthlyReportsRepository 
     };
 };
 
+// Meldung bzw. Plattform als _id; anlegen per insertOne (frei), aendern nur mit gelesenem updated_at.
+type StoredMeldung = Omit<MeldungDocument, 'id'> & { _id: string };
+type StoredVersion = Omit<VersionDocument, 'plattform'> & { _id: string };
+
+const alsMeldung = ({ _id, ...rest }: StoredMeldung): MeldungDocument => ({ id: _id, ...rest });
+const alsVersion = ({ _id, ...rest }: StoredVersion): VersionDocument => ({ plattform: _id as VersionDocument['plattform'], ...rest });
+
+const speichereBedingt = async <T extends { _id: string; updated_at: Date }>(
+    collection: Collection<T>,
+    document: T,
+    erwartet: Date | null,
+): Promise<boolean> => {
+    if (erwartet == null) {
+        try {
+            await collection.insertOne(document as OptionalUnlessRequiredId<T>);
+            return true;
+        } catch (error) {
+            if (isDuplicateKeyError(error)) {
+                return false;
+            }
+            throw error;
+        }
+    }
+    const ergebnis = await collection.replaceOne(
+        { _id: document._id, updated_at: erwartet } as Filter<T>,
+        document as WithoutId<T>,
+    );
+    return ergebnis.matchedCount === 1;
+};
+
+export const buildMeldungenRepository = (db: Db): MeldungenRepository => {
+    const collection = db.collection<StoredMeldung>(statisticsCollectionNames.appNotifications);
+
+    return {
+        findAll: async () => (await collection.find({}).toArray()).map(alsMeldung),
+        find: async (id) => {
+            const gefunden = await collection.findOne({ _id: id });
+            return gefunden == null ? null : alsMeldung(gefunden);
+        },
+        save: async ({ id, ...rest }, erwartet) => speichereBedingt(collection, { _id: id, ...rest }, erwartet),
+        delete: async (id, erwartet) => (await collection.deleteOne({ _id: id, updated_at: erwartet })).deletedCount === 1,
+    };
+};
+
+export const buildVersionenRepository = (db: Db): VersionenRepository => {
+    const collection = db.collection<StoredVersion>(statisticsCollectionNames.appVersions);
+
+    return {
+        findAll: async () => (await collection.find({}).toArray()).map(alsVersion),
+        save: async ({ plattform, ...rest }, erwartet) => speichereBedingt(collection, { _id: plattform, ...rest }, erwartet),
+    };
+};
+
 export const buildReadinessProbe = (db: Db): ReadinessProbe => ({
     pingDatabase: async () => {
         await db.command({ ping: 1 });
@@ -372,5 +435,7 @@ export const buildMongoDependencies = (db: Db, clock: Clock = systemClock): Serv
     effectiveStatesRepository: buildEffectiveStatesRepository(db),
     weeklyAggregatesRepository: buildWeeklyAggregatesRepository(db),
     monthlyReportsRepository: buildMonthlyReportsRepository(db),
+    meldungenRepository: buildMeldungenRepository(db),
+    versionenRepository: buildVersionenRepository(db),
     readinessProbe: buildReadinessProbe(db),
 });

@@ -11,6 +11,7 @@ import {
 import { publishFullAggregate } from '../src/modules/aggregation/refresh.js';
 import { auskunftFuerInstallation, loescheInstallation } from '../src/modules/betroffenenanfrage/installation.js';
 import { computeReportFigures } from '../src/modules/report/report.js';
+import { meldung, version } from './support/appFeeds.js';
 import {
     authHeader,
     buildTestConfig,
@@ -347,5 +348,27 @@ describe('statistics server with MongoDB', () => {
         expect(await db.collection(statisticsCollectionNames.senders).countDocuments()).toBe(1);
         const states = await db.collection(statisticsCollectionNames.effectiveStates).find().toArray();
         expect(states[0]?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(4);
+    });
+
+    test('stores notifications and versions with optimistic locking', async () => {
+        const { meldungenRepository, versionenRepository } = buildMongoDependencies(db, time.clock);
+        const erste = meldung();
+        const spaeter = new Date('2026-06-10T12:00:00Z');
+
+        expect(await meldungenRepository.save(erste, null)).toBe(true);
+        expect(await meldungenRepository.save(erste, null)).toBe(false);
+        expect(await meldungenRepository.find('wartung')).toEqual(erste);
+        expect(await meldungenRepository.save({ ...erste, type: 'info', updated_at: spaeter }, new Date('2026-01-01T00:00:00Z'))).toBe(false);
+        expect(await meldungenRepository.save({ ...erste, type: 'info', updated_at: spaeter }, erste.updated_at)).toBe(true);
+        expect((await meldungenRepository.findAll()).map((m) => [m.id, m.type])).toEqual([['wartung', 'info']]);
+        expect(await meldungenRepository.delete('wartung', erste.updated_at)).toBe(false);
+        expect(await meldungenRepository.delete('wartung', spaeter)).toBe(true);
+        expect(await meldungenRepository.find('wartung')).toBeNull();
+
+        const ios = version();
+        expect(await versionenRepository.save(ios, null)).toBe(true);
+        expect(await versionenRepository.save({ ...ios, latest: '1.0.1', updated_at: spaeter }, ios.updated_at)).toBe(true);
+        expect(await versionenRepository.findAll()).toEqual([{ ...ios, latest: '1.0.1', updated_at: spaeter }]);
+        expect(await db.collection(statisticsCollectionNames.appVersions).findOne({ _id: 'ios' as never })).toMatchObject({ latest: '1.0.1' });
     });
 });
