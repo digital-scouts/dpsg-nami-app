@@ -25,7 +25,7 @@ class RemoteVersionPlatformInfo {
   final SicherheitsUpdateVorgabe? security;
 }
 
-/// Block `security` je Plattform in `version.json`: Versionen unter
+/// Block `security` je Plattform im Versions-Manifest (`/app/version`): Versionen unter
 /// [minVersion] haben eine Sicherheitsluecke. Siehe `specs/app-update.md`.
 class SicherheitsUpdateVorgabe {
   const SicherheitsUpdateVorgabe({

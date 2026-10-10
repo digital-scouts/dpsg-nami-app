@@ -13,7 +13,7 @@ typedef SicherheitsTimerFactory =
 
 /// Steuert Nachfrage, Countdown und Sperre eines Sicherheitsupdates.
 /// Normale Updates unter `min_supported` sperren nie; das hier gilt nur fuer
-/// den Block `security` in `version.json`.
+/// den Block `security` im Versions-Manifest (`/app/version`).
 class SicherheitsUpdateModel extends ChangeNotifier {
   SicherheitsUpdateModel({
     required AppUpdateService updateService,

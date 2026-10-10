@@ -19,7 +19,7 @@ flowchart LR
   App -->|Kartenausschnitt| K[MapTiler / OSM]
   App -->|Stammesliste| D[tools.dpsg.de]
   App -->|Feedback, Ereignisse mit Einwilligung| W[Wiredash]
-  App -->|version.json, notifications.json| P[GitHub Pages]
+  App -->|Update-Hinweis, Mitteilungen| S
 ```
 
 ## Übersicht
@@ -33,7 +33,7 @@ flowchart LR
 | [OpenStreetMap](https://operations.osmfoundation.org/policies/tiles/) | Kartenkacheln, Rückfall ohne eigenen Tile-Endpunkt | Kartenausschnitt, IP-Adresse | Kartenansicht | – |
 | DPSG-Stammessuche (`tools.dpsg.de`) | Stämme auf der Karte | IP-Adresse | Kartenansicht | – |
 | [Wiredash](https://wiredash.com) | Feedback, Nutzungsereignisse, Versionsübersicht | siehe [Wiredash und Tracking](../wiredash/) | Feedback auf Wunsch, Ereignisse mit Einwilligung | Ereignisse ja |
-| GitHub Pages | Update-Hinweis und Mitteilungen | IP-Adresse | höchstens alle 12 h bzw. stündlich | – |
+| Statistikserver der App | Update-Hinweis und Mitteilungen | nur die Anfrage, ohne Kennung | höchstens alle 12 h (`APP_UPDATE_MIN_FETCH_INTERVAL_HOURS`) bzw. stündlich (`PULL_NOTIFICATIONS_MIN_FETCH_INTERVAL_HOURS`) | – |
 
 ## Details
 
@@ -45,6 +45,8 @@ Alle Mitgliederdaten kommen direkt aus Hitobito und gehen direkt dorthin zurück
 
 Ein eigener Node-Server (`server/` im Repository), gehostet in Deutschland. Er nimmt nur Zählwerte an und speichert Stamm, Gruppen und Installation als Pseudonym. Bundesweite Werte gibt er nur an Installationen heraus, die in den letzten 30 Tagen geteilt haben, und nur bei genug teilnehmenden Stämmen. Er liefert nur gerundete Durchschnitte, Mediane und Anteile, keine Summen oder genauen Zahlen der Stämme, und veröffentlicht sie wöchentlich, damit sich einzelne Stämme nicht zurückrechnen lassen. Sendet eine andere Installation für einen Stamm, der gerade aktiv teilnimmt, zählen weiter die Werte der Installation, die den Stamm länger kennt. Wer keine Zahlen lesen kann, teilt nur die Gruppenstruktur des Stamms; das genügt zum Lesen, zählt aber nicht als teilnehmender Stamm. Geteilte Zahlen löscht er nach 14 Monaten.
 
+Außerdem liefert er ohne Anmeldung die Versionsangaben für den Update-Hinweis (`/app/version`) und die Mitteilungen in der App (`/app/notifications`). Der Betreiber pflegt beide in einem geschützten Admin-Bereich.
+
 ### Geoapify
 
 Free-Tarif mit 3000 Anfragen am Tag. Gesendet wird nur, wenn die Netzregel es erlaubt. Koordinaten speichert die App lokal, auch Fehlschläge für sieben Tage (`GEOAPIFY_NEGATIVE_CACHE_TTL_DAYS`). Nach HTTP `429` pausiert die App alle Geokodierungen, laut `Retry-After`, sonst eine Stunde.
@@ -52,7 +54,3 @@ Free-Tarif mit 3000 Anfragen am Tag. Gesendet wird nur, wenn die Netzregel es er
 ### Karten
 
 Der Tile-Anbieter ist über `MAP_TILE_URL` konfigurierbar, Standard ist MapTiler. Geladene Kacheln speichert die App zwischen. Die Diözesangrenzen liegen als GeoJSON in der App und brauchen keinen Dienst.
-
-### GitHub Pages
-
-Diese Seite liefert `version.json` für den Update-Hinweis und `notifications.json` für Mitteilungen in der App. Beide Dateien liegen im Repository unter `docs/`.

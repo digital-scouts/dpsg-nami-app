@@ -56,9 +56,8 @@ jobs:
             versions:
               - "pubspec.yaml"
               - "assets/changelog.json"
-              - "docs/version.json"
 
-  # Z. B. Version-Reminder-PRs, die nur docs/version.json aendern.
+  # PRs, die nur pubspec.yaml oder den Changelog aendern, ohne App-Code.
   validate-versions:
     name: Validate versions
     needs: changes

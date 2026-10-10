@@ -20,7 +20,7 @@
 
 ## Versionierung und Release
 
-- Aendere Version in pubspec.yaml und docs/version.json nur bei Release-Aufgaben und konsistent; validiere mit `dart tool/validate_versions.dart`.
+- Aendere die Version in pubspec.yaml nur bei Release-Aufgaben und konsistent; validiere mit `dart tool/validate_versions.dart`. `latest` je Plattform setzt der Betreiber nach der Store-Freigabe im Admin unter /admin/versionen.
 - Changelog-Eintraege und Env-Abgleich prueft der Skill `aufgabe-abschliessen` vor jedem PR.
 - Bei einem Versionswechsel erst den Skill `store-seite`, dann `doku-abgleich` ausfuehren.
 
@@ -28,7 +28,7 @@
 
 - Halte specs synchron zum tatsaechlichen Verhalten der App und pflege sie im selben PR mit.
 - README.md, CONTRIBUTING.md und docs/ pflegt der Skill `doku-abgleich` (.claude/skills/doku-abgleich/) beim Versionswechsel oder auf Anfrage; normale Umsetzungen aendern sie nicht.
-- Die Adressen /app-privacy-policy, /notifications.json und /version.json ruft die App direkt ab; sie duerfen sich nicht aendern.
+- Die Adressen /app-privacy-policy (GitHub Pages) sowie /app/notifications und /app/version (namiapp.scout-link.de) ruft die App direkt ab; sie duerfen sich nicht aendern.
 
 ## Arbeitsweise
 

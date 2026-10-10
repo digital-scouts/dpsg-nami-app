@@ -30,7 +30,7 @@ Welche Daten die App wohin sendet und wozu. Verbindlich ist die [Datenschutzerkl
 | Geoapify | Adressen auf der Karte | Adresstext ohne Namen | beim Anzeigen einer Karte |
 | MapTiler, OpenStreetMap | Kartenbilder | Kartenausschnitt, IP-Adresse | beim Anzeigen einer Karte |
 | DPSG-Stammessuche | Stämme auf der Karte | IP-Adresse | beim Öffnen der Karte |
-| GitHub Pages | Update-Hinweis und Mitteilungen | IP-Adresse | Update-Prüfung höchstens alle zwölf Stunden, Mitteilungen höchstens stündlich |
+| Statistikserver der App | Update-Hinweis und Mitteilungen | nur die Anfrage, ohne Kennung | Update-Prüfung höchstens alle zwölf Stunden, Mitteilungen höchstens stündlich |
 
 Mehr zu den Diensten steht unter [Technik → Externe Dienste](../../technik/externe-dienste/).
 

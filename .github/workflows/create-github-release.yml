@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master]
     types: [closed]
-    # Nur App-Aenderungen; docs/version.json (Version-Reminder) bewusst nicht.
+    # Nur App-Aenderungen.
     paths:
       - "lib/**"
       - "test/**"

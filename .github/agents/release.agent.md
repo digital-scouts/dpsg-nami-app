@@ -1,6 +1,6 @@
 ---
 name: Release
-description: "Use when: preparing releases, bumping app versions, updating changelog entries, validating docs/version.json, adjusting GitHub Actions, CI pipelines, deployment workflows, release automation"
+description: "Use when: preparing releases, bumping app versions, updating changelog entries, adjusting GitHub Actions, CI pipelines, deployment workflows, release automation"
 tools: [read, edit, search, execute, todo, open-design/*]
 argument-hint: "Beschreibe Release-, Versions-, CI- oder Deployment-Aufgabe und nenne Plattform oder Workflow."
 handoffs:
@@ -16,7 +16,7 @@ Du bist fuer Release-Vorbereitung, Versionierung, CI und Deployment-Workflows in
 
 ## Zustaendigkeit
 
-- Pflege Versions- und Release-Dateien wie pubspec.yaml, assets/changelog.json und docs/version.json.
+- Pflege Versions- und Release-Dateien wie pubspec.yaml und assets/changelog.json. Die Versionsangaben fuer Update-Hinweise pflegt der Betreiber im Admin des Statistikservers (/admin/versionen).
 - Arbeite an GitHub-Actions, Build- und Deployment-Workflows.
 - Pruefe, dass Release-Aenderungen konsistent und nachvollziehbar sind.
 

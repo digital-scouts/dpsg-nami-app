@@ -5,7 +5,7 @@ parent: Rechtliches
 nav_order: 1
 ---
 
-Stand: 9. Oktober 2026
+Stand: 10. Oktober 2026
 
 Diese Datenschutzerklärung gilt für die App „NaMi“ für iOS und Android und für den Statistikserver der App.
 
@@ -67,7 +67,7 @@ Die Demo zeigt einen erfundenen Bezirk mit erfundenen Personen. Sie greift nicht
 
 ## Update-Hinweis und Mitteilungen
 
-Die App prüft höchstens alle zwölf Stunden eine Datei auf GitHub Pages, ob es eine neue Version gibt, und kann wichtige Mitteilungen von GitHub laden. Dabei werden deine IP-Adresse und der Zeitpunkt an GitHub Inc. (USA) übermittelt. GitHub ist nach dem EU-US Data Privacy Framework zertifiziert. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.
+Die App fragt höchstens alle zwölf Stunden beim Statistikserver der App, ob es eine neue Version gibt, und höchstens stündlich, ob es wichtige Mitteilungen gibt. Dabei sendet sie keine Kennung und keine Daten aus der App. Deine IP-Adresse nutzt der Server nur kurz im Arbeitsspeicher, um Missbrauch zu begrenzen; gespeichert wird sie nicht. Der Server läuft bei ZAP-Hosting in Deutschland. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.
 
 ## Protokolle per E-Mail
 
