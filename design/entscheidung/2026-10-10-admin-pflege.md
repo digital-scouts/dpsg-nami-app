@@ -3,7 +3,7 @@
 - **Datum:** 2026-10-10
 - **Runden:** 1
 - **Anlass:** Meldungen und Versionen kommen nicht mehr als Dateien von GitHub Pages, sondern aus der Server-Datenbank. Der Betreiber pflegt sie im Admin per Formular, nicht als JSON-Text.
-- **Umsetzung:** noch kein PR; `server/src/modules/admin/` (`/admin/meldungen`, `/admin/versionen`)
+- **Umsetzung:** PR #270, `server/src/modules/admin/pflegePage.ts`, `pflegeRoute.ts` (`/admin/meldungen`, `/admin/versionen`)
 
 ## Entschieden
 
