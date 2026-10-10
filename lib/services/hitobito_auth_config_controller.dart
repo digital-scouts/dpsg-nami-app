@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'hitobito_auth_env.dart';
 import 'hitobito_efz_service.dart';
+import 'hitobito_events_service.dart';
 import 'hitobito_groups_service.dart';
 import 'hitobito_oauth_service.dart';
 import 'hitobito_people_service.dart';
@@ -19,6 +20,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
     HitobitoRolesService? rolesService,
     HitobitoEfzService? efzService,
     HitobitoQualificationsService? qualificationsService,
+    HitobitoEventsService? eventsService,
     LoggerService? logger,
     HitobitoAuthConfig? envConfig,
     bool overrideErlaubt = !kReleaseMode,
@@ -30,6 +32,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
        _rolesService = rolesService,
        _efzService = efzService,
        _qualificationsService = qualificationsService,
+       _eventsService = eventsService,
        _logger = logger,
        _envConfig = envConfig ?? HitobitoAuthEnv.authConfig,
        _effectiveConfig = envConfig ?? HitobitoAuthEnv.authConfig;
@@ -44,6 +47,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
   final HitobitoRolesService? _rolesService;
   final HitobitoEfzService? _efzService;
   final HitobitoQualificationsService? _qualificationsService;
+  final HitobitoEventsService? _eventsService;
   final LoggerService? _logger;
   final HitobitoAuthConfig _envConfig;
 
@@ -154,6 +158,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
     _rolesService?.updateConfig(nextConfig);
     _efzService?.updateConfig(nextConfig);
     _qualificationsService?.updateConfig(nextConfig);
+    _eventsService?.updateConfig(nextConfig);
     if (notify) {
       notifyListeners();
     }

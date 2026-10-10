@@ -322,7 +322,7 @@ void main() {
 
     expect(find.text('Karte'), findsOneWidget);
     expect(find.text('Rechnungen'), findsOneWidget);
-    expect(find.text('Events'), findsOneWidget);
+    expect(find.text('Kurse & Veranstaltungen'), findsOneWidget);
     expect(find.text('Abos'), findsOneWidget);
     expect(find.text('NaMi AI'), findsNothing);
     expect(find.text('Stufenwechsel'), findsNothing);

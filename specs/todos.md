@@ -113,22 +113,17 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 
 **Events und Kurse aus Sicht der Teilnehmenden** (#211)
 
-- Ziel: Events und Kurse über mehrere Layer und Gruppen hinweg suchen und filtern, sich anmelden und angemeldete Termine in den Kalender übernehmen.
-- Befunde zur API (`specs/hitobito_dpsg_openapi.yaml`):
-  - `events`, `event_kinds` und `event_participations` sind nur lesbar.
-  - Eine Anmeldung per API gibt es nicht. Möglich wären ein Deep-Link auf die Eventseite, `external_application_link` oder ein Upstream-PR für `POST event_participations`.
-  - Zum Filtern gibt es `filter[group_id]` als Liste, dazu Art, Kategorie, Typ, `after_or_on` und `before_or_on`.
-  - Einen Filter über Layer oder rekursiv gibt es nicht.
-  - Bei Kursen lassen sich freie Plätze aus `maximum_participants - participant_count` berechnen.
-  - „Meine Anmeldungen“ geht über `event_participations` mit `filter[participant_id]`, das gibt es nur in der DPSG-Spec.
-  - Die API bietet keinen iCal-Feed. Die App müsste Einträge selbst im Gerätekalender anlegen.
-- Der Scope `api` sollte reichen. Prüfen gegen `dpsg.puzzle.ch`.
-- Erster Schritt: ein Spike, wie viele Events mit echten Daten gepflegt sind und in welcher Qualität.
-- Trägt das Feature, kommt es ins Förderer-Abo, ohne neue Preisstufe.
+- Erster Durchgang umgesetzt: Kurse & Veranstaltungen suchen, filtern, ansehen, in den Kalender übernehmen und im Web öffnen, frei für alle (`specs/veranstaltungen.md`).
+- Offen:
+  - „Meine Termine“ über `filter[participant_id]` (Core).
+  - Erinnerungen an Anmeldeschluss und Beginn.
+  - Anmelden und Abmelden in der App, sobald die Upstream-Issues aus `specs/veranstaltungen.md` umgesetzt sind.
+  - Spike zur Datenqualität und Last nach dem Livegang.
+  - Kurs-Admin-Ansicht.
 
 **Monetarisierung** (#212)
 
-- Drei Design-Pakete als Einmalkauf (Waldsee, Lagerfeuer, Nachthimmel: je Palette, Hintergrund und App-Icons, dazu die Kompass-Badges) und ein Förderer-Jahresabo, das alles freischaltet, inklusive Polarstern-Badge, Qualifikationen-Übersicht und künftiger Extras wie Events und NaMi AI. Umgesetzt im Katalog (`SupporterPaket`, `SupportAccess`).
+- Drei Design-Pakete als Einmalkauf (Waldsee, Lagerfeuer, Nachthimmel: je Palette, Hintergrund und App-Icons, dazu die Kompass-Badges) und ein Förderer-Jahresabo, das alles freischaltet, inklusive Polarstern-Badge, Qualifikationen-Übersicht und künftiger Extras wie NaMi AI. Umgesetzt im Katalog (`SupporterPaket`, `SupportAccess`).
 - Preise: Pakete 2,99 € einmalig, in den ersten zwei Monaten nach Veröffentlichung 30 % günstiger (Preisänderung in den Store-Konsolen). Förderer 5,99 €/Jahr ohne Rabatt, dafür eine Woche kostenlos (Einführungsangebot). Apple-Preise sind angelegt.
 - Store-Anbindung mit `in_app_purchase` hinter dem Env-Schalter `SUPPORTER_STORE_ENABLED` (Standard aus) ersetzt `SchalterSupportAccess` außerhalb des Demo-Modus.
 - Kaufseite „Supporter werden“ mit Wiederherstellen und Abo-Pflichtangaben, vorher als HTML-Entwurf abstimmen.

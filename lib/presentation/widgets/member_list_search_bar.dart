@@ -9,6 +9,8 @@ class MemberSearchBar extends StatefulWidget {
     required this.onChanged,
     this.showFilterIndicator = false,
     this.onTunePressed,
+    this.zeigeFilterKnopf = true,
+    this.hintText,
     this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 12),
   });
 
@@ -16,6 +18,12 @@ class MemberSearchBar extends StatefulWidget {
   final ValueChanged<String> onChanged;
   final bool showFilterIndicator;
   final VoidCallback? onTunePressed;
+
+  /// Ohne Filterknopf, z. B. wenn die Filter als Chips darunter stehen.
+  final bool zeigeFilterKnopf;
+
+  /// Platzhalter im Feld; ohne Angabe der der Mitgliedersuche.
+  final String? hintText;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -112,7 +120,7 @@ class _MemberSearchBarState extends State<MemberSearchBar> {
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
-                  hintText: t.t('member_list_search_hint'),
+                  hintText: widget.hintText ?? t.t('member_list_search_hint'),
                   hintStyle: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.outlineVariant,
                   ),
@@ -133,40 +141,41 @@ class _MemberSearchBarState extends State<MemberSearchBar> {
                   onPressed: _clearSearch,
                 ),
               ),
-            SizedBox.square(
-              dimension: 36,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                iconSize: 22,
-                style: IconButton.styleFrom(
-                  fixedSize: const Size.square(36),
-                  minimumSize: const Size.square(36),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(Icons.tune, size: 22),
-                    if (widget.showFilterIndicator)
-                      Positioned(
-                        top: -3,
-                        right: -3,
-                        child: Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE6007E),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: fillColor, width: 1.5),
+            if (widget.zeigeFilterKnopf)
+              SizedBox.square(
+                dimension: 36,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  iconSize: 22,
+                  style: IconButton.styleFrom(
+                    fixedSize: const Size.square(36),
+                    minimumSize: const Size.square(36),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.tune, size: 22),
+                      if (widget.showFilterIndicator)
+                        Positioned(
+                          top: -3,
+                          right: -3,
+                          child: Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE6007E),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: fillColor, width: 1.5),
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
+                  tooltip: t.t('member_filter_open_tooltip'),
+                  onPressed: widget.onTunePressed,
                 ),
-                tooltip: t.t('member_filter_open_tooltip'),
-                onPressed: widget.onTunePressed,
               ),
-            ),
           ],
         ),
       ),

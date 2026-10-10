@@ -145,6 +145,22 @@ class HitobitoAuthConfig {
     return base.replace(path: '/api/qualifications', queryParameters: null);
   }
 
+  Uri? get eventsUri => _apiUri('/api/events');
+
+  /// Seite eines Events in der Hitobito-Weboberflaeche (Login im Browser).
+  Uri? eventWebUri({required int groupId, required int eventId}) =>
+      _apiUri('/groups/$groupId/events/$eventId');
+
+  Uri? _apiUri(String path) {
+    final base = Uri.tryParse(
+      profileUrl.isNotEmpty ? profileUrl : authorizationUrl,
+    );
+    if (base == null) {
+      return null;
+    }
+    return base.replace(path: path, queryParameters: null);
+  }
+
   // Nicht Teil der oeffentlichen /api/*-JSON:API, sondern derselbe Web-Endpoint,
   // ueber den auch die NAMI-Weboberflaeche das Antrags-PDF ausliefert
   // (People::EfzAntragsController im hitobito_pfadi_de-Wagon).

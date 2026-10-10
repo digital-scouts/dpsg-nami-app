@@ -37,6 +37,7 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onAppearanceSettings;
   final VoidCallback? onMapSettings;
   final VoidCallback? onQualifikationen;
+  final VoidCallback? onVeranstaltungen;
   final FutureOr<void> Function()? onMessages;
   final VoidCallback? onRechtliches;
   final VoidCallback? onDebugTools;
@@ -81,6 +82,7 @@ class SettingsPage extends StatefulWidget {
     this.onAppearanceSettings,
     this.onMapSettings,
     this.onQualifikationen,
+    this.onVeranstaltungen,
     this.onMessages,
     this.onRechtliches,
     this.onDebugTools,
@@ -393,14 +395,18 @@ class _SettingsPageState extends State<SettingsPage> {
                                           ),
                                           const _SettingsRowDivider(),
                                           _SettingsNavTile(
+                                            key: const Key(
+                                              'settings-veranstaltungen',
+                                            ),
                                             icon: Icons.event_outlined,
                                             iconBackgroundColor: const Color(
-                                              0xFF8E8E93,
+                                              0xFF5856D6,
                                             ),
-                                            title: t.t('settings_quick_events'),
+                                            title: t.t('veranstaltung_titel'),
                                             subtitle: t.t(
-                                              'settings_quick_placeholder',
+                                              'veranstaltung_quick_untertitel',
                                             ),
+                                            onTap: widget.onVeranstaltungen,
                                           ),
                                           const _SettingsRowDivider(),
                                           _SettingsNavTile(
@@ -1129,6 +1135,7 @@ class _SettingsNavTile extends StatelessWidget {
   final bool ausgewaehlt;
 
   const _SettingsNavTile({
+    super.key,
     required this.icon,
     required this.iconBackgroundColor,
     required this.title,

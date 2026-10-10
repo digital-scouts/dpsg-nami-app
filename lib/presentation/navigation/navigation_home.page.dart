@@ -20,6 +20,7 @@ import 'package:nami/presentation/screens/profile_page.dart';
 import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_qualifikationen_page.dart';
+import 'package:nami/presentation/screens/veranstaltungen/veranstaltungen_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/abmeldung_hinweis_karte.dart';
@@ -114,6 +115,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   static const int _qualifikationen = 5;
   static const int _namiAiZiel = 6;
   static const int _profil = 7;
+  static const int _veranstaltungen = 8;
   NamiAiAccessDecision _namiAi = const NamiAiAccessDecision(
     state: NamiAiAccessState.hidden,
   );
@@ -308,6 +310,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           onMapSettings: () => _unterseite(AppRoutes.settingsMap),
           onQualifikationen: () =>
               _unterseite(AppRoutes.settingsQualifikationen),
+          onVeranstaltungen: () => _unterseite(AppRoutes.veranstaltungen),
           onNamiAi: () => _unterseite(AppRoutes.namiAiChat),
           onNamiAiPaywall: () => _unterseite(AppRoutes.namiAiPaywall),
           onProfile: profilDa ? oeffne(SettingsPage.profil) : null,
@@ -480,8 +483,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     );
   }
 
-  /// Profil, Karte, Qualifikationen und NaMi AI (sofern sichtbar), wie im
-  /// Schnellzugriff der Einstellungen ohne die Platzhalter.
+  /// Profil, Karte, Qualifikationen, Kurse & Veranstaltungen und NaMi AI
+  /// (sofern sichtbar), wie im Schnellzugriff der Einstellungen ohne die
+  /// Platzhalter.
   List<_Schnellziel> _schnellziele(BuildContext context, AppLocalizations t) {
     final qualiGesperrt =
         context.watch<AppearanceModel?>()?.access.qualifikationenFrei == false;
@@ -523,6 +527,17 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         ),
         route: AppRoutes.settingsQualifikationen,
         seite: (_) => const SettingsQualifikationenPage(),
+      ),
+      _Schnellziel(
+        id: 'events',
+        ziel: _veranstaltungen,
+        eintrag: AppSeitenleisteEintrag(
+          icon: Icons.event_outlined,
+          label: t.t('veranstaltung_titel'),
+          ziel: _veranstaltungen,
+        ),
+        route: AppRoutes.veranstaltungen,
+        seite: (_) => const VeranstaltungenPage(),
       ),
       if (!_namiAi.isHidden)
         _Schnellziel(
