@@ -17,6 +17,7 @@ typedef MemberWriteRemoteAccessExecutor =
       required String trigger,
       required Future<T> Function(AuthSession session) action,
       bool forceRefresh,
+      bool allowMobileDataOverride,
     });
 
 class HitobitoMemberWriteRepository implements MemberWriteRepository {
@@ -76,6 +77,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     required String accessToken,
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,
+    bool allowMobileDataOverride = false,
   }) async {
     final personId = zielMitglied.personId ?? basisMitglied.personId;
     if (personId == null || personId <= 0) {
@@ -100,6 +102,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       return await _executeRemoteAccess<Mitglied>(
         trigger: 'member_update',
         accessToken: accessToken,
+        allowMobileDataOverride: allowMobileDataOverride,
         action: (effectiveAccessToken) async {
           final remoteMitglied = await _fetchRemoteMemberDirect(
             accessToken: effectiveAccessToken,
@@ -527,6 +530,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     required String trigger,
     required String accessToken,
     required Future<T> Function(String accessToken) action,
+    bool allowMobileDataOverride = false,
   }) async {
     final executor = _remoteAccessExecutor;
     if (executor == null) {
@@ -536,6 +540,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     final result = await executor<T>(
       trigger: trigger,
       action: (session) => action(session.accessToken),
+      allowMobileDataOverride: allowMobileDataOverride,
     );
     if (result == null) {
       throw const MemberWriteAuthRequiredException(_authRequiredMessage);

@@ -297,6 +297,7 @@ class ReadOnlyMemberWriteRepository implements MemberWriteRepository {
     required String accessToken,
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,
+    bool allowMobileDataOverride = false,
   }) async {
     throw const MemberWriteRejectedException(message);
   }

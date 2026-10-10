@@ -2,8 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/maps/asset_stamm_map_marker_repository.dart';
 import 'package:nami/data/maps/shared_prefs_stamm_map_marker_repository.dart';
 import 'package:nami/domain/maps/stamm_map_marker.dart';
+import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/services/stamm_map_sync_service.dart';
 import 'package:nami/services/stamm_storelocator_service.dart';
+
+import 'support/fake_connectivity.dart';
 
 void main() {
   test('verwendet Cache wenn vorhanden', () async {
@@ -92,6 +95,55 @@ void main() {
       );
     },
   );
+
+  group('refreshIfDue bei eingeschraenkten mobilen Daten', () {
+    StammMapSyncService serviceMit(_FakeCacheRepository cache) {
+      return StammMapSyncService(
+        assetRepository: _FakeAssetRepository(
+          StammMapMarkerSnapshot(
+            markers: const [],
+            fetchedAt: DateTime(2026, 4, 1),
+            source: StammMapMarkerSource.asset,
+          ),
+        ),
+        cacheRepository: cache,
+        remoteService: _FakeRemoteService(const []),
+        networkAccessPolicy: NetworkAccessPolicy(
+          connectivity: FakeConnectivity.mobile(),
+          noMobileDataEnabled: () => true,
+        ),
+        nowProvider: () => DateTime(2026, 4, 8),
+      );
+    }
+
+    _FakeCacheRepository faelligerCache() => _FakeCacheRepository(
+      StammMapMarkerSnapshot(
+        markers: const [],
+        fetchedAt: DateTime(2026, 3, 30),
+        source: StammMapMarkerSource.cache,
+      ),
+    );
+
+    test('verschiebt den Refresh ohne WLAN', () async {
+      final cache = faelligerCache();
+
+      final refreshed = await serviceMit(cache).refreshIfDue();
+
+      expect(refreshed, isNull);
+      expect(cache.savedSnapshots, isEmpty);
+    });
+
+    test('laedt nach Bestaetigung trotzdem', () async {
+      final cache = faelligerCache();
+
+      final refreshed = await serviceMit(
+        cache,
+      ).refreshIfDue(allowMobileDataOverride: true);
+
+      expect(refreshed, isNotNull);
+      expect(cache.savedSnapshots, hasLength(1));
+    });
+  });
 }
 
 class _FakeAssetRepository extends AssetStammMapMarkerRepository {

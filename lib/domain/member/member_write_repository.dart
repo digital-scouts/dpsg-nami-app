@@ -120,9 +120,12 @@ abstract class MemberWriteRepository {
     required int personId,
   });
 
+  /// [allowMobileDataOverride] sendet nach Bestaetigung auch bei
+  /// „Mobile Daten einschränken“ ohne WLAN.
   Future<Mitglied> updateMember({
     required String accessToken,
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,
+    bool allowMobileDataOverride = false,
   });
 }

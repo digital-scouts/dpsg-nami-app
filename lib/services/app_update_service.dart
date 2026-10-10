@@ -290,9 +290,12 @@ class AppUpdateService {
     }
 
     try {
+      // Die Versionspruefung ist klein und hoechstens alle paar Stunden
+      // faellig; sie laeuft auch bei eingeschraenkten mobilen Daten.
       await networkAccessPolicy?.ensureNetworkAllowed(
         trigger: 'app_update_manifest',
         feature: 'Update-Pruefung',
+        allowMobileDataOverride: true,
       );
       final responseBody = _manifestBodyFetcher == null
           ? await _defaultManifestBodyFetcher(

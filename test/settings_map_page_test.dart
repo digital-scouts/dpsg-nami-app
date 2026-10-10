@@ -523,7 +523,9 @@ class _FakeStammMapMarkerRepository implements StammMapMarkerRepository {
   }
 
   @override
-  Future<StammMapMarkerSnapshot?> refreshIfDue() async {
+  Future<StammMapMarkerSnapshot?> refreshIfDue({
+    bool allowMobileDataOverride = false,
+  }) async {
     return null;
   }
 }

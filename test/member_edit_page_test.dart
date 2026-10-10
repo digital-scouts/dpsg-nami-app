@@ -2192,6 +2192,7 @@ class _SubmitCall {
     required this.zielMitglied,
     required this.trigger,
     required this.existingResolutionCase,
+    this.allowMobileDataOverride = false,
   });
 
   final String accessToken;
@@ -2199,6 +2200,7 @@ class _SubmitCall {
   final Mitglied zielMitglied;
   final String trigger;
   final MemberResolutionCase? existingResolutionCase;
+  final bool allowMobileDataOverride;
 }
 
 class _RecordingMemberEditModel extends MemberEditModel {
@@ -2230,6 +2232,7 @@ class _RecordingMemberEditModel extends MemberEditModel {
     required Mitglied zielMitglied,
     String trigger = 'manual_edit',
     MemberResolutionCase? existingResolutionCase,
+    bool allowMobileDataOverride = false,
   }) async {
     submitCalls.add(
       _SubmitCall(
@@ -2238,6 +2241,7 @@ class _RecordingMemberEditModel extends MemberEditModel {
         zielMitglied: zielMitglied,
         trigger: trigger,
         existingResolutionCase: existingResolutionCase,
+        allowMobileDataOverride: allowMobileDataOverride,
       ),
     );
     final pendingGate = gate;
@@ -2308,6 +2312,7 @@ class _NoopMemberWriteRepository implements MemberWriteRepository {
     required String accessToken,
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,
+    bool allowMobileDataOverride = false,
   }) async {
     return zielMitglied;
   }

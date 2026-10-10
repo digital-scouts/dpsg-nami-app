@@ -5,6 +5,9 @@ import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_impl.dart';
 import 'package:nami/core/notifications/remote_notifications_data_source.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/network_access_policy.dart';
+
+import 'support/fake_connectivity.dart';
 
 class FakeRemote implements RemoteNotificationsDataSource {
   FakeRemote(this.result, {this.fehler = false});
@@ -204,4 +207,102 @@ void main() {
       expect(local.lastFetchAt, jetzt);
     });
   });
+
+  group(
+    'PullNotificationsRepositoryImpl bei eingeschraenkten mobilen Daten',
+    () {
+      final cached = [
+        PullNotification(
+          id: 'm',
+          title: const LocalizedString(de: 'A', en: 'A'),
+          body: const LocalizedString(de: 'B', en: 'B'),
+        ),
+      ];
+
+      PullNotificationsRepositoryImpl repoMit(
+        FakeRemote remote,
+        FakeLocal local,
+        FakeConnectivity connectivity,
+      ) {
+        return PullNotificationsRepositoryImpl(
+          remote: remote,
+          local: local,
+          minFetchInterval: const Duration(hours: 1),
+          minFetchIntervalMobil: const Duration(hours: 6),
+          networkAccessPolicy: NetworkAccessPolicy(
+            connectivity: connectivity,
+            noMobileDataEnabled: () => true,
+          ),
+        );
+      }
+
+      test('laedt ueber Mobilfunk, wenn kein Cache da ist', () async {
+        final remote = FakeRemote(cached);
+        final local = FakeLocal(cached: const []);
+
+        final result = await repoMit(
+          remote,
+          local,
+          FakeConnectivity.mobile(),
+        ).fetchNotifications();
+
+        expect(result, cached);
+        expect(remote.fetchCalls, 1);
+      });
+
+      test('fragt ueber Mobilfunk erst nach dem laengeren Intervall', () async {
+        final remote = FakeRemote(cached);
+        final local = FakeLocal(
+          cached: cached,
+          lastFetchAt: DateTime.now().subtract(const Duration(hours: 2)),
+        );
+
+        await repoMit(
+          remote,
+          local,
+          FakeConnectivity.mobile(),
+        ).fetchNotifications();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(remote.fetchCalls, 0);
+      });
+
+      test('fragt im WLAN nach dem normalen Intervall', () async {
+        final remote = FakeRemote(cached);
+        final local = FakeLocal(
+          cached: cached,
+          lastFetchAt: DateTime.now().subtract(const Duration(hours: 2)),
+        );
+
+        await repoMit(
+          remote,
+          local,
+          FakeConnectivity.wifi(),
+        ).fetchNotifications();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(remote.fetchCalls, 1);
+      });
+
+      test(
+        'fragt ueber Mobilfunk nach Ablauf des laengeren Intervalls',
+        () async {
+          final remote = FakeRemote(cached);
+          final local = FakeLocal(
+            cached: cached,
+            lastFetchAt: DateTime.now().subtract(const Duration(hours: 7)),
+          );
+
+          await repoMit(
+            remote,
+            local,
+            FakeConnectivity.mobile(),
+          ).fetchNotifications();
+          await Future<void>.delayed(Duration.zero);
+
+          expect(remote.fetchCalls, 1);
+        },
+      );
+    },
+  );
 }

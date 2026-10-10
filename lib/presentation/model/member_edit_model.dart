@@ -518,6 +518,50 @@ class MemberEditModel extends ChangeNotifier {
     }
   }
 
+  /// Merkt [zielMitglied] ohne Sendeversuch vor, weil der Nutzer bei
+  /// „Mobile Daten einschränken“ das Senden im WLAN gewaehlt hat. Der
+  /// Eintrag geht wie jeder wartende Eintrag beim naechsten WLAN raus.
+  Future<MemberEditSubmitResult> vormerkenFuerWlan({
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+    String trigger = 'manual_edit',
+  }) async {
+    final personId = zielMitglied.personId ?? basisMitglied.personId;
+    if (personId == null || personId <= 0) {
+      return const MemberEditSubmitResult(
+        success: false,
+        wasQueued: false,
+        messageSpec: UiMessageSpec('member_edit_invalid_person_id'),
+      );
+    }
+    // Ein laufender Retry fuer dieselbe Person darf den Eintrag nicht
+    // nachtraeglich ueberschreiben.
+    final runningRetry = _retryInFlight;
+    if (runningRetry != null) {
+      await runningRetry;
+    }
+    final entry = _buildPendingEntry(
+      personId: personId,
+      basisMitglied: basisMitglied,
+      zielMitglied: zielMitglied,
+    );
+    await _pendingRepository.save(entry);
+    await _logMemberEditEvent(
+      action: 'submit_result',
+      trigger: trigger,
+      outcome: 'queued_wifi',
+      personId: personId,
+      track: true,
+    );
+    await loadPending();
+    return MemberEditSubmitResult(
+      success: false,
+      wasQueued: true,
+      pendingEntry: entry,
+      messageSpec: UiMessageSpec('member_edit_submit_queued_wifi'),
+    );
+  }
+
   /// Sendet [zielMitglied]. [basisMitglied] muss der Stand sein, auf dem der
   /// Entwurf beruht: der beim Oeffnen geladene Serverstand oder die Basis des
   /// wartenden Eintrags, aus dem der Entwurf stammt.
@@ -527,6 +571,7 @@ class MemberEditModel extends ChangeNotifier {
     required Mitglied zielMitglied,
     String trigger = 'manual_edit',
     MemberResolutionCase? existingResolutionCase,
+    bool allowMobileDataOverride = false,
   }) async {
     final personId = zielMitglied.personId ?? basisMitglied.personId;
     if (personId == null || personId <= 0) {
@@ -581,6 +626,7 @@ class MemberEditModel extends ChangeNotifier {
         accessToken: accessToken,
         basisMitglied: basisMitglied,
         zielMitglied: zielMitglied,
+        allowMobileDataOverride: allowMobileDataOverride,
       );
       await _applyWrittenMember(updated, personId: personId);
       await _removePendingForPerson(personId);
