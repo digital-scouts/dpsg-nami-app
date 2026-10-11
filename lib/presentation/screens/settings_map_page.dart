@@ -11,11 +11,11 @@ import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/widgets/stamm_cluster_layer.dart';
-import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/maps_env.dart';
 import 'package:nami/services/stamm_map_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/karten_quellenangabe.dart';
+import '../widgets/mobile_daten_hinweis.dart';
 
 typedef ExternalUrlOpener = Future<bool> Function(Uri uri);
 
@@ -531,84 +531,83 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
           return Stack(
             children: [
               Positioned.fill(
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: allPoints.first,
-                    initialZoom: 6,
-                    minZoom: 4,
-                    maxZoom: 16,
-                    initialCameraFit: initialCameraFit,
-                    interactionOptions: const InteractionOptions(
-                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                    ),
-                    onPositionChanged: (camera, hasGesture) {
-                      final nextZoom = camera.zoom;
-                      final zoomChanged =
-                          (_currentZoom - nextZoom).abs() >= 0.01;
-                      final shouldDisableBoundarySelection =
-                          nextZoom >= dvMaxVisibleZoom &&
-                          _selectedBoundaryId != null;
-
-                      if (hasGesture || zoomChanged) {
-                        _cancelPolygonHoldSelection();
-                      }
-
-                      if (!zoomChanged && !shouldDisableBoundarySelection) {
-                        return;
-                      }
-
-                      setState(() {
-                        _currentZoom = nextZoom;
-                        if (shouldDisableBoundarySelection) {
-                          _selectedBoundaryId = null;
-                        }
-                      });
-
-                      if (shouldDisableBoundarySelection) {
-                        _polygonHitNotifier.value = null;
-                      }
-                    },
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: MapsEnv.mapTileUrlTemplate,
-                      userAgentPackageName:
-                          MapTileCacheService.userAgentPackageName,
-                      maxZoom: 19,
-                    ),
-                    Listener(
-                      behavior: HitTestBehavior.deferToChild,
-                      onPointerDown: _startPolygonHoldSelection,
-                      onPointerMove: _updatePolygonHoldSelection,
-                      onPointerUp: (_) => _cancelPolygonHoldSelection(),
-                      onPointerCancel: (_) => _cancelPolygonHoldSelection(),
-                      child: PolygonLayer<String>(
-                        polygons: _buildPolygons(
-                          boundaries,
-                          selectedBoundaryId: _selectedBoundaryId,
-                          showBorderOnly: _currentZoom >= dvMaxVisibleZoom,
-                        ),
-                        polygonLabels: false,
-                        hitNotifier: _polygonHitNotifier,
+                child: KartenKacheln(
+                  trigger: 'settings_map_tiles',
+                  maxZoom: 19,
+                  builder: (context, kacheln) => FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: allPoints.first,
+                      initialZoom: 6,
+                      minZoom: 4,
+                      maxZoom: 16,
+                      initialCameraFit: initialCameraFit,
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                       ),
-                    ),
-                    StammClusterLayer(
-                      markers: _stammMarkers,
-                      currentZoom: _currentZoom,
-                      minVisibleZoom:
-                          widget.stammMinVisibleZoom ??
-                          MapsEnv.stammMinVisibleZoom,
-                      onMarkerTap: (marker) {
+                      onPositionChanged: (camera, hasGesture) {
+                        final nextZoom = camera.zoom;
+                        final zoomChanged =
+                            (_currentZoom - nextZoom).abs() >= 0.01;
+                        final shouldDisableBoundarySelection =
+                            nextZoom >= dvMaxVisibleZoom &&
+                            _selectedBoundaryId != null;
+
+                        if (hasGesture || zoomChanged) {
+                          _cancelPolygonHoldSelection();
+                        }
+
+                        if (!zoomChanged && !shouldDisableBoundarySelection) {
+                          return;
+                        }
+
                         setState(() {
-                          _selectedBoundaryId = null;
-                          _selectedStammMarkerId = marker.id;
+                          _currentZoom = nextZoom;
+                          if (shouldDisableBoundarySelection) {
+                            _selectedBoundaryId = null;
+                          }
                         });
-                        _polygonHitNotifier.value = null;
+
+                        if (shouldDisableBoundarySelection) {
+                          _polygonHitNotifier.value = null;
+                        }
                       },
                     ),
-                    const KartenQuellenangabe(),
-                  ],
+                    children: [
+                      kacheln,
+                      Listener(
+                        behavior: HitTestBehavior.deferToChild,
+                        onPointerDown: _startPolygonHoldSelection,
+                        onPointerMove: _updatePolygonHoldSelection,
+                        onPointerUp: (_) => _cancelPolygonHoldSelection(),
+                        onPointerCancel: (_) => _cancelPolygonHoldSelection(),
+                        child: PolygonLayer<String>(
+                          polygons: _buildPolygons(
+                            boundaries,
+                            selectedBoundaryId: _selectedBoundaryId,
+                            showBorderOnly: _currentZoom >= dvMaxVisibleZoom,
+                          ),
+                          polygonLabels: false,
+                          hitNotifier: _polygonHitNotifier,
+                        ),
+                      ),
+                      StammClusterLayer(
+                        markers: _stammMarkers,
+                        currentZoom: _currentZoom,
+                        minVisibleZoom:
+                            widget.stammMinVisibleZoom ??
+                            MapsEnv.stammMinVisibleZoom,
+                        onMarkerTap: (marker) {
+                          setState(() {
+                            _selectedBoundaryId = null;
+                            _selectedStammMarkerId = marker.id;
+                          });
+                          _polygonHitNotifier.value = null;
+                        },
+                      ),
+                      const KartenQuellenangabe(),
+                    ],
+                  ),
                 ),
               ),
               Positioned.fill(

@@ -9,6 +9,7 @@ import 'package:nami/domain/maps/address_map_location.dart';
 import 'package:nami/domain/maps/address_map_location_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/map_recenter_button.dart';
+import 'package:nami/presentation/widgets/mobile_daten_hinweis.dart';
 import 'package:nami/presentation/widgets/skeletton_map.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
 import 'package:nami/services/geoapify_env.dart';
@@ -63,6 +64,16 @@ class AddressMapPreview extends StatefulWidget {
 class _AddressMapPreviewState extends State<AddressMapPreview> {
   late Future<_AddressMapPreviewResult> _future;
 
+  /// Nach „Laden“ bis zum Verlassen der Seite ueber mobile Daten.
+  bool _mobileDatenFreigegeben = false;
+
+  void _mobileDatenFreigeben() {
+    setState(() {
+      _mobileDatenFreigegeben = true;
+      _future = _loadPreview();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -112,6 +123,9 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
             primaryLocation: result.primaryLocation!,
             secondaryLocation: result.secondaryLocation,
             borderRadius: widget.borderRadius,
+            onMobileDatenLaden: result.kachelnNurAusSpeicher
+                ? _mobileDatenFreigeben
+                : null,
           );
         }
 
@@ -121,11 +135,15 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
           label: t.t('map_retry'),
           onPressed: () => setState(() => _future = _loadPreview()),
         );
+        final mobilLaden = _MapHinweisAktion(
+          label: t.t('mobile_daten_laden_kurz'),
+          onPressed: _mobileDatenFreigeben,
+        );
         final (icon, grund, aktion) = switch (result) {
           _AddressMapPreviewResult(blockedByWifiPolicy: true) => (
             Icons.wifi_off,
             t.t('map_wifi_only_refresh'),
-            null,
+            mobilLaden,
           ),
           _AddressMapPreviewResult(deviceOffline: true) => (
             Icons.cloud_off_outlined,
@@ -135,7 +153,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
           _AddressMapPreviewResult(mobileDataBlocked: true) => (
             Icons.signal_cellular_off_outlined,
             t.t('map_mobile_data_blocked'),
-            null,
+            mobilLaden,
           ),
           _AddressMapPreviewResult(apiKeyMissing: true) => (
             Icons.error_outline,
@@ -231,17 +249,16 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
     }
 
     TileProvider? tileProvider;
+    var kachelnNurAusSpeicher = false;
     try {
-      final allowNetwork =
-          await networkAccessPolicy
-              ?.evaluateAccess(
-                trigger: 'map_preview_tiles',
-                feature: 'Kartenansicht',
-              )
-              .then((decision) => decision.allowed) ??
-          true;
+      final decision = await networkAccessPolicy?.evaluateAccess(
+        trigger: 'map_preview_tiles',
+        feature: 'Kartenansicht',
+        allowMobileDataOverride: _mobileDatenFreigegeben,
+      );
+      kachelnNurAusSpeicher = decision?.isBlockedByNoMobileData ?? false;
       tileProvider = await tileCacheService.tileProvider(
-        allowNetwork: allowNetwork,
+        allowNetwork: decision?.allowed ?? true,
       );
     } catch (error, stackTrace) {
       _log(
@@ -258,6 +275,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       primaryLocation: primary.location,
       secondaryLocation: secondaryLocation,
       tileProvider: tileProvider,
+      kachelnNurAusSpeicher: kachelnNurAusSpeicher,
     );
   }
 
@@ -343,7 +361,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       _log(logger, 'Kein Karten-Cache vorhanden');
     }
 
-    if (request.wifiOnlyRefresh) {
+    if (request.wifiOnlyRefresh && !_mobileDatenFreigegeben) {
       var connectivityTimedOut = false;
       final connectionTypes = await Connectivity().checkConnectivity().timeout(
         widget.previewTimeout,
@@ -386,7 +404,10 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
     _log(logger, 'Starte Geocoding');
     var geocodeTimedOut = false;
     final geocodeResult = await mapService
-        .resolveAddress(request.addressText)
+        .resolveAddress(
+          request.addressText,
+          allowMobileDataOverride: _mobileDatenFreigegeben,
+        )
         .timeout(
           widget.previewTimeout,
           onTimeout: () {
@@ -464,6 +485,7 @@ class _InteractiveMapPreview extends StatefulWidget {
     required this.primaryLocation,
     required this.borderRadius,
     this.secondaryLocation,
+    this.onMobileDatenLaden,
   });
 
   final double height;
@@ -471,6 +493,10 @@ class _InteractiveMapPreview extends StatefulWidget {
   final AddressMapLocation primaryLocation;
   final AddressMapLocation? secondaryLocation;
   final BorderRadiusGeometry borderRadius;
+
+  /// Gesetzt, wenn die Kacheln wegen „Mobile Daten einschränken“ nur aus dem
+  /// Speicher kommen.
+  final VoidCallback? onMobileDatenLaden;
 
   @override
   State<_InteractiveMapPreview> createState() => _InteractiveMapPreviewState();
@@ -584,6 +610,25 @@ class _InteractiveMapPreviewState extends State<_InteractiveMapPreview> {
               right: 8,
               child: MapRecenterButton(onTap: () => _recenterMap(points)),
             ),
+            if (widget.onMobileDatenLaden != null)
+              Positioned(
+                top: 8,
+                left: 8,
+                right: 8,
+                child: MobileDatenHinweis(
+                  key: const Key('mobile-daten-karte-hinweis'),
+                  icon: Icons.signal_cellular_alt,
+                  titel: AppLocalizations.of(
+                    context,
+                  ).t('mobile_daten_karte_titel'),
+                  text: AppLocalizations.of(
+                    context,
+                  ).t('mobile_daten_karte_text'),
+                  knopf: AppLocalizations.of(context).t('mobile_daten_laden'),
+                  kompakt: true,
+                  onLaden: widget.onMobileDatenLaden!,
+                ),
+              ),
           ],
         ),
       ),
@@ -715,6 +760,7 @@ class _AddressMapPreviewResult {
     this.primaryLocation,
     this.secondaryLocation,
     this.tileProvider,
+    this.kachelnNurAusSpeicher = false,
     this.blockedByWifiPolicy = false,
     this.deviceOffline = false,
     this.mobileDataBlocked = false,
@@ -727,6 +773,7 @@ class _AddressMapPreviewResult {
   final AddressMapLocation? primaryLocation;
   final AddressMapLocation? secondaryLocation;
   final TileProvider? tileProvider;
+  final bool kachelnNurAusSpeicher;
   final bool blockedByWifiPolicy;
   final bool deviceOffline;
   final bool mobileDataBlocked;

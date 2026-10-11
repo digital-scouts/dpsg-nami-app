@@ -69,6 +69,7 @@ void main() {
   late DateTime jetzt;
   late int generation;
   late bool sitzungFehlt;
+  late List<bool> mobileFreigaben;
   late VeranstaltungenModel model;
 
   final readModel = ArbeitskontextReadModel(
@@ -84,20 +85,27 @@ void main() {
   );
 
   setUp(() {
+    mobileFreigaben = [];
     service = _FakeService()..antwort = [_event(1, 12), _event(2, 11)];
     jetzt = DateTime(2026, 10, 10, 9);
     generation = 1;
     sitzungFehlt = false;
     model = VeranstaltungenModel(
       service: service,
-      remoteAccessExecutor: <T>({required trigger, required action}) async {
-        if (sitzungFehlt) {
-          return null;
-        }
-        return action(
-          AuthSession(accessToken: 'token', receivedAt: DateTime(2026)),
-        );
-      },
+      remoteAccessExecutor:
+          <T>({
+            required trigger,
+            required action,
+            allowMobileDataOverride = false,
+          }) async {
+            mobileFreigaben.add(allowMobileDataOverride);
+            if (sitzungFehlt) {
+              return null;
+            }
+            return action(
+              AuthSession(accessToken: 'token', receivedAt: DateTime(2026)),
+            );
+          },
       readModel: () => readModel,
       sessionGeneration: () => generation,
       jetzt: () => jetzt,
@@ -171,6 +179,26 @@ void main() {
     sitzungFehlt = true;
     await model.laden();
     expect(model.zustand, VeranstaltungenLadezustand.anmeldungNoetig);
+  });
+
+  test('meldet nurWlan und laedt nach Bestaetigung mit Freigabe', () async {
+    service.fehler = const NetworkAccessBlockedException(
+      reason: NetworkAccessBlockedReason.noMobileDataEnabled,
+      connectionType: NetworkConnectionType.mobile,
+      message: 'nur WLAN',
+    );
+    await model.laden();
+    expect(model.zustand, VeranstaltungenLadezustand.nurWlan);
+    expect(mobileFreigaben, [false]);
+
+    service.fehler = null;
+    await model.trotzdemLaden();
+    expect(model.zustand, VeranstaltungenLadezustand.geladen);
+    expect(mobileFreigaben.last, isTrue);
+
+    model.mobileDatenFreigabeBeenden();
+    await model.laden(erzwingen: true);
+    expect(mobileFreigaben.last, isFalse);
   });
 
   test('neue Sitzung verwirft Ergebnisse und Filter', () async {

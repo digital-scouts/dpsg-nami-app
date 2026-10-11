@@ -244,7 +244,10 @@ class _FakeGeoapifyAddressMapService extends GeoapifyAddressMapService {
   final List<String> texts = <String>[];
 
   @override
-  Future<GeoapifyGeocodeResult> resolveAddress(String addressText) async {
+  Future<GeoapifyGeocodeResult> resolveAddress(
+    String addressText, {
+    bool allowMobileDataOverride = false,
+  }) async {
     calls += 1;
     texts.add(addressText);
     return result;

@@ -13,7 +13,7 @@ import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
-enum VeranstaltungenStoryZustand { geladen, keine, offline, fehler }
+enum VeranstaltungenStoryZustand { geladen, keine, offline, nurWlan, fehler }
 
 enum VeranstaltungenStorySeite { liste, kurs, mehrereTermine, leer }
 
@@ -46,6 +46,12 @@ class _StoryService extends DemoHitobitoEventsService {
           reason: NetworkAccessBlockedReason.offline,
           connectionType: NetworkConnectionType.offline,
           message: 'offline',
+        );
+      case VeranstaltungenStoryZustand.nurWlan:
+        throw const NetworkAccessBlockedException(
+          reason: NetworkAccessBlockedReason.noMobileDataEnabled,
+          connectionType: NetworkConnectionType.mobile,
+          message: 'nur WLAN',
         );
       case VeranstaltungenStoryZustand.fehler:
         throw const HitobitoEventsException('Story', statusCode: 500);
@@ -82,6 +88,10 @@ Story veranstaltungenStory() => Story(
           value: VeranstaltungenStoryZustand.keine,
         ),
         Option(label: 'Offline', value: VeranstaltungenStoryZustand.offline),
+        Option(
+          label: 'Nur im WLAN',
+          value: VeranstaltungenStoryZustand.nurWlan,
+        ),
         Option(label: 'Fehler', value: VeranstaltungenStoryZustand.fehler),
       ],
     );
@@ -89,8 +99,12 @@ Story veranstaltungenStory() => Story(
     final service = _StoryService(zustand);
     final model = VeranstaltungenModel(
       service: service,
-      remoteAccessExecutor: <T>({required trigger, required action}) =>
-          action(AuthSession(accessToken: 'story', receivedAt: _jetzt)),
+      remoteAccessExecutor:
+          <T>({
+            required trigger,
+            required action,
+            allowMobileDataOverride = false,
+          }) => action(AuthSession(accessToken: 'story', receivedAt: _jetzt)),
       readModel: () => null,
       jetzt: () => _jetzt,
     );

@@ -119,7 +119,7 @@ class NetworkAccessPolicy {
         type: connectionType,
         reason: NetworkAccessBlockedReason.noMobileDataEnabled,
         message:
-            'Keine Mobilen Daten ist aktiviert. $feature ist nur über WLAN verfügbar.',
+            '„Mobile Daten einschränken“ ist an. $feature lädt nur im WLAN.',
       );
     }
 

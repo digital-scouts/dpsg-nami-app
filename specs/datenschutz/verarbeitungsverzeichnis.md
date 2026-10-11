@@ -32,7 +32,7 @@ Janneck Lange, privat, `dev@jannecklange.de`. Es gibt keinen Datenschutzbeauftra
 | Empfänger | Wiredash GmbH, Hosting auf Google Cloud Platform; AV-Vertrag in den Projekteinstellungen von Wiredash `[prüfen: abgeschlossen?]` |
 | Drittland | USA möglich (Google Cloud), laut Datenschutzerklärung von Wiredash |
 | Löschfrist | Nach den Vorgaben von Wiredash `[prüfen]`; Feedback löscht der Betreiber nach Bearbeitung `[festlegen]` |
-| TOM | Ereignisse nur mit Opt-in; Hinweis im Screenshot-Schritt, keine Mitgliederdaten aufzunehmen; Wiredash setzt keine Nutzer-ID oder E-Mail von sich aus |
+| TOM | Ereignisse nur mit Opt-in; Hinweis im Screenshot-Schritt, keine Mitgliederdaten aufzunehmen; Wiredash setzt keine Nutzer-ID oder E-Mail von sich aus; bei „Mobile Daten einschränken“ ohne WLAN bleiben Ereignisse bis zu 3 Tage (höchstens 200) auf dem Gerät und gehen erst im WLAN raus |
 
 ## V3: Geokodierung von Adressen (Geoapify)
 

@@ -7,6 +7,7 @@ Stand: 2026-10-09. Wie Änderungen an Mitgliedern nach Hitobito gelangen und was
 - Vor dem ersten Senden wird die Änderung als Eintrag `person-<id>` vorgemerkt (`MemberEditModel.submitUpdate`). Endet die App während des Requests, ist sie nicht verloren.
 - Erfolg entfernt den Eintrag. Ausgänge, die die Änderung verwerfen (Ablehnung, Konflikt ohne Merge, fehlendes `updated_at`, Validierung ohne Problemfall), stellen den Stand vor dem Speichern wieder her.
 - Kein Netz, Netz gesperrt, Anmeldung nötig oder unbekannter Fehler: Der Eintrag bleibt vorgemerkt und wird nachgesendet.
+- Bei „Mobile Daten einschränken“ ohne WLAN fragt die Seite vorher: „Jetzt senden“ sendet mit Freigabe, „Später im WLAN“ merkt ohne Sendeversuch vor (`vormerkenFuerWlan`). Siehe `specs/mobile-daten.md`.
 - Hat ein abgebrochener Versuch einen Kontakt schon angelegt, erkennt der Merge ihn beim erneuten Senden am Inhalt (`MemberConflictResolver`, `sameContent`) und legt ihn nicht doppelt an.
 
 ## Nachsenden

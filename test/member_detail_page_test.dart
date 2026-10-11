@@ -1341,8 +1341,10 @@ class _NullGeoapifyAddressMapService extends GeoapifyAddressMapService {
   Future<LatLng?> geocodeAddress(String addressText) async => null;
 
   @override
-  Future<GeoapifyGeocodeResult> resolveAddress(String addressText) async =>
-      const GeoapifyGeocodeResult.addressNotFound();
+  Future<GeoapifyGeocodeResult> resolveAddress(
+    String addressText, {
+    bool allowMobileDataOverride = false,
+  }) async => const GeoapifyGeocodeResult.addressNotFound();
 }
 
 final DateTime _heute = DateTime(2026, 10, 2);

@@ -479,9 +479,8 @@ class AppLocalizations {
       'welcome_theme': 'Darstellung',
       'welcome_analytics_hint':
           'Nutzungsereignisse und Fehlerberichte an Wiredash senden.',
-      'welcome_no_mobile_data': 'Keine mobilen Daten',
-      'welcome_no_mobile_data_hint':
-          'Synchronisation und Karten nur im WLAN laden.',
+      'welcome_no_mobile_data': 'Mobile Daten einschränken',
+      'welcome_no_mobile_data_hint': 'Schränkt mobilen Datenverbrauch ein',
       'welcome_highlights_title': 'Das kann die App',
       'welcome_highlights_body':
           'Ein kurzer Überblick über das, was dich erwartet.',
@@ -604,7 +603,7 @@ class AppLocalizations {
       'member_list_footer_count': '{count} Mitglieder',
       'member_list_mobile_refresh_title': 'Über mobile Daten aktualisieren?',
       'member_list_mobile_refresh_body':
-          'Du hast „nur WLAN“ aktiviert. Möchtest du diesen Sync trotzdem über mobile Daten starten?',
+          '„Mobile Daten einschränken“ ist an. Möchtest du trotzdem über mobile Daten aktualisieren?',
       'member_list_mobile_refresh_confirm': 'Laden',
       'member_list_mobile_refresh_cancel': 'Abbrechen',
       'member_list_search_hint': 'Suche nach Name, Mail oder ID',
@@ -718,13 +717,10 @@ class AppLocalizations {
       'settings_app_theme_system': 'System',
       'settings_app_language_en': 'English',
       'settings_app_mobile_data_title': 'Mobile Daten einschränken',
-      'settings_app_mobile_data_hint': 'Bilder nur im WLAN laden',
+      'settings_app_mobile_data_hint': 'Schränkt mobilen Datenverbrauch ein',
       'settings_app_highlight_title': 'Suchtreffer hervorheben',
       'settings_app_highlight_hint':
           'Treffer in der Mitgliederliste farbig markieren',
-      'no_mobile_data_title': 'Keine Mobilen Daten',
-      'no_mobile_data_hint':
-          'Blockiert Netzwerkzugriffe über mobile Daten. Online-Funktionen laufen dann nur über WLAN.',
       'settings_map': 'Karte',
       'settings_map_title': 'Karte',
       'settings_map_loading': 'Kartendaten werden geladen',
@@ -848,7 +844,15 @@ class AppLocalizations {
       'map_open_in_maps': 'In Karten-App öffnen',
       'map_device_offline': 'Gerät offline',
       'map_mobile_data_blocked':
-          'Keine Mobilen Daten ist aktiviert. Karte nur über WLAN verfügbar.',
+          '„Mobile Daten einschränken“ ist an. Die Karte lädt im WLAN.',
+      'mobile_daten_karte_titel': 'Karte nur aus dem Speicher',
+      'mobile_daten_karte_text':
+          '„Mobile Daten einschränken“ ist an. Fehlende Kartenteile lädt die App im WLAN.',
+      'mobile_daten_laden': 'Über mobile Daten laden',
+      'mobile_daten_laden_kurz': 'Laden',
+      'mobile_daten_adresse_titel': 'Vorschläge im WLAN',
+      'mobile_daten_adresse_text': '„Mobile Daten einschränken“ ist an.',
+      'mobile_daten_adresse_laden': 'Vorschläge über mobile Daten laden',
       'map_wifi_only_refresh':
           'Kartenvorschau wird nur über WLAN aktualisiert.',
       'auth_loading_title': 'Sichere Sitzung wird vorbereitet',
@@ -1108,6 +1112,13 @@ class AppLocalizations {
           'Die Änderung wurde lokal gespeichert. {details}',
       'member_edit_submit_queued':
           'Die Änderung konnte nicht direkt gesendet werden und wurde für einen späteren Retry gespeichert.',
+      'member_edit_submit_queued_wifi':
+          'Gespeichert. Die Änderung wird im WLAN gesendet.',
+      'member_edit_mobile_titel': 'Änderung jetzt senden?',
+      'member_edit_mobile_text':
+          '„Mobile Daten einschränken“ ist an. Du kannst jetzt über mobile Daten senden oder die Änderung im WLAN senden lassen.',
+      'member_edit_mobile_spaeter': 'Später im WLAN',
+      'member_edit_mobile_jetzt': 'Jetzt senden',
       'member_edit_retry_failed':
           'Retry fehlgeschlagen. Der Eintrag bleibt in der Queue.',
       'notifications_refresh': 'Aktualisieren',
@@ -1280,6 +1291,10 @@ class AppLocalizations {
       'veranstaltung_offline_titel': 'Keine Verbindung',
       'veranstaltung_offline_text':
           'Die Suche fragt Hitobito direkt ab und braucht Internet.',
+      'veranstaltung_nur_wlan_titel': 'Nur im WLAN',
+      'veranstaltung_nur_wlan_text':
+          '„Mobile Daten einschränken“ ist an. Die Suche fragt Hitobito direkt ab.',
+      'veranstaltung_trotzdem_laden': 'Trotzdem laden',
       'veranstaltung_leer_titel': 'Nichts gefunden',
       'veranstaltung_leer_text':
           'Für diese Suche und Filter gibt es keine kommenden Termine.',
@@ -1685,7 +1700,7 @@ class AppLocalizations {
       'debug_sync_status_never': 'Noch nie',
       'debug_sync_attempt_success': '{time} - Erfolgreich',
       'debug_sync_attempt_failed': '{time} - Nicht erfolgreich, {reason}',
-      'debug_sync_reason_wifi': 'nur WLAN aktiviert',
+      'debug_sync_reason_wifi': '„Mobile Daten einschränken“ an',
       'debug_sync_reason_login': 'Anmeldung erforderlich',
       'debug_sync_reason_network': 'Netzwerkfehler',
       'debug_sync_reason_server': 'Serverfehler',
@@ -2271,8 +2286,8 @@ class AppLocalizations {
       'welcome_theme': 'Appearance',
       'welcome_analytics_hint':
           'Send usage events and error reports to Wiredash.',
-      'welcome_no_mobile_data': 'No mobile data',
-      'welcome_no_mobile_data_hint': 'Load sync and maps only on Wi-Fi.',
+      'welcome_no_mobile_data': 'Restrict mobile data',
+      'welcome_no_mobile_data_hint': 'Limits mobile data usage',
       'welcome_highlights_title': 'What the app can do',
       'welcome_highlights_body': 'A short overview of what to expect.',
       'welcome_highlight_members_title': 'Members',
@@ -2392,7 +2407,7 @@ class AppLocalizations {
       'member_list_footer_count': '{count} members',
       'member_list_mobile_refresh_title': 'Update via mobile data?',
       'member_list_mobile_refresh_body':
-          'You enabled Wi-Fi only. Do you want to run this sync via mobile data anyway?',
+          '"Restrict mobile data" is on. Do you want to update via mobile data anyway?',
       'member_list_mobile_refresh_confirm': 'Load',
       'member_list_mobile_refresh_cancel': 'Cancel',
       'member_list_search_hint': 'Search by name, mail or ID',
@@ -2505,12 +2520,9 @@ class AppLocalizations {
       'settings_app_theme_system': 'System',
       'settings_app_language_en': 'English',
       'settings_app_mobile_data_title': 'Restrict mobile data',
-      'settings_app_mobile_data_hint': 'Load images only on Wi-Fi',
+      'settings_app_mobile_data_hint': 'Limits mobile data usage',
       'settings_app_highlight_title': 'Highlight search results',
       'settings_app_highlight_hint': 'Highlight matches in the member list',
-      'no_mobile_data_title': 'No mobile data',
-      'no_mobile_data_hint':
-          'Blocks network access over mobile data. Online features then only work over Wi-Fi.',
       'settings_map': 'Map',
       'settings_map_title': 'Map',
       'settings_map_loading': 'Loading map data',
@@ -2634,7 +2646,15 @@ class AppLocalizations {
       'map_open_in_maps': 'Open in maps app',
       'map_device_offline': 'Device offline',
       'map_mobile_data_blocked':
-          'No mobile data is enabled. Map is only available over Wi-Fi.',
+          '"Restrict mobile data" is on. The map loads on Wi-Fi.',
+      'mobile_daten_karte_titel': 'Map from storage only',
+      'mobile_daten_karte_text':
+          '"Restrict mobile data" is on. Missing map parts load on Wi-Fi.',
+      'mobile_daten_laden': 'Load via mobile data',
+      'mobile_daten_laden_kurz': 'Load',
+      'mobile_daten_adresse_titel': 'Suggestions on Wi-Fi',
+      'mobile_daten_adresse_text': '"Restrict mobile data" is on.',
+      'mobile_daten_adresse_laden': 'Load suggestions via mobile data',
       'map_wifi_only_refresh': 'Map preview is only refreshed over Wi-Fi.',
       'auth_loading_title': 'Preparing secure session',
       'auth_loading_body':
@@ -2886,6 +2906,13 @@ class AppLocalizations {
           'The change was stored locally. {details}',
       'member_edit_submit_queued':
           'The change could not be sent directly and was stored for a later retry.',
+      'member_edit_submit_queued_wifi':
+          'Saved. The change will be sent on Wi-Fi.',
+      'member_edit_mobile_titel': 'Send change now?',
+      'member_edit_mobile_text':
+          '"Restrict mobile data" is on. You can send now via mobile data or have the change sent on Wi-Fi.',
+      'member_edit_mobile_spaeter': 'Later on Wi-Fi',
+      'member_edit_mobile_jetzt': 'Send now',
       'member_edit_retry_failed':
           'Retry failed. The entry remains in the queue.',
       'notifications_refresh': 'Refresh',
@@ -3055,6 +3082,10 @@ class AppLocalizations {
       'veranstaltung_offline_titel': 'No connection',
       'veranstaltung_offline_text':
           'The search queries Hitobito directly and needs internet.',
+      'veranstaltung_nur_wlan_titel': 'Wi-Fi only',
+      'veranstaltung_nur_wlan_text':
+          '"Restrict mobile data" is on. The search queries Hitobito directly.',
+      'veranstaltung_trotzdem_laden': 'Load anyway',
       'veranstaltung_leer_titel': 'Nothing found',
       'veranstaltung_leer_text':
           'There are no upcoming dates for this search and filter.',
@@ -3452,7 +3483,7 @@ class AppLocalizations {
       'debug_sync_status_never': 'Never',
       'debug_sync_attempt_success': '{time} - Successful',
       'debug_sync_attempt_failed': '{time} - Not successful, {reason}',
-      'debug_sync_reason_wifi': 'Wi-Fi only enabled',
+      'debug_sync_reason_wifi': '"Restrict mobile data" on',
       'debug_sync_reason_login': 'sign-in required',
       'debug_sync_reason_network': 'network error',
       'debug_sync_reason_server': 'server error',

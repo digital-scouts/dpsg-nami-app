@@ -101,8 +101,12 @@ void main() {
       );
       final model = VeranstaltungenModel(
         service: HitobitoEventsService(config: config),
-        remoteAccessExecutor: <T>({required trigger, required action}) =>
-            action(
+        remoteAccessExecutor:
+            <T>({
+              required trigger,
+              required action,
+              allowMobileDataOverride = false,
+            }) => action(
               AuthSession(accessToken: _token, receivedAt: DateTime.now()),
             ),
         readModel: () => readModel,

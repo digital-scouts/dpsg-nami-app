@@ -88,7 +88,7 @@ Ein Spike zur Datenqualität mit echten Daten folgt nach dem Livegang. Vorher gi
   - Bei mehreren Terminen wird vorher gefragt, welcher eingetragen wird.
   - Ab iOS 17 ist keine Kalenderberechtigung nötig; für iOS 16 steht `NSCalendarsUsageDescription` in der `Info.plist`.
   - Android nutzt einen Intent und braucht keine Berechtigung.
-- **Zustände:** offline, Anmeldung nötig, Fehler, keine sichtbaren Events (ohne Rolle), keine Treffer für die Filter.
+- **Zustände:** offline, nur im WLAN („Mobile Daten einschränken“, mit „Trotzdem laden“, siehe `specs/mobile-daten.md`), Anmeldung nötig, Fehler, keine sichtbaren Events (ohne Rolle), keine Treffer für die Filter.
 - **Datenschutz:** Angezeigt werden Name von Kontakt- und Leitungspersonen, nichts darüber hinaus. Die Kalenderübernahme erfolgt nur auf Nutzeraktion über den Systemdialog.
 
 ## Offene Punkte

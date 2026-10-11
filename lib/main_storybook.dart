@@ -8,6 +8,7 @@ import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
 import 'package:nami/stories/app_snackbar_story.dart';
 import 'package:nami/stories/abmeldung_hinweis_karte_story.dart';
+import 'package:nami/stories/mobile_daten_hinweis_story.dart';
 import 'package:nami/stories/sicherheits_update_story.dart';
 import 'package:nami/stories/demo_zugang_sheet_story.dart';
 import 'package:nami/stories/neuanmeldung_sheet_story.dart';
@@ -84,6 +85,7 @@ List<Story> buildStorybookStories() {
     hilfeDiagnoseStory(),
     problemMeldenSheetStory(),
     abmeldungHinweisKarteStory(),
+    mobileDatenHinweisStory(),
     sicherheitsUpdateStory(),
     feedbackPromptDialogStory(),
     demoZugangSheetStory(),
