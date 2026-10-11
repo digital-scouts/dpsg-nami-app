@@ -1268,7 +1268,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         // Einmal bestaetigen laesst die Systemabfrage fuer Face ID gleich
         // hier erscheinen; die Sperre greift erst nach 60 s im Hintergrund.
         onBiometrieAktivieren: () async {
-          if (!await biometrie.authenticate()) {
+          if (await biometrie.bestaetigen() !=
+              AppSperreBestaetigung.bestaetigt) {
             return false;
           }
           await appSettings.setBiometricLockEnabled(true);

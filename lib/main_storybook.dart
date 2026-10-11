@@ -137,6 +137,7 @@ List<Story> buildStorybookStories() {
     willkommenStepperStory(),
     appSettingsPageStory(),
     appSettingsPageEnglishStory(),
+    appSettingsPageOhneAppSperreStory(),
     settingsAppearancePageStory(),
     supporterBackgroundStory(),
     supporterBadgeStory(),

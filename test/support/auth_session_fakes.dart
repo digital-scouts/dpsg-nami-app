@@ -141,15 +141,19 @@ class FakeOauthService extends HitobitoOauthService {
 }
 
 class FakeBiometricLockService extends BiometricLockService {
-  FakeBiometricLockService({this.available = false}) : super();
+  FakeBiometricLockService({
+    this.available = false,
+    this.authenticateResult = true,
+  }) : super();
 
   final bool available;
+  bool authenticateResult;
   int authenticateCallCount = 0;
 
   @override
   Future<bool> authenticate() async {
     authenticateCallCount += 1;
-    return true;
+    return authenticateResult;
   }
 
   @override

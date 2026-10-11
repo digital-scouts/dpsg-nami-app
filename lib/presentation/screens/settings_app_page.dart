@@ -10,7 +10,13 @@ class AppSettingsPage extends StatefulWidget {
   final bool noMobileDataEnabled;
   final String languageCode; // e.g. 'de', 'en'
   final ValueChanged<bool>? onAnalyticsChanged;
-  final ValueChanged<bool>? onBiometricLockChanged;
+
+  /// Liefert den tatsaechlichen neuen Wert, z. B. unveraendert bei
+  /// abgebrochener Bestaetigung.
+  final Future<bool> Function(bool)? onBiometricLockChanged;
+
+  /// Ohne Geraetesicherung bietet die Seite die App-Sperre nicht an.
+  final Future<bool> Function()? appSperreVerfuegbar;
   final ValueChanged<bool>? onNoMobileDataChanged;
   final ValueChanged<bool>? onMemberListSearchResultHighlightChanged;
   final ValueChanged<String>? onLanguageChanged;
@@ -29,6 +35,7 @@ class AppSettingsPage extends StatefulWidget {
     this.languageCode = 'de',
     this.onAnalyticsChanged,
     this.onBiometricLockChanged,
+    this.appSperreVerfuegbar,
     this.onNoMobileDataChanged,
     this.onMemberListSearchResultHighlightChanged,
     this.onLanguageChanged,
@@ -48,10 +55,12 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   late bool _noMobileDataEnabled;
   late String _languageCode;
   late bool _bundesstatistikTeilnahme;
+  bool _appSperreVerfuegbar = false;
 
   @override
   void initState() {
     super.initState();
+    _pruefeAppSperreVerfuegbar();
     _bundesstatistikTeilnahme = widget.bundesstatistikTeilnahme;
     _analyticsEnabled = widget.analyticsEnabled;
     _biometricLockEnabled = widget.biometricLockEnabled;
@@ -86,6 +95,22 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     }
   }
 
+  Future<void> _pruefeAppSperreVerfuegbar() async {
+    final verfuegbar = await widget.appSperreVerfuegbar?.call() ?? false;
+    if (!mounted) {
+      return;
+    }
+    setState(() => _appSperreVerfuegbar = verfuegbar);
+  }
+
+  Future<void> _setBiometricLockEnabled(bool value) async {
+    final result = await widget.onBiometricLockChanged?.call(value) ?? value;
+    if (!mounted) {
+      return;
+    }
+    setState(() => _biometricLockEnabled = result);
+  }
+
   Future<void> _setBundesstatistikTeilnahme(bool value) async {
     final result = await widget.onBundesstatistikChanged?.call(value) ?? value;
     if (!mounted) {
@@ -115,15 +140,15 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             DpsgSectionHeader(label: t.t('settings_app_section_security')),
             _AppSettingsCard(
               children: [
-                _AppSettingsSwitchRow(
-                  title: t.t('settings_app_lock_title'),
-                  subtitle: t.t('settings_app_lock_hint'),
-                  value: _biometricLockEnabled,
-                  onChanged: (value) {
-                    setState(() => _biometricLockEnabled = value);
-                    widget.onBiometricLockChanged?.call(value);
-                  },
-                ),
+                // Eine aktive Sperre bleibt abschaltbar, auch wenn die
+                // Geraetesicherung inzwischen entfernt wurde.
+                if (_appSperreVerfuegbar || _biometricLockEnabled)
+                  _AppSettingsSwitchRow(
+                    title: t.t('settings_app_lock_title'),
+                    subtitle: t.t('settings_app_lock_hint'),
+                    value: _biometricLockEnabled,
+                    onChanged: _setBiometricLockEnabled,
+                  ),
                 _AppSettingsSwitchRow(
                   title: t.t('settings_app_analytics_title'),
                   subtitle: t.t('settings_app_analytics_hint'),

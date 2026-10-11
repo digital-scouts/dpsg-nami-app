@@ -707,7 +707,7 @@ class AppLocalizations {
       'settings_app_section_display': 'Darstellung',
       'settings_app_section_behavior': 'Verhalten',
       'settings_app_lock_title': 'App-Sperre',
-      'settings_app_lock_hint': 'Biometrie oder PIN beim Start',
+      'settings_app_lock_hint': 'Beim Öffnen und nach kurzer Pause entsperren',
       'settings_app_analytics_title': 'Nutzungsanalyse',
       'settings_app_analytics_hint':
           'Nutzungsereignisse und Fehlerberichte an Wiredash senden',
@@ -2510,7 +2510,7 @@ class AppLocalizations {
       'settings_app_section_display': 'Display',
       'settings_app_section_behavior': 'Behavior',
       'settings_app_lock_title': 'App lock',
-      'settings_app_lock_hint': 'Biometrics or PIN on launch',
+      'settings_app_lock_hint': 'Unlock when opening and after a short break',
       'settings_app_analytics_title': 'Usage analytics',
       'settings_app_analytics_hint':
           'Send usage events and error reports to Wiredash',
