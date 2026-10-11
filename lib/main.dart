@@ -130,6 +130,7 @@ import 'services/supporter/supporter_store_client.dart';
 import 'services/qualifikations_erinnerung_service.dart';
 import 'services/map_tile_cache_service.dart';
 import 'services/network_access_policy.dart';
+import 'services/wiredash_event_puffer.dart';
 import 'services/sensitive_storage_service.dart';
 import 'services/usage_tracking_service.dart';
 
@@ -140,6 +141,7 @@ final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 /// Fehlerbehandlung.
 LoggerService? _activeLogger;
 int _appGeneration = 0;
+StreamSubscription<List<ConnectivityResult>>? _wiredashPufferVerbindung;
 
 void main() {
   runZonedGuarded(
@@ -321,21 +323,48 @@ Future<void> _startApp({
 
   Future<void> sendToWiredash(String name, Map<String, Object?> props) async {
     final ctx = navigatorKey.currentContext;
-    if (ctx == null) return;
+    if (ctx == null) throw const WiredashNichtBereit();
     try {
       await Wiredash.of(ctx).trackEvent(name, data: props);
     } catch (_) {}
   }
 
+  late final NetworkAccessPolicy networkAccessPolicy;
+  final wiredashPuffer = WiredashEventPuffer(
+    senden: sendToWiredash,
+    // Ohne Einschraenkung puffert Wiredash selbst, etwa offline.
+    sendenErlaubt: () async {
+      if (!networkAccessPolicy.isNoMobileDataEnabled) {
+        return true;
+      }
+      final decision = await networkAccessPolicy.evaluateAccess(
+        trigger: 'wiredash_events',
+        feature: 'Telemetrie',
+      );
+      return decision.allowed;
+    },
+  );
+
   final logger = LoggerService(
     settingsRepository: settingsRepo,
     navigatorKey: navigatorKey,
     // Im Demo geht nur "Demo genutzt" raus, keine Ereignisse aus Demo-Aktionen.
-    wiredashEventHook: isDemo ? demoEventHook(sendToWiredash) : sendToWiredash,
+    wiredashEventHook: isDemo
+        ? demoEventHook(wiredashPuffer.erfasse)
+        : wiredashPuffer.erfasse,
   );
-  final networkAccessPolicy = NetworkAccessPolicy(
+  networkAccessPolicy = NetworkAccessPolicy(
     logger: logger,
     noMobileDataEnabled: () => appSettingsModel.noMobileDataEnabled,
+  );
+  // Zurueckgehaltene Ereignisse gehen raus, sobald WLAN da ist oder die
+  // Einschraenkung endet.
+  unawaited(_wiredashPufferVerbindung?.cancel());
+  _wiredashPufferVerbindung = Connectivity().onConnectivityChanged.listen(
+    (_) => unawaited(wiredashPuffer.sendeAusstehende()),
+  );
+  appSettingsModel.addListener(
+    () => unawaited(wiredashPuffer.sendeAusstehende()),
   );
   final appUpdateService = AppUpdateService(
     networkAccessPolicy: networkAccessPolicy,
@@ -860,6 +889,10 @@ Future<void> _startApp({
     },
   );
 
+  // Erst nach dem ersten Frame gibt es den Wiredash-Kontext.
+  WidgetsBinding.instance.addPostFrameCallback(
+    (_) => unawaited(wiredashPuffer.sendeAusstehende()),
+  );
   runApp(
     MultiProvider(
       key: ValueKey<int>(++_appGeneration),

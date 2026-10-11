@@ -10,6 +10,7 @@ import '../../domain/member/member_resolution.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/network_access_policy.dart';
 import '../../services/store_review_prompt_service.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
@@ -1237,6 +1238,42 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
+  /// Fragt bei „Mobile Daten einschränken“ ohne WLAN, ob jetzt gesendet
+  /// wird. `null` heisst: Dialog ohne Wahl geschlossen, nichts tun.
+  Future<_Versand?> _frageVersandOhneWlan() async {
+    NetworkAccessPolicy? policy;
+    try {
+      policy = context.read<NetworkAccessPolicy>();
+    } catch (_) {
+      return _Versand.normal;
+    }
+    final decision = await policy.evaluateAccess(
+      trigger: 'member_edit_submit_preview',
+      feature: 'Hitobito',
+    );
+    if (!decision.isBlockedByNoMobileData || !mounted) {
+      return _Versand.normal;
+    }
+    return showDialog<_Versand>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('member-edit-mobile-dialog'),
+        title: Text(_t.t('member_edit_mobile_titel')),
+        content: Text(_t.t('member_edit_mobile_text')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(_Versand.imWlan),
+            child: Text(_t.t('member_edit_mobile_spaeter')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(_Versand.mobil),
+            child: Text(_t.t('member_edit_mobile_jetzt')),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _save() async {
     final mustExpand = !_editSectionExpanded;
     setState(() {
@@ -1267,21 +1304,36 @@ class _MemberEditPageState extends State<MemberEditPage> {
       return;
     }
 
+    final versand = await _frageVersandOhneWlan();
+    if (versand == null || !mounted) {
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
 
     try {
       final targetMember = _buildTargetMember();
-      final result = await memberEditModel.submitUpdate(
-        accessToken: accessToken,
-        // Basis ist immer die des geoeffneten Entwurfs. Konfliktfaelle sind
-        // bereits auf den Serverstand umgestellt.
-        basisMitglied: widget.pendingEntry?.basisMitglied ?? widget.mitglied,
-        zielMitglied: targetMember,
-        trigger: _isResolutionMode ? 'manual_resolution' : 'manual_edit',
-        existingResolutionCase: _resolutionCase,
-      );
+      // Basis ist immer die des geoeffneten Entwurfs. Konfliktfaelle sind
+      // bereits auf den Serverstand umgestellt.
+      final basisMitglied =
+          widget.pendingEntry?.basisMitglied ?? widget.mitglied;
+      final trigger = _isResolutionMode ? 'manual_resolution' : 'manual_edit';
+      final result = versand == _Versand.imWlan
+          ? await memberEditModel.vormerkenFuerWlan(
+              basisMitglied: basisMitglied,
+              zielMitglied: targetMember,
+              trigger: trigger,
+            )
+          : await memberEditModel.submitUpdate(
+              accessToken: accessToken,
+              basisMitglied: basisMitglied,
+              zielMitglied: targetMember,
+              trigger: trigger,
+              existingResolutionCase: _resolutionCase,
+              allowMobileDataOverride: versand == _Versand.mobil,
+            );
       if (!mounted) {
         return;
       }
@@ -2692,4 +2744,16 @@ class _VerlassenSheet extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Wie eine Aenderung bei „Mobile Daten einschränken“ rausgeht.
+enum _Versand {
+  /// Keine Einschraenkung greift.
+  normal,
+
+  /// Nach Bestaetigung jetzt ueber mobile Daten.
+  mobil,
+
+  /// Vorgemerkt, geht beim naechsten WLAN raus.
+  imWlan,
 }

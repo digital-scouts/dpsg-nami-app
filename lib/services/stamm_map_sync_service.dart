@@ -3,6 +3,7 @@ import '../data/maps/shared_prefs_stamm_map_marker_repository.dart';
 import '../domain/maps/stamm_map_marker.dart';
 import '../domain/maps/stamm_map_marker_repository.dart';
 import 'logger_service.dart';
+import 'network_access_policy.dart';
 import 'stamm_storelocator_service.dart';
 
 class StammMapSyncService implements StammMapMarkerRepository {
@@ -11,6 +12,7 @@ class StammMapSyncService implements StammMapMarkerRepository {
     SharedPrefsStammMapMarkerRepository? cacheRepository,
     StammStorelocatorService? remoteService,
     LoggerService? logger,
+    NetworkAccessPolicy? networkAccessPolicy,
     Duration? refreshInterval,
     DateTime Function()? nowProvider,
   }) : _assetRepository =
@@ -18,6 +20,7 @@ class StammMapSyncService implements StammMapMarkerRepository {
        _cacheRepository =
            cacheRepository ?? SharedPrefsStammMapMarkerRepository(),
        _logger = logger,
+       _networkAccessPolicy = networkAccessPolicy,
        _remoteService =
            remoteService ??
            StammStorelocatorService(
@@ -32,6 +35,7 @@ class StammMapSyncService implements StammMapMarkerRepository {
   final SharedPrefsStammMapMarkerRepository _cacheRepository;
   final StammStorelocatorService _remoteService;
   final LoggerService? _logger;
+  final NetworkAccessPolicy? _networkAccessPolicy;
   final Duration _refreshInterval;
   final DateTime Function() _now;
 
@@ -47,9 +51,24 @@ class StammMapSyncService implements StammMapMarkerRepository {
   }
 
   @override
-  Future<StammMapMarkerSnapshot?> refreshIfDue() async {
+  Future<StammMapMarkerSnapshot?> refreshIfDue({
+    bool allowMobileDataOverride = false,
+  }) async {
     final cached = await _cacheRepository.load();
     if (cached != null && !_isRefreshDue(cached.fetchedAt)) {
+      return null;
+    }
+    final decision = await _networkAccessPolicy?.evaluateAccess(
+      trigger: 'stamm_map_refresh',
+      feature: 'Stammkarte',
+      allowMobileDataOverride: allowMobileDataOverride,
+    );
+    if (decision != null && !decision.allowed) {
+      // Cache oder Asset bleiben aktiv; der Refresh wird spaeter nachgeholt.
+      await _logger?.log(
+        'maps',
+        'Stammmarker-Refresh verschoben: ${decision.blockedReason?.name}',
+      );
       return null;
     }
     return _refresh();

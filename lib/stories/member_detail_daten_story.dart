@@ -96,7 +96,10 @@ class _StoryGeoapifyService extends GeoapifyAddressMapService {
   bool get hasApiKey => true;
 
   @override
-  Future<GeoapifyGeocodeResult> resolveAddress(String addressText) {
+  Future<GeoapifyGeocodeResult> resolveAddress(
+    String addressText, {
+    bool allowMobileDataOverride = false,
+  }) {
     return switch (zustand) {
       _KartenZustand.laden => Completer<GeoapifyGeocodeResult>().future,
       _KartenZustand.technischerFehler => Future.value(

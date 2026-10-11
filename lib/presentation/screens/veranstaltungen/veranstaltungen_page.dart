@@ -30,6 +30,7 @@ class VeranstaltungenPage extends StatefulWidget {
 
 class _VeranstaltungenPageState extends State<VeranstaltungenPage> {
   int? _ausgewaehlt;
+  VeranstaltungenModel? _model;
 
   @override
   void initState() {
@@ -39,6 +40,19 @@ class _VeranstaltungenPageState extends State<VeranstaltungenPage> {
         unawaited(context.read<VeranstaltungenModel>().laden());
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _model = context.read<VeranstaltungenModel>();
+  }
+
+  @override
+  void dispose() {
+    // Die Freigabe mobiler Daten gilt nur, solange die Seite offen ist.
+    _model?.mobileDatenFreigabeBeenden();
+    super.dispose();
   }
 
   Future<void> _filterFenster(VeranstaltungenModel model) async {
@@ -208,6 +222,20 @@ class _VeranstaltungenPageState extends State<VeranstaltungenPage> {
           knopf: t.t('veranstaltung_erneut'),
           onKnopf: () => model.laden(erzwingen: true),
         );
+      case VeranstaltungenLadezustand.nurWlan:
+        return VeranstaltungenZustand(
+          key: const Key('veranstaltungen-nur-wlan'),
+          icon: Icons.signal_cellular_alt,
+          titel: t.t('veranstaltung_nur_wlan_titel'),
+          text: t.t('veranstaltung_nur_wlan_text'),
+          knopf: t.t('veranstaltung_trotzdem_laden'),
+          onKnopf: model.trotzdemLaden,
+          zweitKnopf: t.t('veranstaltung_abbrechen'),
+          // Als Schnellziel neben der Seitenleiste gibt es kein Zurueck.
+          onZweitKnopf: Navigator.of(context).canPop()
+              ? () => Navigator.of(context).pop()
+              : null,
+        );
       case VeranstaltungenLadezustand.anmeldungNoetig:
         return VeranstaltungenZustand(
           key: const Key('veranstaltungen-anmeldung'),
@@ -262,6 +290,8 @@ class VeranstaltungenZustand extends StatelessWidget {
     required this.text,
     this.knopf,
     this.onKnopf,
+    this.zweitKnopf,
+    this.onZweitKnopf,
   });
 
   final IconData icon;
@@ -269,6 +299,10 @@ class VeranstaltungenZustand extends StatelessWidget {
   final String text;
   final String? knopf;
   final VoidCallback? onKnopf;
+
+  /// Leiser Textknopf unter [knopf], etwa „Abbrechen“.
+  final String? zweitKnopf;
+  final VoidCallback? onZweitKnopf;
 
   @override
   Widget build(BuildContext context) {
@@ -303,6 +337,15 @@ class VeranstaltungenZustand extends StatelessWidget {
           const SizedBox(height: 16),
           Center(
             child: FilledButton.tonal(onPressed: onKnopf, child: Text(knopf!)),
+          ),
+        ],
+        if (zweitKnopf != null && onZweitKnopf != null) ...[
+          const SizedBox(height: 4),
+          Center(
+            child: TextButton(
+              onPressed: onZweitKnopf,
+              child: Text(zweitKnopf!),
+            ),
           ),
         ],
       ],

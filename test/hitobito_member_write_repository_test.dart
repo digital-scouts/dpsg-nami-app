@@ -1512,6 +1512,7 @@ Future<T?> _retryingExecutor<T>({
   required String trigger,
   required Future<T> Function(AuthSession session) action,
   bool forceRefresh = false,
+  bool allowMobileDataOverride = false,
 }) async {
   final staleSession = AuthSession(
     accessToken: 'stale-token',
@@ -1538,6 +1539,7 @@ Future<T?> _nullExecutor<T>({
   required String trigger,
   required Future<T> Function(AuthSession session) action,
   bool forceRefresh = false,
+  bool allowMobileDataOverride = false,
 }) async {
   return null;
 }

@@ -257,6 +257,48 @@ void main() {
     );
   });
 
+  test('merkt fuer WLAN vor, ohne zu senden', () async {
+    final repository = _FakeMemberWriteRepository();
+    final model = MemberEditModel(
+      memberWriteRepository: repository,
+      pendingRepository: InMemoryPendingPersonUpdateRepository(),
+      logger: FakeLoggerService(),
+      onMemberUpdated: (_) async {},
+    );
+    final basisMitglied = _mitglied(personId: 23, mitgliedsnummer: '4711');
+
+    final result = await model.vormerkenFuerWlan(
+      basisMitglied: basisMitglied,
+      zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+    );
+
+    expect(result.wasQueued, isTrue);
+    expect(result.messageSpec?.key, 'member_edit_submit_queued_wifi');
+    expect(repository.updateCalls, isEmpty);
+    expect(model.pendingUpdates.single.zielMitglied.vorname, 'Juliane');
+    expect(model.pendingUpdates.single.basisMitglied, basisMitglied);
+  });
+
+  test('reicht die Freigabe mobiler Daten an das Senden weiter', () async {
+    final repository = _FakeMemberWriteRepository();
+    final model = MemberEditModel(
+      memberWriteRepository: repository,
+      pendingRepository: InMemoryPendingPersonUpdateRepository(),
+      logger: FakeLoggerService(),
+      onMemberUpdated: (_) async {},
+    );
+    final basisMitglied = _mitglied(personId: 23, mitgliedsnummer: '4711');
+
+    await model.submitUpdate(
+      accessToken: 'token-123',
+      basisMitglied: basisMitglied,
+      zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+      allowMobileDataOverride: true,
+    );
+
+    expect(repository.mobileDataOverrides, [true]);
+  });
+
   test('queuet das Update bei generischem Fehler', () async {
     final pendingRepository = InMemoryPendingPersonUpdateRepository();
     final logger = FakeLoggerService();
@@ -2229,6 +2271,7 @@ class _FakeMemberWriteRepository implements MemberWriteRepository {
   final Map<int, Object> updateResultsByPersonId;
   final Future<Mitglied> Function(Mitglied basis, Mitglied ziel)? onUpdate;
   final List<_UpdateCall> updateCalls = <_UpdateCall>[];
+  final List<bool> mobileDataOverrides = <bool>[];
 
   @override
   Future<Mitglied> fetchRemoteMember({
@@ -2250,7 +2293,9 @@ class _FakeMemberWriteRepository implements MemberWriteRepository {
     required String accessToken,
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,
+    bool allowMobileDataOverride = false,
   }) async {
+    mobileDataOverrides.add(allowMobileDataOverride);
     updateCalls.add(
       _UpdateCall(basisMitglied: basisMitglied, zielMitglied: zielMitglied),
     );

@@ -14,6 +14,7 @@ typedef VeranstaltungenRemoteAccessExecutor =
     Future<T?> Function<T>({
       required String trigger,
       required Future<T> Function(AuthSession session) action,
+      bool allowMobileDataOverride,
     });
 
 enum VeranstaltungenLadezustand {
@@ -21,8 +22,11 @@ enum VeranstaltungenLadezustand {
   laedt,
   geladen,
 
-  /// Kein Netz oder mobile Daten gesperrt.
+  /// Kein Netz.
   offline,
+
+  /// „Mobile Daten einschränken“ ist an und es gibt kein WLAN.
+  nurWlan,
 
   /// Die Sitzung braucht eine neue Anmeldung.
   anmeldungNoetig,
@@ -67,6 +71,7 @@ class VeranstaltungenModel extends ChangeNotifier {
   List<Veranstaltung> _veranstaltungen = const [];
   int? _generation;
   int _anfrage = 0;
+  bool _mobileDatenFreigegeben = false;
 
   VeranstaltungsFilter get filter => _filter;
   VeranstaltungenLadezustand get zustand => _zustand;
@@ -164,6 +169,17 @@ class VeranstaltungenModel extends ChangeNotifier {
 
   /// Laedt die Events der gewaehlten Ebene, aus dem Cache solange er frisch
   /// ist.
+  /// Laedt nach Bestaetigung ueber mobile Daten. Die Freigabe gilt, bis die
+  /// Seite sie mit [mobileDatenFreigabeBeenden] zuruecknimmt.
+  Future<void> trotzdemLaden() {
+    _mobileDatenFreigegeben = true;
+    return laden(erzwingen: true);
+  }
+
+  void mobileDatenFreigabeBeenden() {
+    _mobileDatenFreigegeben = false;
+  }
+
   Future<void> laden({bool erzwingen = false}) async {
     sitzungPruefen();
     final gruppen = _suchgruppen(_readModel(), _filter.ebene);
@@ -186,6 +202,7 @@ class VeranstaltungenModel extends ChangeNotifier {
     try {
       final ergebnis = await _remoteAccess<_Ladeergebnis>(
         trigger: 'veranstaltungen_suche',
+        allowMobileDataOverride: _mobileDatenFreigegeben,
         action: (session) async {
           final veranstaltungen = await _service.fetchVeranstaltungen(
             session.accessToken,
@@ -222,9 +239,11 @@ class VeranstaltungenModel extends ChangeNotifier {
         _veranstaltungen = ergebnis.veranstaltungen;
         _zustand = VeranstaltungenLadezustand.geladen;
       }
-    } on NetworkAccessBlockedException {
+    } on NetworkAccessBlockedException catch (error) {
       if (anfrage == _anfrage) {
-        _zustand = VeranstaltungenLadezustand.offline;
+        _zustand = error.isBlockedByNoMobileData
+            ? VeranstaltungenLadezustand.nurWlan
+            : VeranstaltungenLadezustand.offline;
       }
     } catch (_) {
       if (anfrage == _anfrage) {
@@ -247,6 +266,7 @@ class VeranstaltungenModel extends ChangeNotifier {
     try {
       final detail = await _remoteAccess<Veranstaltung>(
         trigger: 'veranstaltung_detail',
+        allowMobileDataOverride: _mobileDatenFreigegeben,
         action: (session) =>
             _service.fetchVeranstaltung(session.accessToken, id: id),
       );

@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../services/map_tile_cache_service.dart';
 import '../widgets/map_recenter_button.dart';
 import 'statistics_snapshot_builder.dart';
 import '../widgets/karten_quellenangabe.dart';
+import '../widgets/mobile_daten_hinweis.dart';
 
 class StatisticsCard extends StatelessWidget {
   const StatisticsCard({
@@ -510,44 +510,44 @@ class _StatisticsMapState extends State<StatisticsMap> {
 
     return Stack(
       children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: center,
-            initialZoom: 12,
-            minZoom: 3,
-            maxZoom: 17,
-            initialCameraFit: bounds,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-            ),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: MapTileCacheService.tileUrlTemplate,
-              userAgentPackageName: MapTileCacheService.userAgentPackageName,
+        KartenKacheln(
+          trigger: 'statistics_map_tiles',
+          maxZoom: 17,
+          builder: (context, kacheln) => FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: center,
+              initialZoom: 12,
+              minZoom: 3,
               maxZoom: 17,
+              initialCameraFit: bounds,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
             ),
-            MarkerLayer(
-              markers: [
-                for (final point in widget.markers)
-                  Marker(
-                    point: point,
-                    width: 34,
-                    height: 34,
-                    child: const _MarkerPin(),
-                  ),
-                if (widget.stammLocation != null)
-                  Marker(
-                    point: widget.stammLocation!,
-                    width: 38,
-                    height: 38,
-                    child: const _StammPin(),
-                  ),
-              ],
-            ),
-            const KartenQuellenangabe(),
-          ],
+            children: [
+              kacheln,
+              MarkerLayer(
+                markers: [
+                  for (final point in widget.markers)
+                    Marker(
+                      point: point,
+                      width: 34,
+                      height: 34,
+                      child: const _MarkerPin(),
+                    ),
+                  if (widget.stammLocation != null)
+                    Marker(
+                      point: widget.stammLocation!,
+                      width: 38,
+                      height: 38,
+                      child: const _StammPin(),
+                    ),
+                ],
+              ),
+              const KartenQuellenangabe(),
+            ],
+          ),
         ),
         Positioned(
           right: 8,

@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/services/app_update_service.dart';
+import 'package:nami/services/network_access_policy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/fake_connectivity.dart';
 
 void main() {
   test(
@@ -88,6 +91,30 @@ void main() {
     await service.checkForUpdate();
 
     expect(fetchCalls, 1);
+  });
+
+  test('prueft auch bei eingeschraenkten mobilen Daten', () async {
+    SharedPreferences.setMockInitialValues({});
+    var fetchCalls = 0;
+    final service = AppUpdateService(
+      platformOverride: 'android',
+      manifestUrl: 'https://example.com/version.json',
+      fetchTimeout: const Duration(seconds: 1),
+      currentVersionProvider: () async => '1.0.0',
+      networkAccessPolicy: NetworkAccessPolicy(
+        connectivity: FakeConnectivity.mobile(),
+        noMobileDataEnabled: () => true,
+      ),
+      manifestBodyFetcher: (url, timeout) async {
+        fetchCalls++;
+        return '{"android":{"latest":"1.0.1","min_supported":"1.0.0","store_url":"https://example.com/android"}}';
+      },
+    );
+
+    final info = await service.checkForUpdate();
+
+    expect(fetchCalls, 1);
+    expect(info?.latestVersion, '1.0.1');
   });
 
   group('Sicherheitsupdate', () {

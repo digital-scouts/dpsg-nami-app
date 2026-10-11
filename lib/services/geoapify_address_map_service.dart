@@ -88,7 +88,12 @@ class GeoapifyAddressMapService {
     return key != null && key.isNotEmpty;
   }
 
-  Future<GeoapifyGeocodeResult> resolveAddress(String addressText) async {
+  /// [allowMobileDataOverride] fragt nach Bestaetigung auch bei
+  /// „Mobile Daten einschränken“ ohne WLAN.
+  Future<GeoapifyGeocodeResult> resolveAddress(
+    String addressText, {
+    bool allowMobileDataOverride = false,
+  }) async {
     final key = _apiKey;
     if (key == null || key.isEmpty) {
       await _logger?.log(
@@ -118,14 +123,19 @@ class GeoapifyAddressMapService {
 
     return _steuerung.teilen(
       trimmedAddress.toLowerCase(),
-      () => _anfragen(trimmedAddress, key),
+      () => _anfragen(
+        trimmedAddress,
+        key,
+        allowMobileDataOverride: allowMobileDataOverride,
+      ),
     );
   }
 
   Future<GeoapifyGeocodeResult> _anfragen(
     String trimmedAddress,
-    String key,
-  ) async {
+    String key, {
+    required bool allowMobileDataOverride,
+  }) async {
     final uri = Uri.https('api.geoapify.com', '/v1/geocode/search', {
       'text': trimmedAddress,
       'lang': 'de',
@@ -138,6 +148,7 @@ class GeoapifyAddressMapService {
       await _networkAccessPolicy?.ensureNetworkAllowed(
         trigger: 'geoapify_geocode',
         feature: 'Adresssuche',
+        allowMobileDataOverride: allowMobileDataOverride,
       );
       final response = await _httpClient.get(uri).timeout(_requestTimeout);
       await _logger?.logHttpRequest(

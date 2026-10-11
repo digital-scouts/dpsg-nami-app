@@ -30,6 +30,8 @@ import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
+import 'support/fake_connectivity.dart';
+
 void main() {
   testWidgets('zeigt Formularinhalt auch auf schmalem Viewport', (
     tester,
@@ -2026,6 +2028,90 @@ void main() {
       }
     });
   });
+
+  group('Senden bei eingeschraenkten mobilen Daten (#204)', () {
+    Future<_RecordingMemberEditModel> oeffne(
+      WidgetTester tester, {
+      required FakeConnectivity verbindung,
+    }) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(success: true, wasQueued: false),
+      );
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          _EditPageLauncher(
+            pageBuilder: () =>
+                MemberEditPage(mitglied: _buildMember(gender: 'w')),
+            onResult: (_) {},
+          ),
+          providers: [
+            ..._buildEditProviders(model),
+            Provider<NetworkAccessPolicy>.value(
+              value: NetworkAccessPolicy(
+                connectivity: verbindung,
+                noMobileDataEnabled: () => true,
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.tap(find.text('Editor oeffnen'));
+      await tester.pumpAndSettle();
+      await _aendereVorname(tester);
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+      return model;
+    }
+
+    testWidgets('sendet nach „Jetzt senden“ mit Freigabe', (tester) async {
+      final model = await oeffne(tester, verbindung: FakeConnectivity.mobile());
+
+      expect(
+        find.byKey(const Key('member-edit-mobile-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Jetzt senden'));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls.single.allowMobileDataOverride, isTrue);
+      expect(model.fuerWlanVorgemerkt, isEmpty);
+      expect(find.byType(MemberEditPage), findsNothing);
+    });
+
+    testWidgets('merkt nach „Später im WLAN“ vor, ohne zu senden', (
+      tester,
+    ) async {
+      final model = await oeffne(tester, verbindung: FakeConnectivity.mobile());
+
+      await tester.tap(find.text('Später im WLAN'));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls, isEmpty);
+      expect(model.fuerWlanVorgemerkt.single.vorname, 'Juliane');
+      expect(find.byType(MemberEditPage), findsNothing);
+    });
+
+    testWidgets('bleibt auf der Seite, wenn der Dialog geschlossen wird', (
+      tester,
+    ) async {
+      final model = await oeffne(tester, verbindung: FakeConnectivity.mobile());
+
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls, isEmpty);
+      expect(model.fuerWlanVorgemerkt, isEmpty);
+      expect(find.byType(MemberEditPage), findsOneWidget);
+    });
+
+    testWidgets('fragt im WLAN nicht nach', (tester) async {
+      final model = await oeffne(tester, verbindung: FakeConnectivity.wifi());
+
+      expect(find.byKey(const Key('member-edit-mobile-dialog')), findsNothing);
+      expect(model.submitCalls.single.allowMobileDataOverride, isFalse);
+    });
+  });
 }
 
 Widget _buildTestApp(
@@ -2192,6 +2278,7 @@ class _SubmitCall {
     required this.zielMitglied,
     required this.trigger,
     required this.existingResolutionCase,
+    this.allowMobileDataOverride = false,
   });
 
   final String accessToken;
@@ -2199,6 +2286,7 @@ class _SubmitCall {
   final Mitglied zielMitglied;
   final String trigger;
   final MemberResolutionCase? existingResolutionCase;
+  final bool allowMobileDataOverride;
 }
 
 class _RecordingMemberEditModel extends MemberEditModel {
@@ -2222,6 +2310,21 @@ class _RecordingMemberEditModel extends MemberEditModel {
   final List<_SubmitCall> submitCalls = <_SubmitCall>[];
   final List<String> choices = <String>[];
   final List<String> openedEntryPoints = <String>[];
+  final List<Mitglied> fuerWlanVorgemerkt = <Mitglied>[];
+
+  @override
+  Future<MemberEditSubmitResult> vormerkenFuerWlan({
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+    String trigger = 'manual_edit',
+  }) async {
+    fuerWlanVorgemerkt.add(zielMitglied);
+    return const MemberEditSubmitResult(
+      success: false,
+      wasQueued: true,
+      messageSpec: UiMessageSpec('member_edit_submit_queued_wifi'),
+    );
+  }
 
   @override
   Future<MemberEditSubmitResult> submitUpdate({
@@ -2230,6 +2333,7 @@ class _RecordingMemberEditModel extends MemberEditModel {
     required Mitglied zielMitglied,
     String trigger = 'manual_edit',
     MemberResolutionCase? existingResolutionCase,
+    bool allowMobileDataOverride = false,
   }) async {
     submitCalls.add(
       _SubmitCall(
@@ -2238,6 +2342,7 @@ class _RecordingMemberEditModel extends MemberEditModel {
         zielMitglied: zielMitglied,
         trigger: trigger,
         existingResolutionCase: existingResolutionCase,
+        allowMobileDataOverride: allowMobileDataOverride,
       ),
     );
     final pendingGate = gate;
@@ -2308,6 +2413,7 @@ class _NoopMemberWriteRepository implements MemberWriteRepository {
     required String accessToken,
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,
+    bool allowMobileDataOverride = false,
   }) async {
     return zielMitglied;
   }

@@ -1341,8 +1341,10 @@ class _NullGeoapifyAddressMapService extends GeoapifyAddressMapService {
   Future<LatLng?> geocodeAddress(String addressText) async => null;
 
   @override
-  Future<GeoapifyGeocodeResult> resolveAddress(String addressText) async =>
-      const GeoapifyGeocodeResult.addressNotFound();
+  Future<GeoapifyGeocodeResult> resolveAddress(
+    String addressText, {
+    bool allowMobileDataOverride = false,
+  }) async => const GeoapifyGeocodeResult.addressNotFound();
 }
 
 final DateTime _heute = DateTime(2026, 10, 2);
@@ -1657,6 +1659,7 @@ class _NoopMemberWriteRepository implements MemberWriteRepository {
     required String accessToken,
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,
+    bool allowMobileDataOverride = false,
   }) async {
     return zielMitglied;
   }

@@ -150,7 +150,7 @@
         "Ohne geladene Daten zeigt die App bei abgelaufener Anmeldung „Neu anmelden“ statt eines endlosen Ladebildschirms.",
         "Der Antrag für das Führungszeugnis lädt auch nach längerer Pause direkt in der App statt im Browser.",
         "Lässt sich beim Melden eines Problems keine Mail öffnen, bietet die App an, die Logs stattdessen zu teilen. Logs und Fehlerberichte enthalten keine E-Mail-Adressen, Telefonnummern oder Namen von Gruppenebenen mehr.",
-        "Mit eingeschränkten mobilen Daten bleibt die Anmeldung auch bei Nutzung im Mobilfunk erhalten.",
+        "„Mobile Daten einschränken“ ist richtig beschrieben und wirkt überall gleich: Sync, Karten und große Downloads warten auf WLAN, Anmeldung und Mitteilungen laufen weiter. Karten, Adresssuche, Veranstaltungen und das Senden von Änderungen lassen sich bei Bedarf über mobile Daten bestätigen.",
         "Beendet das Gerät die App während der Anmeldung, erklärt sie beim nächsten Start den Grund.",
         "Lehnt Hitobito eine vorgemerkte Änderung ab, verschwindet sie nicht mehr still: Sie wird ein Problemfall mit dem Grund von Hitobito, und die App weist darauf hin. Pausierte Änderungen lassen sich verwerfen, mit Rückgängig.",
         "Änderungen an Mitgliedern gehen nicht mehr verloren, wenn die App während des Speicherns beendet wird. Ohne Netz zählt ein Sendeversuch nicht mehr gegen das automatische Nachsenden.",
