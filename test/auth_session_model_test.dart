@@ -1555,6 +1555,63 @@ void main() {
   );
 
   test(
+    'fehlgeschlagene Entsperrung laesst die Sperre bestehen (A-101)',
+    () async {
+      var now = DateTime(2026, 3, 28, 12, 0, 0);
+      final biometrie = FakeBiometricLockService(
+        available: true,
+        authenticateResult: false,
+      );
+      final model = AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: now,
+          ),
+          profileToReturn: const AuthProfile(
+            namiId: 90,
+            firstName: 'Fail',
+            lastName: 'User',
+            language: 'de',
+          ),
+        ),
+        biometricLockService: biometrie,
+        sensitiveStorageService: FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => now,
+        ),
+        logger: _createLogger(),
+        isAppLockEnabled: () => true,
+        lockTimeout: const Duration(seconds: 60),
+      );
+
+      await model.signIn();
+      await model.onAppBackgrounded();
+      now = now.add(const Duration(seconds: 61));
+      await model.onAppResumed();
+      expect(model.state, AuthState.unlockRequired);
+
+      await model.unlock();
+
+      expect(biometrie.authenticateCallCount, 1);
+      expect(model.state, AuthState.unlockRequired);
+      expect(model.errorMessage, isNotNull);
+
+      biometrie.authenticateResult = true;
+      await model.unlock();
+
+      expect(model.state, AuthState.signedIn);
+      expect(model.errorMessage, isNull);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
     'sperrt nach Resume nicht, wenn die App-Sperre deaktiviert ist',
     () async {
       var now = DateTime(2026, 3, 28, 12, 0, 0);

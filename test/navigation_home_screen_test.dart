@@ -1406,6 +1406,10 @@ class _FakeBiometricLockService implements BiometricLockService {
 
   @override
   Future<bool> isAvailable() async => false;
+
+  @override
+  Future<AppSperreBestaetigung> bestaetigen() async =>
+      AppSperreBestaetigung.nichtVerfuegbar;
 }
 
 class _FakeSensitiveStorageService extends SensitiveStorageService {

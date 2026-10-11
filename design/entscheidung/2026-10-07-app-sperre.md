@@ -19,6 +19,12 @@ Zusätzliche Vorgaben:
 - Keine Lilie und keine DPSG-Zeichen (A-64), nur App-Icon und eigene Szenen.
 - Bei „Bewegung reduzieren“ steht der Hintergrund still. Im Umschalter steht immer ein Standbild.
 
+## Nachtrag 2026-10-11: Verfügbarkeit (#191)
+
+Ohne Displaysperre, Gerätecode oder eingerichtete Biometrie wird die App-Sperre nicht angeboten. Der Willkommens-Dialog zeigt dann einen Schritt weniger, und in den Einstellungen fehlt der Schalter. Eine schon aktive Sperre bleibt dort sichtbar, damit sie sich abschalten lässt. Ein- und Ausschalten verlangen einmal Biometrie oder Gerätecode, und der Hinweis lautet wie im Willkommens-Dialog „Beim Öffnen und nach kurzer Pause entsperren“.
+
+Unter Android 8.1 ist die Abfrage die System-PIN-Seite. Ein Abbrechen schließt sie jetzt beim ersten Mal, und der Fingerabdruck greift. Vorher öffnete sich eine zweite Abfrage.
+
 ## Abgelehnt
 
 | Frage | Variante | Grund |

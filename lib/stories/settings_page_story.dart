@@ -173,12 +173,14 @@ Story appSettingsPageStory() => Story(
             type: AppSnackbarType.info,
           );
         },
-        onBiometricLockChanged: (v) {
+        appSperreVerfuegbar: () async => true,
+        onBiometricLockChanged: (v) async {
           AppSnackbar.show(
             context,
             message: 'App-Sperre geändert: $v',
             type: AppSnackbarType.info,
           );
+          return v;
         },
         onMemberListSearchResultHighlightChanged: (v) {
           AppSnackbar.show(
@@ -212,7 +214,33 @@ Story appSettingsPageEnglishStory() => Story(
         memberListSearchResultHighlightEnabled: true,
         languageCode: 'en',
         onAnalyticsChanged: (_) {},
-        onBiometricLockChanged: (_) {},
+        appSperreVerfuegbar: () async => true,
+        onBiometricLockChanged: (v) async => v,
+        onMemberListSearchResultHighlightChanged: (_) {},
+        onLanguageChanged: (_) {},
+      ),
+    );
+  },
+);
+
+/// Ohne Displaysperre bzw. Geraetecode fehlt der Schalter fuer die App-Sperre.
+Story appSettingsPageOhneAppSperreStory() => Story(
+  name: 'Einstellungen/Screens/App/OhneGeraetesicherung',
+  builder: (context) {
+    return MaterialApp(
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        AppLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('de'), Locale('en')],
+      home: AppSettingsPage(
+        biometricLockEnabled: false,
+        appSperreVerfuegbar: () async => false,
+        languageCode: 'de',
+        onAnalyticsChanged: (_) {},
+        onBiometricLockChanged: (v) async => v,
         onMemberListSearchResultHighlightChanged: (_) {},
         onLanguageChanged: (_) {},
       ),

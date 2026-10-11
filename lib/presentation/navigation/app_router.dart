@@ -11,6 +11,7 @@ import '../../domain/stufe/altersgrenzen.dart';
 import '../../domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/achievement_service.dart';
+import '../../services/biometric_lock_service.dart';
 import '../../services/logger_service.dart';
 import '../../services/benachrichtigungs_berechtigung.dart';
 import '../model/achievements_model.dart';
@@ -216,12 +217,27 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                 'value': v,
               });
             },
+            appSperreVerfuegbar: () => BiometricLockService(
+              logger: Provider.of<LoggerService>(context, listen: false),
+            ).isAvailable(),
             onBiometricLockChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
+              final bestaetigung = await BiometricLockService(
+                logger: logger,
+              ).bestaetigen();
+              // Einschalten nur nach erfolgreicher Probe; Ausschalten auch
+              // ohne Geraetesicherung, da die Sperre dann ohnehin nicht greift.
+              final erlaubt =
+                  bestaetigung == AppSperreBestaetigung.bestaetigt ||
+                  (!v && bestaetigung == AppSperreBestaetigung.nichtVerfuegbar);
+              if (!erlaubt) {
+                return appSettings.biometricLockEnabled;
+              }
               await appSettings.setBiometricLockEnabled(v);
               await logger.debounceTrackSettingsChanged('biometric_lock', {
                 'value': v,
               });
+              return v;
             },
             onNoMobileDataChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
