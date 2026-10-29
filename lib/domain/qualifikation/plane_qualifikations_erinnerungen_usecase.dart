@@ -12,7 +12,7 @@ class GeplanteQualifikationsErinnerung {
     required this.eigene,
     required this.artSchluessel,
     required this.artLabel,
-    required this.personen,
+    required this.anzahl,
     required this.gueltigBis,
     required this.meldeSchluessel,
   });
@@ -22,8 +22,9 @@ class GeplanteQualifikationsErinnerung {
   final String artSchluessel;
   final String artLabel;
 
-  /// Anzeigenamen der betroffenen Personen; bei eigenen leer.
-  final List<String> personen;
+  /// Anzahl der betroffenen Personen; Namen kommen nicht in die Mitteilung,
+  /// weil sie auf dem Sperrbildschirm lesbar waere.
+  final int anzahl;
 
   /// Fruehestes Ablaufdatum der gebuendelten Eintraege.
   final DateTime gueltigBis;
@@ -64,7 +65,8 @@ class PlaneQualifikationsErinnerungenUseCase {
   /// eigenen Erinnerung, ohne Dopplung. Liegt der Termin schon zurueck, die
   /// Qualifikation ist aber noch gueltig, kommt die Mitteilung einmalig am
   /// naechsten Morgen. [bereitsGeplant] enthaelt frueher geplante Zeitpunkte
-  /// je Meldeschluessel; vergangene gelten als gemeldet.
+  /// je Meldeschluessel; vergangene gelten als gemeldet. Ab [datenEnde]
+  /// (Datenablauf) wird nichts geplant; Entfallenes gilt nicht als gemeldet.
   List<GeplanteQualifikationsErinnerung> call({
     required ArbeitskontextReadModel readModel,
     required QualifikationsEinstellungen einstellungen,
@@ -72,6 +74,7 @@ class PlaneQualifikationsErinnerungenUseCase {
     required bool supporter,
     required DateTime jetzt,
     Map<String, DateTime> bereitsGeplant = const <String, DateTime>{},
+    DateTime? datenEnde,
   }) {
     final heute = DateTime(jetzt.year, jetzt.month, jetzt.day);
     final katalog = uebersicht.katalog(
@@ -159,6 +162,9 @@ class PlaneQualifikationsErinnerungenUseCase {
         stunde,
       );
       final zeitpunkt = regulaer.isAfter(jetzt) ? regulaer : naechsterMorgen;
+      if (datenEnde != null && !zeitpunkt.isBefore(datenEnde)) {
+        continue;
+      }
       if (DateTime(
         zeitpunkt.year,
         zeitpunkt.month,
@@ -173,7 +179,7 @@ class PlaneQualifikationsErinnerungenUseCase {
             eigene: true,
             artSchluessel: kandidat.art.schluessel,
             artLabel: kandidat.art.label,
-            personen: const <String>[],
+            anzahl: 1,
             gueltigBis: kandidat.gueltigBis,
             meldeSchluessel: <String>[kandidat.meldeSchluessel],
           ),
@@ -193,7 +199,7 @@ class PlaneQualifikationsErinnerungenUseCase {
         eigene: false,
         artSchluessel: eintraege.first.art.schluessel,
         artLabel: eintraege.first.art.label,
-        personen: eintraege.map((k) => k.name).toList(growable: false),
+        anzahl: eintraege.length,
         gueltigBis: eintraege.first.gueltigBis,
         meldeSchluessel: eintraege
             .map((k) => k.meldeSchluessel)
@@ -294,7 +300,6 @@ class PlaneQualifikationsErinnerungenUseCase {
 class _Kandidat {
   const _Kandidat({
     required this.art,
-    required this.name,
     required this.gueltigBis,
     required this.eigene,
     required this.tageVorher,
@@ -302,7 +307,6 @@ class _Kandidat {
   });
 
   final UebersichtArt art;
-  final String name;
   final DateTime gueltigBis;
   final bool eigene;
   final int tageVorher;
@@ -326,7 +330,6 @@ class _Kandidat {
     final tag = DateTime(gueltigBis.year, gueltigBis.month, gueltigBis.day);
     return _Kandidat(
       art: art,
-      name: anzeigenameFuerErinnerung(eintrag.mitglied),
       gueltigBis: tag,
       eigene: eigene,
       tageVorher: tageVorher,

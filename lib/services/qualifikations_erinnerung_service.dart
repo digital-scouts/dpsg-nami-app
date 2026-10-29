@@ -41,7 +41,8 @@ class QualifikationsErinnerungService {
   Future<void> _laufend = Future<void>.value();
 
   /// Plant neu, wenn sich die Eingaben seit dem letzten Lauf geaendert haben.
-  /// Ohne Read Model oder ohne eigene Person (abgemeldet) wird geraeumt.
+  /// Ohne Read Model oder ohne eigene Person (abgemeldet) wird geraeumt. Ab
+  /// [datenEnde] (Datenablauf) kommt nichts mehr.
   Future<void> aktualisiere({
     required ArbeitskontextReadModel? readModel,
     required QualifikationsEinstellungen einstellungen,
@@ -49,6 +50,7 @@ class QualifikationsErinnerungService {
     required bool supporter,
     required bool pushErlaubt,
     required String sprache,
+    required DateTime? datenEnde,
   }) {
     _laufend = _laufend.then(
       (_) =>
@@ -59,6 +61,7 @@ class QualifikationsErinnerungService {
             supporter: supporter,
             pushErlaubt: pushErlaubt,
             sprache: sprache,
+            datenEnde: datenEnde,
           ).catchError((Object fehler, StackTrace stack) {
             // Etwa ohne Systemerlaubnis: Stand vergessen, damit die naechste
             // Aenderung (z. B. die Erlaubnis im Stepper) neu plant.
@@ -87,6 +90,7 @@ class QualifikationsErinnerungService {
     required bool supporter,
     required bool pushErlaubt,
     required String sprache,
+    required DateTime? datenEnde,
   }) async {
     if (readModel == null || eigenePersonId == null) {
       await _raeumen();
@@ -100,6 +104,7 @@ class QualifikationsErinnerungService {
       supporter,
       pushErlaubt,
       sprache,
+      datenEnde,
       DateTime(jetzt.year, jetzt.month, jetzt.day, jetzt.hour),
       // Nach Zeitzonen- oder Sommerzeitwechsel neu planen, damit "9 Uhr"
       // wieder zur Ortszeit passt.
@@ -128,6 +133,7 @@ class QualifikationsErinnerungService {
       supporter: supporter,
       jetzt: jetzt,
       bereitsGeplant: bereitsGeplant,
+      datenEnde: datenEnde,
     );
     // Vergangenes bleibt gemerkt, damit es nicht erneut kommt.
     final gemerkt = _vergangene(bereitsGeplant, jetzt);
@@ -192,17 +198,13 @@ class QualifikationsErinnerungService {
         t.t('quali_push_eigene_text', {'datum': datum}),
       );
     }
-    final personen = erinnerung.personen;
+    // Ohne Namen, weil der Sperrbildschirm sie sonst zeigt.
     return (
       t.t('quali_push_fremde_titel', {'art': erinnerung.artLabel}),
-      personen.length == 1
-          ? t.t('quali_push_fremde_text_eins', {
-              'name': personen.first,
-              'datum': datum,
-            })
+      erinnerung.anzahl == 1
+          ? t.t('quali_push_fremde_text_eins', {'datum': datum})
           : t.t('quali_push_fremde_text_mehr', {
-              'name': personen.first,
-              'n': personen.length - 1,
+              'n': erinnerung.anzahl,
               'datum': datum,
             }),
     );

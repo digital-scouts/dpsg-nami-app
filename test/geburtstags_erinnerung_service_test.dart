@@ -134,11 +134,13 @@ void main() {
     Set<Stufe> stufen = _alleStufen,
     bool pushErlaubt = true,
     String sprache = 'de',
+    DateTime? datenEnde,
   }) => service.aktualisiere(
     readModel: readModel,
     stufen: stufen,
     pushErlaubt: pushErlaubt,
     sprache: sprache,
+    datenEnde: datenEnde,
   );
 
   test(
@@ -250,6 +252,98 @@ void main() {
 
     await aktualisiere(readModel, stufen: const <Stufe>{});
     expect(eigene(), isEmpty);
+  });
+
+  group('mehrere Geburtstage am selben Tag', () {
+    ArbeitskontextReadModel readModelMit(List<String> vornamen) =>
+        qualiReadModel(
+          mitglieder: [
+            for (var i = 0; i < vornamen.length; i++)
+              _mitglied(
+                '${i + 1}',
+                [mitgliedRolle('Pfadfinder')],
+                vorname: vornamen[i],
+                geburtsdatum: DateTime(2014, 10, 9),
+              ),
+          ],
+        );
+
+    test('zwei Namen in einer Mitteilung', () async {
+      await aktualisiere(readModelMit(['Max', 'Ida']));
+
+      final geplant = eigene();
+      expect(geplant.keys, [96000]);
+      expect(geplant[96000]!.titel, 'Geburtstage');
+      expect(geplant[96000]!.text, 'Heute haben Ida B. und Max B. Geburtstag.');
+      expect(geplant[96000]!.zeitpunkt, DateTime(2026, 10, 9, 9));
+    });
+
+    test('drei Namen vollstaendig', () async {
+      await aktualisiere(readModelMit(['Tom', 'Max', 'Ida']));
+
+      expect(
+        eigene()[96000]!.text,
+        'Heute haben Ida B., Max B. und Tom B. Geburtstag.',
+      );
+    });
+
+    test('ab vier Namen „und n weitere“, auch auf Englisch', () async {
+      final readModel = readModelMit(['Tom', 'Max', 'Ida', 'Ben', 'Ole']);
+
+      await aktualisiere(readModel);
+      expect(
+        eigene()[96000]!.text,
+        'Heute haben Ben B., Ida B., Max B. und 2 weitere Geburtstag.',
+      );
+
+      await aktualisiere(readModel, sprache: 'en');
+      expect(eigene()[96000]!.titel, 'Birthdays');
+      expect(
+        eigene()[96000]!.text,
+        'Ben B., Ida B., Max B. and 2 more have birthdays today.',
+      );
+    });
+  });
+
+  group('Datenablauf', () {
+    final readModel = qualiReadModel(
+      mitglieder: [
+        _mitglied(
+          '1',
+          [mitgliedRolle('Pfadfinder')],
+          vorname: 'Vorher',
+          geburtsdatum: DateTime(2014, 10, 9),
+        ),
+        _mitglied(
+          '2',
+          [mitgliedRolle('Pfadfinder')],
+          vorname: 'Ablauftag',
+          geburtsdatum: DateTime(2014, 10, 20),
+        ),
+      ],
+    );
+
+    test('nichts ab dem Datenablauf', () async {
+      await aktualisiere(readModel, datenEnde: DateTime(2026, 10, 20, 9));
+
+      expect(eigene().values.map((m) => m.text), ['Vorher B. wird heute 12.']);
+    });
+
+    test('ohne Datenablauf keine Grenze', () async {
+      await aktualisiere(readModel);
+
+      expect(eigene(), hasLength(2));
+    });
+
+    test('abgelaufene Daten raeumen alles', () async {
+      await aktualisiere(readModel);
+      expect(eigene(), hasLength(2));
+
+      await aktualisiere(readModel, datenEnde: DateTime(2026, 10, 1));
+
+      expect(eigene(), isEmpty);
+      expect(mitteilungen.geplant.keys, unorderedEquals([94031, 95000]));
+    });
   });
 
   test('plant hoechstens 30 Geburtstage, die fruehesten', () async {

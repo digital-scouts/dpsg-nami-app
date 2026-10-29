@@ -140,6 +140,7 @@ Fachregel:
 - Wenn Restlaufzeit bis Relogin (`remainingUntilRelogin`) `<= 7 Tage` ist, unabhängig von Abruf-Fehlern, wird `internal.data.expiry_soon` aktiv.
 - 7, 3, 2 und 1 Tag vor dem Ablauf kommt um 9 Uhr eine lokale Push-Notification mit der richtigen Tageszahl. Sie wird nach jedem erfolgreichen Sync für den neuen Ablauf (`dataExpiresAt`) geplant. Bei ausgeschalteten Mitteilungen entfällt sie.
 - Endet der Zustand (neuer Login/Sync), werden die Erinnerungen neu geplant.
+- Geburtstags- und Qualifikations-Erinnerungen enden mit dem Datenablauf: Ab `dataExpiresAt` plant die App keine mehr, nach einem Sync verschiebt sich die Grenze.
 
 Technische Notiz:
 
