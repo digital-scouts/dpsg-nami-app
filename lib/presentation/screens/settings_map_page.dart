@@ -14,6 +14,7 @@ import 'package:nami/presentation/widgets/stamm_cluster_layer.dart';
 import 'package:nami/services/maps_env.dart';
 import 'package:nami/services/stamm_map_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/app_bewegung.dart';
 import '../widgets/karten_quellenangabe.dart';
 import '../widgets/mobile_daten_hinweis.dart';
 
@@ -48,7 +49,6 @@ class SettingsMapPage extends StatefulWidget {
 }
 
 class _SettingsMapPageState extends State<SettingsMapPage> {
-  static const Duration _searchCloseButtonDelay = Duration(milliseconds: 130);
   static const Duration _polygonHoldSelectionDelay = Duration(
     milliseconds: 100,
   );
@@ -65,8 +65,6 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
   List<StammMapMarker> _stammMarkers = const [];
   double _currentZoom = 6;
   bool _isSearchOpen = false;
-  bool _showCollapsedSearchButton = true;
-  Timer? _searchButtonRevealTimer;
   Timer? _polygonHoldSelectionTimer;
   int? _polygonHoldPointer;
   Offset? _polygonHoldStartPosition;
@@ -86,7 +84,6 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
 
   @override
   void dispose() {
-    _searchButtonRevealTimer?.cancel();
     _polygonHoldSelectionTimer?.cancel();
     _polygonHitNotifier.dispose();
     _searchController
@@ -194,10 +191,8 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
     if (_isSearchOpen) {
       return;
     }
-    _searchButtonRevealTimer?.cancel();
     setState(() {
       _isSearchOpen = true;
-      _showCollapsedSearchButton = true;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -214,19 +209,8 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
       return;
     }
 
-    _searchButtonRevealTimer?.cancel();
     setState(() {
       _isSearchOpen = false;
-      _showCollapsedSearchButton = false;
-    });
-
-    _searchButtonRevealTimer = Timer(_searchCloseButtonDelay, () {
-      if (!mounted || _isSearchOpen) {
-        return;
-      }
-      setState(() {
-        _showCollapsedSearchButton = true;
-      });
     });
   }
 
@@ -406,21 +390,10 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
 
     _searchFocusNode.unfocus();
     _searchController.clear();
-    _searchButtonRevealTimer?.cancel();
     setState(() {
       _isSearchOpen = false;
-      _showCollapsedSearchButton = false;
       _selectedBoundaryId = entry.boundary?.id;
       _selectedStammMarkerId = entry.marker?.id;
-    });
-
-    _searchButtonRevealTimer = Timer(_searchCloseButtonDelay, () {
-      if (!mounted || _isSearchOpen) {
-        return;
-      }
-      setState(() {
-        _showCollapsedSearchButton = true;
-      });
     });
 
     if (entry.marker != null) {
@@ -613,96 +586,182 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
               Positioned.fill(
                 child: SafeArea(
                   minimum: const EdgeInsets.all(12),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final availableSearchWidth = constraints.maxWidth - 64;
-                      final searchPanelWidth = switch (availableSearchWidth) {
-                        <= 0 => constraints.maxWidth,
-                        > 420 => 420.0,
-                        _ => availableSearchWidth,
-                      };
-
+                  child: Builder(
+                    builder: (context) {
                       return Stack(
                         children: [
-                          if (widget.zeigeZurueck)
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: _MapOverlayButton(
-                                key: const ValueKey('settings-map-back-button'),
-                                tooltip: MaterialLocalizations.of(
-                                  context,
-                                ).backButtonTooltip,
-                                label: 'Zurück',
-                                icon: Icons.arrow_back,
-                                onPressed: () =>
-                                    Navigator.of(context).maybePop(),
-                              ),
-                            ),
-                          Align(
-                            alignment: Alignment.topRight,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                _MapSearchControl(
-                                  isOpen: _isSearchOpen,
-                                  showCollapsedButton:
-                                      _showCollapsedSearchButton,
-                                  controller: _searchController,
-                                  focusNode: _searchFocusNode,
-                                  hintText: t.t('settings_map_search_hint'),
-                                  openTooltip: t.t('settings_map_search'),
-                                  closeTooltip: t.t(
-                                    'settings_map_search_close',
+                          // Zurück links, Suche rechts daneben: Die offene
+                          // Suche nimmt nur den Platz neben dem Knopf ein.
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (widget.zeigeZurueck) ...[
+                                _MapOverlayButton(
+                                  key: const ValueKey(
+                                    'settings-map-back-button',
                                   ),
-                                  expandedWidth: searchPanelWidth,
-                                  onOpen: _openSearch,
-                                  onClose: _closeSearch,
+                                  tooltip: MaterialLocalizations.of(
+                                    context,
+                                  ).backButtonTooltip,
+                                  label: 'Zurück',
+                                  icon: Icons.arrow_back,
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
                                 ),
-                                if (!_isSearchOpen) ...[
-                                  const SizedBox(height: 8),
-                                  _MapOverlayButton(
-                                    key: const ValueKey(
-                                      'settings-map-recenter-button',
-                                    ),
-                                    tooltip: t.t('settings_map_recenter'),
-                                    label: t.t('settings_map_recenter'),
-                                    icon: Icons.center_focus_strong,
-                                    onPressed: () => _recenterMap(allPoints),
-                                  ),
-                                ],
-                                if (_isSearchOpen &&
-                                    _searchController.text.trim().isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: _SearchResultsCard(
-                                      maxWidth: searchPanelWidth,
-                                      results: searchResults,
-                                      noResultsLabel: t.t(
-                                        'settings_map_search_no_results',
-                                      ),
-                                      typeLabelBuilder: (entry) => switch (entry
-                                          .kind) {
-                                        _MapSearchEntryKind.stamm => t.t(
-                                          'settings_map_search_type_stamm',
-                                        ),
-                                        _MapSearchEntryKind.district => t.t(
-                                          'settings_map_search_type_district',
-                                        ),
-                                        _MapSearchEntryKind.boundary => t.t(
-                                          'settings_map_search_type_diocese',
-                                        ),
-                                        _MapSearchEntryKind.dioceseMarker =>
-                                          t.t('settings_map_search_type_dv'),
-                                        _MapSearchEntryKind.federal => t.t(
-                                          'settings_map_search_type_federal',
-                                        ),
-                                      },
-                                      onSelected: _selectSearchEntry,
-                                    ),
-                                  ),
+                                const SizedBox(width: 8),
                               ],
-                            ),
+                              Expanded(
+                                child: LayoutBuilder(
+                                  builder: (context, spalte) {
+                                    // Ohne Zurück bleibt links Luft wie bisher.
+                                    final verfuegbar = widget.zeigeZurueck
+                                        ? spalte.maxWidth
+                                        : spalte.maxWidth - 64;
+                                    final searchPanelWidth =
+                                        switch (verfuegbar) {
+                                          <= 0 => spalte.maxWidth,
+                                          > 420 => 420.0,
+                                          _ => verfuegbar,
+                                        };
+                                    return Align(
+                                      alignment: Alignment.topRight,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          _MapSearchControl(
+                                            isOpen: _isSearchOpen,
+                                            controller: _searchController,
+                                            focusNode: _searchFocusNode,
+                                            hintText: t.t(
+                                              'settings_map_search_hint',
+                                            ),
+                                            openTooltip: t.t(
+                                              'settings_map_search',
+                                            ),
+                                            closeTooltip: t.t(
+                                              'settings_map_search_close',
+                                            ),
+                                            expandedWidth: searchPanelWidth,
+                                            onOpen: _openSearch,
+                                            onClose: _closeSearch,
+                                          ),
+                                          // Zentrieren und Suchergebnisse
+                                          // teilen sich den Platz unter der
+                                          // Suche: Der Knopf geht erst, wenn
+                                          // Ergebnisse erscheinen, und kommt
+                                          // zurück, wenn sie verschwinden.
+                                          // Eigene Schlüssel, sonst hält der
+                                          // Überblender beide für dasselbe
+                                          // Kind und lässt den alten Inhalt
+                                          // sofort fallen.
+                                          AnimatedSwitcher(
+                                            duration: AppBewegung.standard,
+                                            switchInCurve: const Interval(
+                                              0.4,
+                                              1,
+                                              curve: AppBewegung.ausgang,
+                                            ),
+                                            switchOutCurve: const Interval(
+                                              0.6,
+                                              1,
+                                              curve: Curves.easeIn,
+                                            ),
+                                            layoutBuilder:
+                                                (aktuell, vorherige) => Stack(
+                                                  alignment: Alignment.topRight,
+                                                  children: [
+                                                    ...vorherige,
+                                                    ?aktuell,
+                                                  ],
+                                                ),
+                                            child:
+                                                _isSearchOpen &&
+                                                    _searchController.text
+                                                        .trim()
+                                                        .isNotEmpty
+                                                ? Padding(
+                                                    key: const ValueKey(
+                                                      'settings-map-ergebnisse',
+                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 8,
+                                                        ),
+                                                    child: _SearchResultsCard(
+                                                      maxWidth:
+                                                          searchPanelWidth,
+                                                      results: searchResults,
+                                                      noResultsLabel: t.t(
+                                                        'settings_map_search_no_results',
+                                                      ),
+                                                      typeLabelBuilder: (entry) => switch (entry
+                                                          .kind) {
+                                                        _MapSearchEntryKind
+                                                            .stamm =>
+                                                          t.t(
+                                                            'settings_map_search_type_stamm',
+                                                          ),
+                                                        _MapSearchEntryKind
+                                                            .district =>
+                                                          t.t(
+                                                            'settings_map_search_type_district',
+                                                          ),
+                                                        _MapSearchEntryKind
+                                                            .boundary =>
+                                                          t.t(
+                                                            'settings_map_search_type_diocese',
+                                                          ),
+                                                        _MapSearchEntryKind
+                                                            .dioceseMarker =>
+                                                          t.t(
+                                                            'settings_map_search_type_dv',
+                                                          ),
+                                                        _MapSearchEntryKind
+                                                            .federal =>
+                                                          t.t(
+                                                            'settings_map_search_type_federal',
+                                                          ),
+                                                      },
+                                                      onSelected:
+                                                          _selectSearchEntry,
+                                                    ),
+                                                  )
+                                                : Padding(
+                                                    key: const ValueKey(
+                                                      'settings-map-zentrieren',
+                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 8,
+                                                        ),
+                                                    child: _MapOverlayButton(
+                                                      key: const ValueKey(
+                                                        'settings-map-recenter-button',
+                                                      ),
+                                                      tooltip: t.t(
+                                                        'settings_map_recenter',
+                                                      ),
+                                                      label: t.t(
+                                                        'settings_map_recenter',
+                                                      ),
+                                                      icon: Icons
+                                                          .center_focus_strong,
+                                                      onPressed: () =>
+                                                          _recenterMap(
+                                                            allPoints,
+                                                          ),
+                                                    ),
+                                                  ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                           if (selectedLabel != null)
                             Align(
@@ -882,7 +941,7 @@ class _MapOverlayButton extends StatelessWidget {
       color: theme.colorScheme.surfaceContainerLow,
       elevation: 3,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         side: BorderSide(
           color: theme.colorScheme.outline.withValues(alpha: 0.22),
         ),
@@ -890,12 +949,15 @@ class _MapOverlayButton extends StatelessWidget {
       child: Tooltip(
         message: tooltip,
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
           onTap: onPressed,
-          child: Padding(
+          child: Container(
+            // 44 pt wie das offene Suchfeld, damit beim Wechsel nichts
+            // nachrueckt.
+            constraints: const BoxConstraints(minHeight: 44),
             padding: label == null
                 ? EdgeInsets.zero
-                : const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                : const EdgeInsets.symmetric(horizontal: 10),
             child: label == null
                 ? SizedBox(width: 44, height: 44, child: Icon(icon, size: 22))
                 : Row(
@@ -903,7 +965,16 @@ class _MapOverlayButton extends StatelessWidget {
                     children: [
                       Icon(icon, size: 18),
                       const SizedBox(width: 6),
-                      Text(label!, style: theme.textTheme.labelMedium),
+                      // Schmal oder mit großer Schrift kürzen statt
+                      // überlaufen.
+                      Flexible(
+                        child: Text(
+                          label!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelMedium,
+                        ),
+                      ),
                     ],
                   ),
           ),
@@ -916,7 +987,6 @@ class _MapOverlayButton extends StatelessWidget {
 class _MapSearchControl extends StatelessWidget {
   const _MapSearchControl({
     required this.isOpen,
-    required this.showCollapsedButton,
     required this.controller,
     required this.focusNode,
     required this.hintText,
@@ -928,7 +998,6 @@ class _MapSearchControl extends StatelessWidget {
   });
 
   final bool isOpen;
-  final bool showCollapsedButton;
   final TextEditingController controller;
   final FocusNode focusNode;
   final String hintText;
@@ -942,68 +1011,115 @@ class _MapSearchControl extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeInOut,
-      alignment: Alignment.topRight,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 180),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        child: isOpen
-            ? Material(
-                key: const ValueKey('settings-map-search-open'),
-                elevation: 3,
-                color: theme.colorScheme.surfaceContainerLow,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.22),
-                  ),
+    // Eine einzige Fläche: Sie wächst aus dem Knopf nach links und schrumpft
+    // wieder hinein. Weil sie ihren Inhalt rund beschneidet, bleiben die
+    // Ecken in jedem Frame rund; nur der Inhalt wechselt.
+    return Material(
+      key: const ValueKey('settings-map-search-flaeche'),
+      elevation: 3,
+      color: theme.colorScheme.surfaceContainerLow,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: theme.colorScheme.outline.withValues(alpha: 0.22),
+        ),
+      ),
+      // Selten genutzt: Die Bewegung darf sichtbar fließen.
+      child: AnimatedSize(
+        duration: AppBewegung.lage(context, AppBewegung.gross),
+        curve: AppBewegung.bewegung,
+        alignment: Alignment.centerRight,
+        child: AnimatedSwitcher(
+          duration: AppBewegung.gross,
+          // Erst geht der alte Inhalt (erste 40 %), dann kommt der neue
+          // (letzte 60 %). Der alte läuft rückwärts, deshalb liegt sein
+          // Intervall am Ende.
+          switchInCurve: const Interval(0.4, 1, curve: AppBewegung.ausgang),
+          switchOutCurve: const Interval(0.6, 1, curve: Curves.easeIn),
+          // Die Breite folgt nur dem neuen Inhalt; der alte liegt rechts
+          // angeschlagen darunter und wird von der Fläche beschnitten.
+          layoutBuilder: (aktuell, vorherige) => Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerRight,
+            children: [
+              for (final alt in vorherige)
+                Positioned(top: 0, right: 0, child: alt),
+              ?aktuell,
+            ],
+          ),
+          child: isOpen ? _offen(theme) : _zu(theme),
+        ),
+      ),
+    );
+  }
+
+  Widget _offen(ThemeData theme) {
+    return SizedBox(
+      key: const ValueKey('settings-map-search-open'),
+      width: expandedWidth,
+      height: 44,
+      child: Row(
+        children: [
+          IconButton(
+            key: const ValueKey('settings-map-search-close-button'),
+            tooltip: closeTooltip,
+            constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+            padding: EdgeInsets.zero,
+            onPressed: onClose,
+            icon: const Icon(Icons.close, size: 22),
+          ),
+          Expanded(
+            child: TextField(
+              key: const ValueKey('settings-map-search-field'),
+              controller: controller,
+              focusNode: focusNode,
+              textInputAction: TextInputAction.search,
+              // Kleiner als die Standardeingabe, damit der lange Hinweis
+              // passt und zu den Knöpfen steht.
+              style: theme.textTheme.bodyMedium,
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-                child: SizedBox(
-                  width: expandedWidth,
-                  height: 44,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        key: const ValueKey('settings-map-search-close-button'),
-                        tooltip: closeTooltip,
-                        constraints: const BoxConstraints.tightFor(
-                          width: 44,
-                          height: 44,
-                        ),
-                        padding: EdgeInsets.zero,
-                        onPressed: onClose,
-                        icon: const Icon(Icons.close, size: 22),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          key: const ValueKey('settings-map-search-field'),
-                          controller: controller,
-                          focusNode: focusNode,
-                          textInputAction: TextInputAction.search,
-                          decoration: InputDecoration(
-                            hintText: hintText,
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.only(right: 12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.only(right: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Sieht aus wie ein [_MapOverlayButton], ist aber nur Inhalt der Fläche.
+  Widget _zu(ThemeData theme) {
+    return Tooltip(
+      key: const ValueKey('settings-map-search-button'),
+      message: openTooltip,
+      child: InkWell(
+        onTap: onOpen,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.search, size: 18),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  openTooltip,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium,
                 ),
-              )
-            : showCollapsedButton
-            ? _MapOverlayButton(
-                key: const ValueKey('settings-map-search-button'),
-                tooltip: openTooltip,
-                label: openTooltip,
-                icon: Icons.search,
-                onPressed: onOpen,
-              )
-            : const SizedBox(width: 96, height: 44),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

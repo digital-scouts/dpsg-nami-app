@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_bewegung.dart';
+import '../theme/app_haptik.dart';
 import '../widgets/achievement_badge.dart';
 import '../widgets/achievement_tile.dart';
 import '../widgets/achievement_visuals.dart';
@@ -9,9 +13,10 @@ import '../widgets/confetti_overlay.dart';
 
 /// Zeigt den Freischalt-Moment für einen Erfolg.
 ///
-/// Konfetti gibt es immer. Bronze und Silber erscheinen zusätzlich als
-/// Snackbar, ab Gold und bei einmaligen Erfolgen als Dialog. [tier] ist `null`
-/// bei einmaligen Erfolgen.
+/// Konfetti gibt es immer, außer bei „Bewegung reduzieren“. Bronze und
+/// Silber erscheinen zusätzlich als Snackbar, ab Gold und bei einmaligen
+/// Erfolgen als Dialog mit Erfolg-Haptik. [tier] ist `null` bei einmaligen
+/// Erfolgen.
 Future<void> showAchievementUnlocked(
   BuildContext context, {
   required AchievementDefinition definition,
@@ -26,7 +31,7 @@ Future<void> showAchievementUnlocked(
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 220),
+      transitionDuration: AppBewegung.standard,
       pageBuilder: (dialogContext, _, _) => AchievementUnlockedDialog(
         definition: definition,
         tier: tier,
@@ -37,8 +42,10 @@ Future<void> showAchievementUnlocked(
                 onShowAll();
               },
       ),
-      transitionBuilder: (_, animation, _, child) =>
-          FadeTransition(opacity: animation, child: child),
+      transitionBuilder: (_, animation, _, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: AppBewegung.ausgang),
+        child: child,
+      ),
     );
     return;
   }
@@ -256,12 +263,7 @@ class AchievementUnlockedDialog extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0.4, end: 1),
-                            duration: const Duration(milliseconds: 700),
-                            curve: Curves.elasticOut,
-                            builder: (_, scale, child) =>
-                                Transform.scale(scale: scale, child: child),
+                          _BadgeAuftritt(
                             child: AchievementBadge(
                               icon: AchievementVisuals.iconFor(definition.id),
                               tier: tier,
@@ -334,6 +336,94 @@ class AchievementUnlockedDialog extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Auftritt des Badges im Freischalt-Dialog: Sobald der Dialog fast steht,
+/// federt es sichtbar auf und schwingt einmal nach. Im selben Moment kommt
+/// die Erfolg-Haptik. Ein seltener Moment, deshalb darf es verspielt sein.
+class _BadgeAuftritt extends StatefulWidget {
+  const _BadgeAuftritt({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_BadgeAuftritt> createState() => _BadgeAuftrittState();
+}
+
+class _BadgeAuftrittState extends State<_BadgeAuftritt>
+    with SingleTickerProviderStateMixin {
+  /// Wartet, bis der Dialog (250 ms) fast eingeblendet ist.
+  static const _verzoegerung = Duration(milliseconds: 180);
+  static const _dauer = Duration(milliseconds: 900);
+  static const _startSkala = 0.5;
+  static final _feder = FederKurve(
+    SpringDescription.withDurationAndBounce(
+      duration: const Duration(milliseconds: 600),
+      bounce: 0.45,
+    ),
+    dauer: _dauer,
+  );
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: _dauer,
+  );
+  Timer? _start;
+  bool _begonnen = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_begonnen) {
+      return;
+    }
+    _begonnen = true;
+    if (AppBewegung.reduziert(context)) {
+      // Das Badge steht sofort; die Haptik bleibt und kommt mit dem ersten
+      // Bild des Dialogs, nicht mitten im Aufbau.
+      _controller.value = 1;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(AppHaptik.erfolg());
+        }
+      });
+      return;
+    }
+    _start = Timer(_verzoegerung, () {
+      if (!mounted) {
+        return;
+      }
+      unawaited(AppHaptik.erfolg());
+      _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _start?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = _controller.value;
+        final skala = _startSkala + (1 - _startSkala) * _feder.transform(t);
+        // Im ersten Fünftel sichtbar werden, nie aus dem Nichts wachsen.
+        final deckkraft = AppBewegung.ausgang.transform(
+          (t / 0.2).clamp(0.0, 1.0),
+        );
+        return Opacity(
+          opacity: deckkraft,
+          child: Transform.scale(scale: skala, child: child),
+        );
+      },
+      child: widget.child,
     );
   }
 }

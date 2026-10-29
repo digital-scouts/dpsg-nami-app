@@ -9,6 +9,7 @@ import '../../../domain/taetigkeit/stufe.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../statistics/statistik_farben.dart';
 import '../../stufe/stufe_visuals.dart';
+import '../../theme/app_bewegung.dart';
 import '../member_basis_info_card.dart';
 import '../supporter_badge.dart';
 
@@ -82,7 +83,8 @@ class _MemberSteckbriefKopfState extends State<MemberSteckbriefKopf> {
                 behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _ausgeklappt = !_ausgeklappt),
                 child: AnimatedSize(
-                  duration: const Duration(milliseconds: 180),
+                  duration: AppBewegung.lage(context, AppBewegung.klein),
+                  curve: AppBewegung.ausgang,
                   alignment: Alignment.topLeft,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

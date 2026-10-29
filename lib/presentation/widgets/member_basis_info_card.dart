@@ -9,6 +9,7 @@ import 'package:nami/domain/member_filters/beitragsart.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
+import 'package:nami/presentation/theme/app_bewegung.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 const double _memberDetailsCardRadius = 16;
@@ -226,7 +227,7 @@ class _InfoTile extends StatefulWidget {
 
 class _InfoTileState extends State<_InfoTile> {
   static const _copyHighlightDuration = Duration(milliseconds: 700);
-  static const _copyAnimationDuration = Duration(milliseconds: 180);
+  static const _copyAnimationDuration = AppBewegung.klein;
   static const _copyHighlightColor = Color(0xFF2E7D32);
 
   Timer? _copyHighlightTimer;
@@ -265,12 +266,16 @@ class _InfoTileState extends State<_InfoTile> {
       subtitle: Text(widget.row.label),
       trailing: widget.row.copy
           ? AnimatedScale(
-              scale: _isCopyHighlighted ? 1.08 : 1,
+              // Bei reduzierter Bewegung bleibt nur die Farbe.
+              scale: _isCopyHighlighted && !AppBewegung.reduziert(context)
+                  ? 1.08
+                  : 1,
               duration: _copyAnimationDuration,
+              curve: AppBewegung.ausgang,
               child: AnimatedContainer(
                 key: const ValueKey('copy-highlight-container'),
                 duration: _copyAnimationDuration,
-                curve: Curves.easeOut,
+                curve: AppBewegung.ausgang,
                 decoration: BoxDecoration(
                   color: _isCopyHighlighted
                       ? _copyHighlightColor.withValues(alpha: 0.14)

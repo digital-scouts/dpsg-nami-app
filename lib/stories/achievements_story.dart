@@ -180,8 +180,8 @@ Story achievementDetailSheetStory() => Story(
 Story achievementUnlockedStory() => Story(
   name: 'Erfolge/Freischaltung',
   description:
-      'Konfetti immer, Bronze/Silber als Snackbar, ab Gold und einmalige '
-      'Erfolge als Dialog',
+      'Konfetti immer (außer bei „Bewegung reduzieren“), Bronze/Silber als '
+      'Snackbar, ab Gold und einmalige Erfolge als Dialog mit Erfolg-Haptik',
   builder: (context) {
     final knobs = context.knobs;
     final id = knobs.options<String>(
@@ -203,6 +203,7 @@ Story achievementUnlockedStory() => Story(
       ],
     );
     final dark = knobs.boolean(label: 'Dunkel', initial: false);
+    final ruhig = knobs.boolean(label: 'Bewegung reduzieren', initial: false);
     final definition = achievementCatalog.firstWhere((d) => d.id == id);
     final tier = definition.isOneTime
         ? null
@@ -210,6 +211,7 @@ Story achievementUnlockedStory() => Story(
 
     return _AchievementStoryApp(
       dark: dark,
+      disableAnimations: ruhig,
       home: _UnlockedPreview(definition: definition, tier: tier),
     );
   },
@@ -220,11 +222,15 @@ class _AchievementStoryApp extends StatelessWidget {
     required this.home,
     required this.dark,
     this.locale = const Locale('de'),
+    this.disableAnimations = false,
   });
 
   final Widget home;
   final bool dark;
   final Locale locale;
+
+  /// Simuliert „Bewegung reduzieren“.
+  final bool disableAnimations;
 
   @override
   Widget build(BuildContext context) {
@@ -239,6 +245,12 @@ class _AchievementStoryApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('de'), Locale('en')],
       locale: locale,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(disableAnimations: disableAnimations),
+        child: child!,
+      ),
       home: home,
     );
   }

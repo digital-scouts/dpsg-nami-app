@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_bewegung.dart';
+
 class GroupFilterItem {
   final String keyName;
   final Color? chipColor;
@@ -156,8 +158,8 @@ class _GroupFilterBarState extends State<GroupFilterBar> {
           widget.onChanged(next);
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOut,
+          duration: AppBewegung.druck,
+          curve: AppBewegung.ausgang,
           height: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(

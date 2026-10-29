@@ -7,6 +7,7 @@ import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_history_list_page.dart';
 import 'package:nami/presentation/screens/nami_ai/widgets/nami_ai_message_bubble.dart';
 import 'package:nami/presentation/screens/nami_ai/widgets/nami_ai_source_sheet.dart';
+import 'package:nami/presentation/theme/app_bewegung.dart';
 import 'package:nami/services/nami_ai/nami_ai_corpus_lookup_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_debug_log_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_service.dart';
@@ -447,10 +448,15 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
       if (!_scrollController.hasClients) {
         return;
       }
+      final ende = _scrollController.position.maxScrollExtent;
+      if (!mounted || AppBewegung.reduziert(context)) {
+        _scrollController.jumpTo(ende);
+        return;
+      }
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
+        ende,
+        duration: AppBewegung.klein,
+        curve: AppBewegung.ausgang,
       );
     });
   }

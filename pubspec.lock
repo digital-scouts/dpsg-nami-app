@@ -33,14 +33,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.4"
-  animations:
-    dependency: "direct main"
-    description:
-      name: animations
-      sha256: "9cb469212ea51be27097f23b519d594c01171721347b55df9334fff653659e7f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.0"
   archive:
     dependency: transitive
     description:
@@ -65,14 +57,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
-  backdrop:
-    dependency: "direct main"
-    description:
-      name: backdrop
-      sha256: cb7450b465b638835cf5908ee96785dd7d324029beb96fa7a7b6d81216610cda
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.9.1"
   bloc:
     dependency: transitive
     description:
@@ -576,14 +560,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
-  flutter_spinkit:
-    dependency: "direct main"
-    description:
-      name: flutter_spinkit
-      sha256: "77850df57c00dc218bfe96071d576a8babec24cf58b2ed121c83cca4a2fdce7f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.2.2"
   flutter_svg:
     dependency: "direct main"
     description:
@@ -618,14 +594,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  fluttertoast:
-    dependency: "direct main"
-    description:
-      name: fluttertoast
-      sha256: "7903c9d5339173497bfecbc23bc4212f5a87e0edfac2e1693fb74465ea67da7e"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.1.0"
   font_awesome_flutter:
     dependency: "direct main"
     description:
@@ -868,14 +836,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.12.0"
-  just_the_tooltip:
-    dependency: "direct main"
-    description:
-      name: just_the_tooltip
-      sha256: "7a081133d57285bfb41b331f411006d57b433d7b35772e6155745f6a7a09cb82"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.12"
   latlong2:
     dependency: "direct main"
     description:

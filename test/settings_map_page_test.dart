@@ -112,9 +112,7 @@ void main() {
     expect(find.text('Sued'), findsNothing);
   });
 
-  testWidgets('blendet Zentrieren aus, solange die Suche offen ist', (
-    tester,
-  ) async {
+  testWidgets('blendet Zentrieren erst für Suchergebnisse aus', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: [
@@ -139,64 +137,156 @@ void main() {
       findsOneWidget,
     );
 
+    final zentrieren = find.byKey(
+      const ValueKey('settings-map-recenter-button'),
+    );
+    double deckkraft() => tester
+        .widget<FadeTransition>(
+          find
+              .ancestor(of: zentrieren, matching: find.byType(FadeTransition))
+              .first,
+        )
+        .opacity
+        .value;
+
+    // Nur die Suche zu öffnen, lässt den Knopf stehen.
     await tester.tap(find.byKey(const ValueKey('settings-map-search-button')));
+    await tester.pumpAndSettle();
+    expect(zentrieren, findsOneWidget);
+    expect(deckkraft(), 1);
+
+    // Erst Ergebnisse verdrängen ihn, und zwar mit einer Blende.
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-map-search-field')),
+      'sud',
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(zentrieren, findsOneWidget);
+    expect(deckkraft(), inExclusiveRange(0, 1));
+
+    await tester.pumpAndSettle();
+    expect(zentrieren, findsNothing);
+    expect(
+      find.byKey(const ValueKey('settings-map-search-results')),
+      findsOneWidget,
+    );
+
+    // Ohne Ergebnisse kommt er zurück.
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-map-search-field')),
+      '',
+    );
+    await tester.pumpAndSettle();
+    expect(zentrieren, findsOneWidget);
+    expect(deckkraft(), 1);
+  });
+
+  testWidgets('schließt die Suche in einer Bewegung in den Such-Button', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: SettingsMapPage(
+          repository: _FakeDioceseBoundaryRepository(),
+          stammRepository: _FakeStammMapMarkerRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('settings-map-search-button')));
+    await tester.pumpAndSettle();
+
+    // Eingabe und Hinweis in Fließtextgröße statt der größeren
+    // Standardeingabe.
+    final feld = tester.widget<TextField>(
+      find.byKey(const ValueKey('settings-map-search-field')),
+    );
+    final fliesstext = Theme.of(
+      tester.element(find.byType(TextField)),
+    ).textTheme.bodyMedium!.fontSize;
+    expect(feld.style?.fontSize, fliesstext);
+    expect(feld.decoration?.hintStyle?.fontSize, fliesstext);
+
+    await tester.tap(
+      find.byKey(const ValueKey('settings-map-search-close-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+
+    // Ohne Überlagerung: Zu Beginn geht nur der Inhalt des Feldes, der
+    // Knopf-Inhalt kommt erst später dazu.
+    double deckkraft(String key) => tester
+        .widget<FadeTransition>(
+          find
+              .ancestor(
+                of: find.byKey(ValueKey(key)),
+                matching: find.byType(FadeTransition),
+              )
+              .first,
+        )
+        .opacity
+        .value;
+    expect(deckkraft('settings-map-search-open'), lessThan(1));
+    expect(deckkraft('settings-map-search-button'), 0);
+
     await tester.pumpAndSettle();
 
     expect(
       find.byKey(const ValueKey('settings-map-search-field')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
-      find.byKey(const ValueKey('settings-map-recenter-button')),
-      findsNothing,
+      tester
+          .getSize(find.byKey(const ValueKey('settings-map-search-button')))
+          .height,
+      44,
     );
   });
 
-  testWidgets(
-    'blendet den Such-Button erst nach der Schließen-Animation wieder ein',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            AppLocalizations.delegate,
-          ],
-          supportedLocales: const [Locale('de'), Locale('en')],
-          locale: const Locale('de'),
-          home: SettingsMapPage(
-            repository: _FakeDioceseBoundaryRepository(),
-            stammRepository: _FakeStammMapMarkerRepository(),
-          ),
+  testWidgets('die offene Suche lässt den Zurück-Knopf frei', (tester) async {
+    tester.view.physicalSize = const Size(1179, 2556);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: SettingsMapPage(
+          repository: _FakeDioceseBoundaryRepository(),
+          stammRepository: _FakeStammMapMarkerRepository(),
         ),
-      );
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-map-search-button')));
+    await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(const ValueKey('settings-map-search-button')),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.byKey(const ValueKey('settings-map-search-close-button')),
-      );
-      await tester.pump();
-
-      expect(
-        find.byKey(const ValueKey('settings-map-search-button')),
-        findsNothing,
-      );
-
-      await tester.pump(const Duration(milliseconds: 250));
-
-      expect(
-        find.byKey(const ValueKey('settings-map-search-button')),
-        findsOneWidget,
-      );
-    },
-  );
+    final zurueck = tester.getRect(
+      find.byKey(const ValueKey('settings-map-back-button')),
+    );
+    final suche = tester.getRect(
+      find.byKey(const ValueKey('settings-map-search-open')),
+    );
+    expect(suche.left, greaterThan(zurueck.right));
+  });
 
   testWidgets(
     'zeigt den Namen und den Website-Link eines Stammes nach Marker-Klick',
@@ -426,6 +516,81 @@ void main() {
       expect(find.text('Süd'), findsNothing);
     },
   );
+
+  testWidgets('die Suche ist eine Fläche, die wächst und schrumpft', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: SettingsMapPage(
+          repository: _FakeDioceseBoundaryRepository(),
+          stammRepository: _FakeStammMapMarkerRepository(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final flaeche = find.byKey(const ValueKey('settings-map-search-flaeche'));
+    Element naechsteFlaeche(String key) => tester.element(
+      find
+          .ancestor(
+            of: find.byKey(ValueKey(key)),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    List<double> breiten() => [tester.getSize(flaeche).width];
+
+    final zu = tester.getSize(flaeche).width;
+    await tester.tap(find.byKey(const ValueKey('settings-map-search-button')));
+    await tester.pump();
+
+    // Während des Öffnens hängen beide Inhalte an derselben Fläche, und
+    // ihre Ecken bleiben rund.
+    final verlauf = <double>[];
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      verlauf.addAll(breiten());
+      expect(
+        naechsteFlaeche('settings-map-search-open'),
+        same(naechsteFlaeche('settings-map-search-button')),
+      );
+      final form = tester.widget<Material>(flaeche).shape;
+      expect(
+        (form! as RoundedRectangleBorder).borderRadius,
+        BorderRadius.circular(14),
+      );
+    }
+    await tester.pumpAndSettle();
+    final auf = tester.getSize(flaeche).width;
+
+    expect(auf, greaterThan(zu));
+    for (var i = 1; i < verlauf.length; i++) {
+      expect(verlauf[i], greaterThanOrEqualTo(verlauf[i - 1]));
+    }
+    expect(verlauf.first, greaterThan(zu));
+    expect(verlauf.last, lessThanOrEqualTo(auf));
+
+    // Und rückwärts: Die Fläche schrumpft wieder in den Knopf.
+    await tester.tap(
+      find.byKey(const ValueKey('settings-map-search-close-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    final mitte = tester.getSize(flaeche).width;
+    expect(mitte, lessThan(auf));
+    expect(mitte, greaterThan(zu));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(flaeche).width, zu);
+  });
 }
 
 class _DelayedDioceseBoundaryRepository implements DioceseBoundaryRepository {

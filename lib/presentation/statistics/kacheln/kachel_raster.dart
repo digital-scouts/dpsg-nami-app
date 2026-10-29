@@ -7,6 +7,7 @@ import 'package:flutter/semantics.dart';
 import '../../../domain/statistiks/statistik_kachel_einstellungen.dart';
 import '../../../domain/statistiks/statistik_kachel_typen.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../theme/app_bewegung.dart';
 import '../../widgets/app_page_header.dart';
 import 'kachel_bearbeiten.dart';
 import 'kachel_daten.dart';
@@ -106,9 +107,7 @@ class _KachelRasterState extends State<KachelRaster>
     if (_sollWackeln(bewegungAus) == _wackeln.isAnimating) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final an = _sollWackeln(
-        MediaQuery.maybeDisableAnimationsOf(context) ?? false,
-      );
+      final an = _sollWackeln(AppBewegung.reduziert(context));
       if (an && !_wackeln.isAnimating) {
         _wackeln.repeat(reverse: true);
       } else if (!an && _wackeln.isAnimating) {
@@ -262,7 +261,7 @@ class _KachelRasterState extends State<KachelRaster>
 
   @override
   Widget build(BuildContext context) {
-    final bewegungAus = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final bewegungAus = AppBewegung.reduziert(context);
     _wackelnAbgleichen(bewegungAus);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -276,9 +275,7 @@ class _KachelRasterState extends State<KachelRaster>
         final packung = packeKacheln([
           for (final e in eintraege) e.groesse,
         ], spalten: metrik.spalten);
-        final dauer = bewegungAus
-            ? Duration.zero
-            : const Duration(milliseconds: 200);
+        final dauer = bewegungAus ? Duration.zero : AppBewegung.klein;
         Widget? schwebend;
         Widget? geist;
         final kinder = <Widget>[];
@@ -293,7 +290,7 @@ class _KachelRasterState extends State<KachelRaster>
             AnimatedPositioned(
               key: ValueKey(eintrag.id),
               duration: dauer,
-              curve: Curves.easeOutCubic,
+              curve: AppBewegung.ausgang,
               left: aussen.left,
               top: aussen.top,
               // Die Größe springt sofort, damit der Inhalt nie in
