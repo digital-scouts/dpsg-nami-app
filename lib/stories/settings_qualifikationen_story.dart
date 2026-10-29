@@ -26,6 +26,7 @@ enum QualifikationenStoryZustand {
   ohneEfzRecht,
   nichtSynchronisiert,
   leer,
+  veraltet,
 }
 
 /// Rechte fuer den Nutzen-Hinweis der gesperrten Seite.
@@ -54,6 +55,10 @@ Story settingsQualifikationenStory() => Story(
         Option(
           label: 'Ohne EFZ-Recht',
           value: QualifikationenStoryZustand.ohneEfzRecht,
+        ),
+        Option(
+          label: 'Veraltet (Abruf fehlgeschlagen)',
+          value: QualifikationenStoryZustand.veraltet,
         ),
         Option(
           label: 'Nicht synchronisiert',
@@ -155,6 +160,8 @@ class _QualifikationenStoryHostState extends State<QualifikationenStoryHost> {
   ArbeitskontextReadModel get _readModel {
     final ohneDaten =
         widget.zustand == QualifikationenStoryZustand.nichtSynchronisiert;
+    final veraltet = widget.zustand == QualifikationenStoryZustand.veraltet;
+    final standVom = MitgliedEdgeCases.heute.subtract(const Duration(days: 17));
     return ArbeitskontextReadModel(
       arbeitskontext: Arbeitskontext(
         aktiverLayer: const ArbeitskontextLayer(
@@ -172,14 +179,19 @@ class _QualifikationenStoryHostState extends State<QualifikationenStoryHost> {
           TeildatenStand.keineBerechtigung,
         QualifikationenStoryZustand.nichtSynchronisiert =>
           TeildatenStand.unbekannt,
+        QualifikationenStoryZustand.veraltet => TeildatenStand.veraltet,
         _ => TeildatenStand.geladen,
       },
+      efzGeladenAm: veraltet ? standVom : MitgliedEdgeCases.heute,
       efzEinsichtnahmen: ohneDaten
           ? const []
           : MitgliedEdgeCases.efzEinsichtnahmen,
       qualifikationenStand: ohneDaten
           ? TeildatenStand.unbekannt
+          : veraltet
+          ? TeildatenStand.veraltet
           : TeildatenStand.geladen,
+      qualifikationenGeladenAm: veraltet ? standVom : MitgliedEdgeCases.heute,
       qualifikationen:
           ohneDaten || widget.zustand == QualifikationenStoryZustand.leer
           ? const []

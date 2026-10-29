@@ -84,6 +84,25 @@ void main() {
     expect(geladen?.qualifikationen.single.gueltigkeitJahre, 3);
   });
 
+  test('speichert veralteten Stand mit dem Datum des letzten Abrufs', () async {
+    final readModel = ArbeitskontextReadModel(
+      arbeitskontext: Arbeitskontext(
+        aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm'),
+      ),
+      efzStand: TeildatenStand.veraltet,
+      efzGeladenAm: DateTime(2026, 10, 12, 8, 30),
+      qualifikationenStand: TeildatenStand.geladen,
+      qualifikationenGeladenAm: DateTime(2026, 10, 29, 9),
+    );
+
+    await repository.saveCached(readModel);
+
+    final geladen = await repository.loadLastCached();
+    expect(geladen, readModel);
+    expect(geladen?.efzStand, TeildatenStand.veraltet);
+    expect(geladen?.efzGeladenAm, DateTime(2026, 10, 12, 8, 30));
+  });
+
   test('liest aeltere Caches ohne EFZ als noch nicht synchronisiert', () async {
     await repository.saveCached(
       ArbeitskontextReadModel(
@@ -98,6 +117,8 @@ void main() {
     expect(cached?.efzStand, TeildatenStand.unbekannt);
     expect(cached?.qualifikationenStand, TeildatenStand.unbekannt);
     expect(cached?.efzEinsichtnahmen, isEmpty);
+    expect(cached?.efzGeladenAm, isNull);
+    expect(cached?.qualifikationenGeladenAm, isNull);
   });
 
   test('speichert und laedt genau einen lokalen Arbeitskontext', () async {

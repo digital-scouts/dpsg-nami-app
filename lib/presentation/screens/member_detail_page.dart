@@ -541,9 +541,12 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                             currentMitglied.personId,
                           ) ??
                           const [],
+                      efzGeladenAm: readModel?.efzGeladenAm,
                       qualifikationenStand:
                           readModel?.qualifikationenStand ??
                           TeildatenStand.unbekannt,
+                      qualifikationenGeladenAm:
+                          readModel?.qualifikationenGeladenAm,
                       qualifikationen:
                           readModel?.findeQualifikationen(
                             currentMitglied.personId,

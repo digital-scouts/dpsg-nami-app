@@ -5,6 +5,7 @@ import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/model/achievements_model.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
@@ -23,6 +24,7 @@ import 'package:nami/presentation/screens/settings_qualifikationen_page.dart';
 import 'package:nami/presentation/screens/veranstaltungen/veranstaltungen_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
+import 'package:nami/presentation/theme/status_farben.dart';
 import 'package:nami/presentation/widgets/abmeldung_hinweis_karte.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/app_lesebreite.dart';
@@ -1097,6 +1099,12 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
         size: iconSize,
         color: theme.colorScheme.onSurfaceVariant,
       ),
+      // Entscheidung design/entscheidung/2026-10-29-teildaten-veraltet.md, L2.
+      ArbeitskontextLoadingStepState.stale => Icon(
+        Icons.error,
+        size: iconSize,
+        color: StatusFarben.of(context).warnung,
+      ),
     };
     final hasDetail = step.detailKey != null;
     final textStyle = theme.textTheme.bodyMedium;
@@ -1119,10 +1127,16 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
               child: Text(
                 t.t(step.detailKey!, {
                   if (step.detailCount != null) 'count': '${step.detailCount}',
+                  if (step.detailDatum != null)
+                    'datum': DateFormatter.formatGermanDayMonth(
+                      step.detailDatum!,
+                    ),
                 }),
                 textAlign: TextAlign.right,
                 style: textStyle?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: step.state == ArbeitskontextLoadingStepState.stale
+                      ? StatusFarben.of(context).warnung
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),

@@ -7,6 +7,7 @@ import '../../domain/arbeitskontext/teildaten_stand.dart';
 import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../domain/qualifikation/ermittle_qualifikations_uebersicht_usecase.dart';
 import '../../l10n/app_localizations.dart';
+import '../format/date_formatters.dart';
 import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/qualifikations_einstellungen_model.dart';
@@ -321,9 +322,10 @@ class _Uebersicht extends StatelessWidget {
         ? null
         : readModel.qualifikationenStand == TeildatenStand.fehlgeschlagen
         ? t.t('quali_fehlgeschlagen_titel')
-        : readModel.qualifikationenStand == TeildatenStand.geladen
+        : readModel.qualifikationenStand.hatDaten
         ? t.t('quali_leer_hinweis')
         : null;
+    final veraltet = _veraltetHinweis(t, readModel);
 
     return AppLesebreite(
       builder: (context, rand) => ListView(
@@ -358,7 +360,9 @@ class _Uebersicht extends StatelessWidget {
               ],
             ),
           ),
-          if (hinweis != null) ...[
+          // Entscheidung design/entscheidung/2026-10-29-teildaten-veraltet.md,
+          // U2: veralteter Stand in derselben Box wie die uebrigen Hinweise.
+          for (final text in [?veraltet, ?hinweis]) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -371,9 +375,7 @@ class _Uebersicht extends StatelessWidget {
                 children: [
                   Icon(Icons.info_outline, size: 18, color: theme.hintColor),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(hinweis, style: theme.textTheme.bodySmall),
-                  ),
+                  Expanded(child: Text(text, style: theme.textTheme.bodySmall)),
                 ],
               ),
             ),
@@ -609,4 +611,27 @@ class _ZustandsHinweis extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Hinweis auf einen veralteten EFZ- oder Qualifikationsstand; nennt den Teil
+/// nur, wenn nicht beide veraltet sind.
+String? _veraltetHinweis(
+  AppLocalizations t,
+  ArbeitskontextReadModel readModel,
+) {
+  final veraltet = readModel.veraltet;
+  if (veraltet == null) {
+    return null;
+  }
+  final datum = veraltet.seit;
+  final satz = datum == null
+      ? t.t('quali_veraltet_hinweis')
+      : t.t('quali_veraltet_hinweis_datum', {
+          'datum': DateFormatter.formatGermanShortDate(datum),
+        });
+  if (veraltet.efz && veraltet.qualifikationen) {
+    return satz;
+  }
+  final teil = veraltet.efz ? 'quali_abschnitt_efz' : 'quali_abschnitt_liste';
+  return '${t.t(teil)}: $satz';
 }

@@ -124,6 +124,7 @@ Befunde zur API:
 - **Gleiche Art in zwei Instanzen:** Die Zuordnung der Vorgaben läuft über den Namen. Nach dem ersten Treffer gilt die Art-ID.
 - **Viele Abläufe:** iOS erlaubt höchstens 64 geplante Mitteilungen. Fremde Abläufe werden pro Tag gebündelt, die Anzahl ist begrenzt.
 - **Logout:** Geplante und bereits angezeigte Mitteilungen werden gelöscht. Die Einstellungen bleiben.
+- **Abruf fehlgeschlagen:** Die Übersicht zeigt den letzten erfolgreichen Stand, nur für die aktuellen Personen und höchstens 60 Tage alt. Darunter nennt eine Hinweisbox das Datum („Stand vom 12.10.2026. Der letzte Abruf ist fehlgeschlagen, neuere Änderungen fehlen.“). Erinnerungen planen mit diesem Stand weiter.
 - **Datenablauf:** Ab `dataExpiresAt` wird nichts geplant. Was deshalb entfällt, gilt nicht als gemeldet und kommt, sobald ein Sync die Frist verlängert.
 - **Planungsfehler:** Schlägt das Planen fehl, bleiben die bisherigen Erinnerungen bestehen. Beim nächsten Anlass (Änderung, Rückkehr in die App) wird erneut geplant.
 - **Mitteilungen aus und wieder an:** Beim Ausschalten werden Erinnerungen entfernt. Noch nicht zugestellte gelten nicht als gemeldet und kommen nach dem Einschalten wieder, verpasste spätestens am nächsten Morgen.

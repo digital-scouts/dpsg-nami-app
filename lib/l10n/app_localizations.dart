@@ -1140,6 +1140,12 @@ class AppLocalizations {
       'member_info_default_email': 'E-Mail',
       'member_info_birthday': 'Geburtstag',
       'quali_abschnitt_efz': 'Führungszeugnis',
+      'quali_stand_kurz': 'Stand {datum}',
+      'quali_veraltet': 'veraltet',
+      'quali_veraltet_hinweis':
+          'Der letzte Abruf ist fehlgeschlagen, neuere Änderungen fehlen.',
+      'quali_veraltet_hinweis_datum':
+          'Stand vom {datum}. Der letzte Abruf ist fehlgeschlagen, neuere Änderungen fehlen.',
       'quali_abschnitt_liste': 'Qualifikationen',
       'quali_efz_titel': 'Erweitertes Führungszeugnis',
       'quali_efz_keines': 'Keines hinterlegt',
@@ -1593,6 +1599,8 @@ class AppLocalizations {
       'nav_work_context_step_qualifikationen_no_permission':
           'keine Berechtigung',
       'nav_work_context_step_qualifikationen_failed': 'nicht geladen',
+      'nav_work_context_step_qualifikationen_stale': 'veraltet',
+      'nav_work_context_step_qualifikationen_stale_datum': 'veraltet · {datum}',
       'nav_work_context_step_members_loading_count': '{count} geladen…',
       'nav_work_context_step_state_waiting': 'Wartet',
       'nav_work_context_step_state_loading': 'Lädt…',
@@ -2938,6 +2946,12 @@ class AppLocalizations {
       'member_info_default_email': 'Email',
       'member_info_birthday': 'Birthday',
       'quali_abschnitt_efz': 'Criminal record check',
+      'quali_stand_kurz': 'As of {datum}',
+      'quali_veraltet': 'outdated',
+      'quali_veraltet_hinweis':
+          'The last update failed, newer changes are missing.',
+      'quali_veraltet_hinweis_datum':
+          'As of {datum}. The last update failed, newer changes are missing.',
       'quali_abschnitt_liste': 'Qualifications',
       'quali_efz_titel': 'Extended criminal record check',
       'quali_efz_keines': 'None on file',
@@ -3381,6 +3395,8 @@ class AppLocalizations {
       'nav_work_context_step_qualifikationen_done': '{count} entries',
       'nav_work_context_step_qualifikationen_no_permission': 'no permission',
       'nav_work_context_step_qualifikationen_failed': 'not loaded',
+      'nav_work_context_step_qualifikationen_stale': 'outdated',
+      'nav_work_context_step_qualifikationen_stale_datum': 'outdated · {datum}',
       'nav_work_context_step_members_loading_count': '{count} loaded…',
       'nav_work_context_step_state_waiting': 'Waiting',
       'nav_work_context_step_state_loading': 'Loading…',

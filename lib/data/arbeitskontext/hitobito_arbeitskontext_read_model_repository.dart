@@ -8,6 +8,7 @@ import '../../domain/member/mitglied.dart';
 import '../../domain/qualifikation/qualifikation.dart';
 import '../../domain/taetigkeit/roles.dart';
 import '../../services/hitobito_api_exception.dart';
+import '../../services/hitobito_auth_env.dart';
 import '../../services/hitobito_efz_service.dart';
 import '../../services/hitobito_groups_service.dart';
 import '../../services/hitobito_people_service.dart';
@@ -27,13 +28,17 @@ class HitobitoArbeitskontextReadModelRepository
     HitobitoQualificationsService? qualificationsService,
     required ArbeitskontextLocalRepository localRepository,
     LoggerService? logger,
+    DateTime Function()? jetzt,
+    Duration? maxDataAge,
   }) : _groupsService = groupsService,
        _peopleService = peopleService,
        _rolesService = rolesService,
        _efzService = efzService,
        _qualificationsService = qualificationsService,
        _localRepository = localRepository,
-       _logger = logger;
+       _logger = logger,
+       _jetzt = jetzt ?? DateTime.now,
+       _maxDataAge = maxDataAge;
 
   final HitobitoGroupsService _groupsService;
   final HitobitoPeopleService _peopleService;
@@ -42,6 +47,11 @@ class HitobitoArbeitskontextReadModelRepository
   final HitobitoQualificationsService? _qualificationsService;
   final ArbeitskontextLocalRepository _localRepository;
   final LoggerService? _logger;
+  final DateTime Function() _jetzt;
+
+  /// Hoechstalter eines veralteten EFZ- oder Qualifikationsbestands; ohne
+  /// Angabe die Datenfrist der App.
+  final Duration? _maxDataAge;
 
   @override
   Future<ArbeitskontextReadModel> loadCached(
@@ -125,9 +135,11 @@ class HitobitoArbeitskontextReadModelRepository
           uebergeordneteGruppenIds: uebergeordneteGruppenIds,
           efzStand: vorher?.efzStand ?? TeildatenStand.unbekannt,
           efzEinsichtnahmen: vorher?.efzEinsichtnahmen ?? const [],
+          efzGeladenAm: vorher?.efzGeladenAm,
           qualifikationenStand:
               vorher?.qualifikationenStand ?? TeildatenStand.unbekannt,
           qualifikationen: vorher?.qualifikationen ?? const [],
+          qualifikationenGeladenAm: vorher?.qualifikationenGeladenAm,
         ),
       );
     }
@@ -256,17 +268,25 @@ class HitobitoArbeitskontextReadModelRepository
     );
     final efzResult = await teildaten.efz;
     final qualifikationenResult = await teildaten.qualifikationen;
+    final jetzt = _jetzt();
+    final maxDataAge = _maxDataAge ?? HitobitoAuthEnv.maxDataAge;
     final efz = efzResult.fuerPersonen(
       personIds,
       personIdVon: (eintrag) => eintrag.personId,
+      jetzt: jetzt,
+      maxDataAge: maxDataAge,
       vorherStand: vorher?.efzStand,
       vorherEintraege: vorher?.efzEinsichtnahmen,
+      vorherGeladenAm: vorher?.efzGeladenAm,
     );
     final qualifikationen = qualifikationenResult.fuerPersonen(
       personIds,
       personIdVon: (eintrag) => eintrag.personId,
+      jetzt: jetzt,
+      maxDataAge: maxDataAge,
       vorherStand: vorher?.qualifikationenStand,
       vorherEintraege: vorher?.qualifikationen,
+      vorherGeladenAm: vorher?.qualifikationenGeladenAm,
     );
 
     final readModel = ArbeitskontextReadModel(
@@ -278,8 +298,10 @@ class HitobitoArbeitskontextReadModelRepository
       uebergeordneteGruppenIds: uebergeordneteGruppenIds,
       efzStand: efz.stand,
       efzEinsichtnahmen: efz.eintraege,
+      efzGeladenAm: efz.geladenAm,
       qualifikationenStand: qualifikationen.stand,
       qualifikationen: qualifikationen.eintraege,
+      qualifikationenGeladenAm: qualifikationen.geladenAm,
     );
     return readModel;
   }
@@ -866,25 +888,58 @@ class _TeildatenResult<T> {
   final List<T> eintraege;
 
   /// Schraenkt auf die Personen des Kontexts ein. Schlaegt der Abruf fehl,
-  /// bleibt ein zuvor erfolgreich geladener Bestand erhalten, damit ein
-  /// kurzer Netzfehler die Offline-Daten nicht loescht.
-  ({TeildatenStand stand, List<T> eintraege}) fuerPersonen(
+  /// bleibt ein zuvor geladener Bestand als [TeildatenStand.veraltet]
+  /// erhalten, damit ein kurzer Netzfehler die Offline-Daten nicht loescht:
+  /// ebenfalls nur fuer die aktuellen Personen und hoechstens [maxDataAge]
+  /// nach dem letzten Erfolg.
+  ({TeildatenStand stand, List<T> eintraege, DateTime? geladenAm}) fuerPersonen(
     Set<int> personIds, {
     required int Function(T eintrag) personIdVon,
+    required DateTime jetzt,
+    required Duration maxDataAge,
     TeildatenStand? vorherStand,
     List<T>? vorherEintraege,
+    DateTime? vorherGeladenAm,
   }) {
-    if (stand == TeildatenStand.fehlgeschlagen &&
-        vorherStand == TeildatenStand.geladen &&
-        vorherEintraege != null) {
-      return (stand: TeildatenStand.geladen, eintraege: vorherEintraege);
+    List<T> gefiltert(List<T> liste) => liste
+        .where((eintrag) => personIds.contains(personIdVon(eintrag)))
+        .toList(growable: false);
+
+    switch (stand) {
+      case TeildatenStand.geladen:
+        return (
+          stand: stand,
+          eintraege: gefiltert(eintraege),
+          geladenAm: jetzt,
+        );
+      case TeildatenStand.fehlgeschlagen:
+        // Ein alter Cache ohne Datum zaehlt einmal als veraltet; ein
+        // veralteter Bestand ohne Datum wird beim naechsten Fehlschlag
+        // verworfen.
+        final verwertbar =
+            vorherEintraege != null &&
+            switch (vorherStand) {
+              TeildatenStand.geladen =>
+                vorherGeladenAm == null ||
+                    !jetzt.isAfter(vorherGeladenAm.add(maxDataAge)),
+              TeildatenStand.veraltet =>
+                vorherGeladenAm != null &&
+                    !jetzt.isAfter(vorherGeladenAm.add(maxDataAge)),
+              _ => false,
+            };
+        if (verwertbar) {
+          return (
+            stand: TeildatenStand.veraltet,
+            eintraege: gefiltert(vorherEintraege),
+            geladenAm: vorherGeladenAm,
+          );
+        }
+        return (stand: stand, eintraege: const [], geladenAm: null);
+      case TeildatenStand.unbekannt ||
+          TeildatenStand.keineBerechtigung ||
+          TeildatenStand.veraltet:
+        return (stand: stand, eintraege: gefiltert(eintraege), geladenAm: null);
     }
-    return (
-      stand: stand,
-      eintraege: eintraege
-          .where((eintrag) => personIds.contains(personIdVon(eintrag)))
-          .toList(growable: false),
-    );
   }
 }
 
