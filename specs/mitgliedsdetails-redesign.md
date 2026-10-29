@@ -37,7 +37,7 @@ Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Ausgangslage der Mitglie
 - Bankdaten werden nicht übernommen und nicht gespeichert.
 - `household_key` wird übernommen.
 - Rollen tragen `groupName` und `layerName`.
-- EFZ und Qualifikationen werden beim Sync parallel geladen und mit `TeildatenStand` im verschlüsselten Arbeitskontext gespeichert. Ein 403 gilt als fehlende Berechtigung. Bei Fehlschlag bleibt der zuletzt geladene Bestand erhalten.
+- EFZ und Qualifikationen werden beim Sync parallel geladen und mit `TeildatenStand` im verschlüsselten Arbeitskontext gespeichert. Ein 403 gilt als fehlende Berechtigung. Bei Fehlschlag bleibt der zuletzt geladene Bestand als `veraltet` erhalten, mit dem Datum des letzten Erfolgs (`efzGeladenAm`, `qualifikationenGeladenAm`). Er gilt nur für die aktuellen Personen des Kontexts und höchstens `maxDataAge` (60 Tage) nach dem letzten Erfolg, danach wird er verworfen (`fehlgeschlagen`).
 
 **Absicherung:**
 - **Stories:** Personen aus `lib/stories/support/mitglied_edge_cases.dart`, also Funke, Mats, Jonas, Sami, Petra und Karl.
@@ -153,4 +153,5 @@ Diese Fälle tragen die Entwurfspersonen der Runden und heute die Stories (`lib/
 - **EFZ-Zustände:** keines hinterlegt, gültig, läuft bald ab (90 Tage), abgelaufen.
 - **Nicht geladen:** Das EFZ ist noch nicht synchronisiert bzw. offline ohne Cache.
 - **Keine Berechtigung:** keine EFZ-Berechtigung (403).
+- **Veraltet:** Der letzte Abruf schlug fehl. Die Daten des letzten Erfolgs bleiben sichtbar, am Abschnittskopf steht eine Pille „Stand 12.10.“ (ohne bekanntes Datum „veraltet“). Siehe `design/entscheidung/2026-10-29-teildaten-veraltet.md`.
 - **Gültigkeit:** Qualifikationen ohne Ablauf (`validity` leer), abgelaufene und reaktivierbare.

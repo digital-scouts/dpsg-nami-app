@@ -28,6 +28,9 @@ import 'support/fake_supporter_store_client.dart';
 
 ArbeitskontextReadModel _readModel({
   TeildatenStand efzStand = TeildatenStand.geladen,
+  DateTime? efzGeladenAm,
+  TeildatenStand qualifikationenStand = TeildatenStand.geladen,
+  DateTime? qualifikationenGeladenAm,
 }) => ArbeitskontextReadModel(
   arbeitskontext: Arbeitskontext(
     aktiverLayer: const ArbeitskontextLayer(
@@ -39,8 +42,10 @@ ArbeitskontextReadModel _readModel({
   mitglieder: MitgliedEdgeCases.alle.values.toList(),
   efzStand: efzStand,
   efzEinsichtnahmen: MitgliedEdgeCases.efzEinsichtnahmen,
-  qualifikationenStand: TeildatenStand.geladen,
+  efzGeladenAm: efzGeladenAm,
+  qualifikationenStand: qualifikationenStand,
   qualifikationen: MitgliedEdgeCases.qualifikationen,
+  qualifikationenGeladenAm: qualifikationenGeladenAm,
 );
 
 DateTime _heute() => MitgliedEdgeCases.heute;
@@ -119,6 +124,67 @@ void main() {
     expect(find.text('Erweitertes Führungszeugnis'), findsOneWidget);
     // EFZ: Funke (bald) und Sami gueltig, Petra und Tim fehlen.
     expect(find.text('2/4', findRichText: true), findsWidgets);
+  });
+
+  testWidgets('veralteter Stand zeigt die Hinweisbox mit Datum', (
+    tester,
+  ) async {
+    await pumpSeite(
+      tester,
+      SettingsQualifikationenPage(
+        readModel: _readModel(
+          efzStand: TeildatenStand.veraltet,
+          efzGeladenAm: DateTime(2026, 10, 12),
+          qualifikationenStand: TeildatenStand.veraltet,
+          qualifikationenGeladenAm: DateTime(2026, 10, 14),
+        ),
+        heuteProvider: _heute,
+      ),
+    );
+
+    expect(
+      find.text(
+        'Stand vom 12.10.2026. Der letzte Abruf ist fehlgeschlagen, '
+        'neuere Änderungen fehlen.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('quali-zeile-efz')), findsOneWidget);
+  });
+
+  testWidgets('nur veraltetes EFZ nennt den Teil', (tester) async {
+    await pumpSeite(
+      tester,
+      SettingsQualifikationenPage(
+        readModel: _readModel(
+          efzStand: TeildatenStand.veraltet,
+          efzGeladenAm: DateTime(2026, 10, 12),
+        ),
+        heuteProvider: _heute,
+      ),
+    );
+
+    expect(
+      find.text(
+        'Führungszeugnis: Stand vom 12.10.2026. Der letzte Abruf ist '
+        'fehlgeschlagen, neuere Änderungen fehlen.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('aktueller Stand zeigt keinen Hinweis auf Veraltetes', (
+    tester,
+  ) async {
+    await pumpSeite(
+      tester,
+      SettingsQualifikationenPage(
+        readModel: _readModel(),
+        heuteProvider: _heute,
+      ),
+    );
+
+    expect(find.textContaining('Der letzte Abruf ist'), findsNothing);
   });
 
   testWidgets('ohne Foerderer-Abo erscheint nur der Hinweis', (tester) async {

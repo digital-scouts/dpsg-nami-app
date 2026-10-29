@@ -11,6 +11,10 @@ class DateFormatter {
   static String formatGermanShortDate(DateTime date) =>
       DateFormat('dd.MM.yyyy', 'de').format(date);
 
+  /// Formatiert Tag und Monat, z.B. "24.12."
+  static String formatGermanDayMonth(DateTime date) =>
+      DateFormat('dd.MM.', 'de').format(date);
+
   /// Formatiert ein deutsches Datum mit Uhrzeit, z.B. "24.12.2023, 15:30"
   static String formatGermanShortDateTime(DateTime date) =>
       DateFormat('dd.MM.yyyy, HH:mm', 'de').format(date);

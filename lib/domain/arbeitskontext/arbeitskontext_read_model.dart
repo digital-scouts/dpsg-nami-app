@@ -228,8 +228,10 @@ class ArbeitskontextReadModel {
     Iterable<int> uebergeordneteGruppenIds = const <int>[],
     this.efzStand = TeildatenStand.unbekannt,
     Iterable<EfzEinsichtnahme> efzEinsichtnahmen = const <EfzEinsichtnahme>[],
+    this.efzGeladenAm,
     this.qualifikationenStand = TeildatenStand.unbekannt,
     Iterable<Qualifikation> qualifikationen = const <Qualifikation>[],
+    this.qualifikationenGeladenAm,
   }) : mitglieder = List.unmodifiable(_normalizeMitglieder(mitglieder)),
        efzEinsichtnahmen = List.unmodifiable(efzEinsichtnahmen),
        qualifikationen = List.unmodifiable(qualifikationen),
@@ -263,8 +265,31 @@ class ArbeitskontextReadModel {
   /// beim Sync mitgeladen und offline verfuegbar.
   final TeildatenStand efzStand;
   final List<EfzEinsichtnahme> efzEinsichtnahmen;
+
+  /// Letzter erfolgreicher Abruf; bei [TeildatenStand.veraltet] das Datum des
+  /// angezeigten Bestands. In Caches vor dieser Angabe `null`.
+  final DateTime? efzGeladenAm;
   final TeildatenStand qualifikationenStand;
   final List<Qualifikation> qualifikationen;
+  final DateTime? qualifikationenGeladenAm;
+
+  /// Veraltete Teile mit dem aeltesten Datum; `null`, wenn keiner veraltet
+  /// ist. Fehlt bei einem Teil das Datum (alter Cache), ist `seit` `null`.
+  ({bool efz, bool qualifikationen, DateTime? seit})? get veraltet {
+    final efz = efzStand == TeildatenStand.veraltet;
+    final quali = qualifikationenStand == TeildatenStand.veraltet;
+    if (!efz && !quali) {
+      return null;
+    }
+    final daten = [if (efz) efzGeladenAm, if (quali) qualifikationenGeladenAm];
+    return (
+      efz: efz,
+      qualifikationen: quali,
+      seit: daten.contains(null)
+          ? null
+          : daten.whereType<DateTime>().reduce((a, b) => a.isBefore(b) ? a : b),
+    );
+  }
 
   bool get hatMitglieder => mitglieder.isNotEmpty;
   bool get hatGruppen => gruppen.isNotEmpty;
@@ -343,8 +368,10 @@ class ArbeitskontextReadModel {
     Iterable<int>? uebergeordneteGruppenIds,
     TeildatenStand? efzStand,
     Iterable<EfzEinsichtnahme>? efzEinsichtnahmen,
+    DateTime? efzGeladenAm,
     TeildatenStand? qualifikationenStand,
     Iterable<Qualifikation>? qualifikationen,
+    DateTime? qualifikationenGeladenAm,
   }) => ArbeitskontextReadModel(
     arbeitskontext: arbeitskontext ?? this.arbeitskontext,
     rolesSindGeladen: rolesSindGeladen ?? this.rolesSindGeladen,
@@ -355,8 +382,11 @@ class ArbeitskontextReadModel {
         uebergeordneteGruppenIds ?? this.uebergeordneteGruppenIds,
     efzStand: efzStand ?? this.efzStand,
     efzEinsichtnahmen: efzEinsichtnahmen ?? this.efzEinsichtnahmen,
+    efzGeladenAm: efzGeladenAm ?? this.efzGeladenAm,
     qualifikationenStand: qualifikationenStand ?? this.qualifikationenStand,
     qualifikationen: qualifikationen ?? this.qualifikationen,
+    qualifikationenGeladenAm:
+        qualifikationenGeladenAm ?? this.qualifikationenGeladenAm,
   );
 
   @override
@@ -372,8 +402,10 @@ class ArbeitskontextReadModel {
         other.uebergeordneteGruppenIds.containsAll(uebergeordneteGruppenIds) &&
         other.efzStand == efzStand &&
         _listEquals(other.efzEinsichtnahmen, efzEinsichtnahmen) &&
+        other.efzGeladenAm == efzGeladenAm &&
         other.qualifikationenStand == qualifikationenStand &&
-        _listEquals(other.qualifikationen, qualifikationen);
+        _listEquals(other.qualifikationen, qualifikationen) &&
+        other.qualifikationenGeladenAm == qualifikationenGeladenAm;
   }
 
   @override
@@ -385,13 +417,15 @@ class ArbeitskontextReadModel {
     Object.hashAll(mitgliedsZuordnungen),
     efzStand,
     Object.hashAll(efzEinsichtnahmen),
+    efzGeladenAm,
     qualifikationenStand,
     Object.hashAll(qualifikationen),
+    qualifikationenGeladenAm,
   );
 
   @override
   String toString() {
-    return 'ArbeitskontextReadModel(arbeitskontext: $arbeitskontext, rolesSindGeladen: $rolesSindGeladen, mitglieder: $mitglieder, gruppen: $gruppen, mitgliedsZuordnungen: $mitgliedsZuordnungen, efzStand: $efzStand, efz: ${efzEinsichtnahmen.length}, qualifikationenStand: $qualifikationenStand, qualifikationen: ${qualifikationen.length})';
+    return 'ArbeitskontextReadModel(arbeitskontext: $arbeitskontext, rolesSindGeladen: $rolesSindGeladen, mitglieder: $mitglieder, gruppen: $gruppen, mitgliedsZuordnungen: $mitgliedsZuordnungen, efzStand: $efzStand, efz: ${efzEinsichtnahmen.length}, efzGeladenAm: $efzGeladenAm, qualifikationenStand: $qualifikationenStand, qualifikationen: ${qualifikationen.length}, qualifikationenGeladenAm: $qualifikationenGeladenAm)';
   }
 
   static List<Mitglied> _normalizeMitglieder(Iterable<Mitglied> mitglieder) {

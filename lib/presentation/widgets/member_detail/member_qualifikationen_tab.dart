@@ -35,8 +35,10 @@ class MemberQualifikationenTab extends StatefulWidget {
     required this.heute,
     this.efzStand = TeildatenStand.unbekannt,
     this.efzEinsichtnahmen = const <EfzEinsichtnahme>[],
+    this.efzGeladenAm,
     this.qualifikationenStand = TeildatenStand.unbekannt,
     this.qualifikationen = const <Qualifikation>[],
+    this.qualifikationenGeladenAm,
     this.vollLesbar = true,
   });
 
@@ -44,8 +46,13 @@ class MemberQualifikationenTab extends StatefulWidget {
   final DateTime heute;
   final TeildatenStand efzStand;
   final List<EfzEinsichtnahme> efzEinsichtnahmen;
+
+  /// Datum des angezeigten Bestands; bei [TeildatenStand.veraltet] steht es
+  /// in der Pille am Abschnittskopf.
+  final DateTime? efzGeladenAm;
   final TeildatenStand qualifikationenStand;
   final List<Qualifikation> qualifikationen;
+  final DateTime? qualifikationenGeladenAm;
 
   /// Hitobito liefert Qualifikationen und EFZ nur fuer voll lesbare
   /// Personen. Sonst ist ein leerer Stand keine Aussage („Keines hinterlegt“
@@ -77,7 +84,15 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
       builder: (context, rand) => ListView(
         padding: const EdgeInsets.fromLTRB(10, 12, 10, 16) + rand,
         children: [
-          DpsgSectionHeader(label: t.t('quali_abschnitt_efz')),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              DpsgSectionHeader(label: t.t('quali_abschnitt_efz')),
+              if (widget._efzStand == TeildatenStand.veraltet)
+                _VeraltetPille(geladenAm: widget.efzGeladenAm),
+            ],
+          ),
           _karte(_efzZeile(context, t)),
           const SizedBox(height: 18),
           Row(
@@ -85,7 +100,7 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
             textBaseline: TextBaseline.alphabetic,
             children: [
               DpsgSectionHeader(label: t.t('quali_abschnitt_liste')),
-              if (widget._qualifikationenStand == TeildatenStand.geladen &&
+              if (widget._qualifikationenStand.hatDaten &&
                   qualifikationen.isNotEmpty) ...[
                 const SizedBox(width: 6),
                 Padding(
@@ -98,6 +113,8 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
                   ),
                 ),
               ],
+              if (widget._qualifikationenStand == TeildatenStand.veraltet)
+                _VeraltetPille(geladenAm: widget.qualifikationenGeladenAm),
             ],
           ),
           _karte(
@@ -150,7 +167,8 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
         t.t('quali_fehlgeschlagen'),
         true,
       ),
-      TeildatenStand.geladen => _efzAusEinsichtnahmen(t),
+      TeildatenStand.geladen ||
+      TeildatenStand.veraltet => _efzAusEinsichtnahmen(t),
     };
 
     return _StatusZeile(
@@ -218,7 +236,7 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
       TeildatenStand.unbekannt => t.t('quali_nicht_synchronisiert'),
       TeildatenStand.fehlgeschlagen => t.t('quali_fehlgeschlagen'),
       TeildatenStand.keineBerechtigung => t.t('quali_keine_berechtigung'),
-      TeildatenStand.geladen =>
+      TeildatenStand.geladen || TeildatenStand.veraltet =>
         widget.qualifikationen.isEmpty ? t.t('quali_keine') : null,
     };
     if (hinweis != null) {
@@ -408,6 +426,46 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
 
   void _meldung(String message, {required AppSnackbarType type}) {
     AppSnackbar.show(context, message: message, type: type);
+  }
+}
+
+/// Kennzeichnet einen Abschnitt, dessen letzter Abruf fehlschlug
+/// (Entscheidung design/entscheidung/2026-10-29-teildaten-veraltet.md, D3).
+class _VeraltetPille extends StatelessWidget {
+  const _VeraltetPille({required this.geladenAm});
+
+  final DateTime? geladenAm;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final farbe = StatusFarben.of(context).warnung;
+    final datum = geladenAm;
+    return Expanded(
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Container(
+          key: const ValueKey('veraltet-pille'),
+          margin: const EdgeInsets.only(bottom: 6, right: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: farbe.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            datum == null
+                ? t.t('quali_veraltet')
+                : t.t('quali_stand_kurz', {
+                    'datum': DateFormatter.formatGermanDayMonth(datum),
+                  }),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: farbe,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -51,7 +51,9 @@ class _SyncLauf {
 
 enum ArbeitskontextLoadingStep { checkingLogin, loadingGroups, loadingMembers }
 
-enum ArbeitskontextLoadingStepState { waiting, loading, done }
+/// [stale]: geladen, aber aus einem frueheren Abruf, weil der letzte
+/// fehlschlug.
+enum ArbeitskontextLoadingStepState { waiting, loading, done, stale }
 
 class ArbeitskontextLoadingStepStatus {
   const ArbeitskontextLoadingStepStatus({
@@ -59,6 +61,7 @@ class ArbeitskontextLoadingStepStatus {
     required this.state,
     this.detailKey,
     this.detailCount,
+    this.detailDatum,
     this.indent = false,
   });
 
@@ -70,6 +73,9 @@ class ArbeitskontextLoadingStepStatus {
   /// gefunden"), nur gesetzt wenn state == done und ein Zaehler bekannt ist.
   final String? detailKey;
   final int? detailCount;
+
+  /// Datum fuer den Platzhalter `{datum}`, z. B. beim veralteten Stand.
+  final DateTime? detailDatum;
 
   /// True, wenn diese Zeile als Unterpunkt einer vorherigen Zeile dargestellt
   /// werden soll (z.B. "Rollen"/"Qualifikationen" unter "Mitglieder").
@@ -380,6 +386,19 @@ class ArbeitskontextModel extends ChangeNotifier {
         labelKey: label,
         state: ArbeitskontextLoadingStepState.waiting,
         detailKey: 'nav_work_context_step_qualifikationen_failed',
+        indent: true,
+      );
+    }
+    final veraltet = readModel.veraltet;
+    if (veraltet != null) {
+      final datum = veraltet.seit;
+      return ArbeitskontextLoadingStepStatus(
+        labelKey: label,
+        state: ArbeitskontextLoadingStepState.stale,
+        detailKey: datum == null
+            ? 'nav_work_context_step_qualifikationen_stale'
+            : 'nav_work_context_step_qualifikationen_stale_datum',
+        detailDatum: datum,
         indent: true,
       );
     }

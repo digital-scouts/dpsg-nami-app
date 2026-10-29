@@ -671,6 +671,24 @@ void main() {
       ohneRecht.detailKey,
       'nav_work_context_step_qualifikationen_no_permission',
     );
+
+    final veraltet = await schrittNachSync(
+      ArbeitskontextReadModel(
+        arbeitskontext: kontext,
+        rolesSindGeladen: true,
+        efzStand: TeildatenStand.veraltet,
+        efzGeladenAm: DateTime(2026, 3, 20),
+        qualifikationenStand: TeildatenStand.veraltet,
+        qualifikationenGeladenAm: DateTime(2026, 3, 12),
+      ),
+    );
+    expect(veraltet.state, ArbeitskontextLoadingStepState.stale);
+    expect(
+      veraltet.detailKey,
+      'nav_work_context_step_qualifikationen_stale_datum',
+    );
+    // Das aeltere der beiden Daten.
+    expect(veraltet.detailDatum, DateTime(2026, 3, 12));
   });
 
   test('zeigt den Fehlerbildschirm statt eines leeren Kontexts, wenn der '

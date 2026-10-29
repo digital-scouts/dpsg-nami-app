@@ -51,7 +51,12 @@ Story memberQualifikationenTabStory() => Story(
       efzEinsichtnahmen: MitgliedEdgeCases.efzEinsichtnahmen
           .where((e) => e.personId == mitglied.personId)
           .toList(),
+      // Bei „veraltet“ zeigt die Pille diesen Stand.
+      efzGeladenAm: MitgliedEdgeCases.heute.subtract(const Duration(days: 17)),
       qualifikationenStand: qualiStand,
+      qualifikationenGeladenAm: MitgliedEdgeCases.heute.subtract(
+        const Duration(days: 17),
+      ),
       qualifikationen: MitgliedEdgeCases.qualifikationen
           .where((q) => q.personId == mitglied.personId)
           .toList(),

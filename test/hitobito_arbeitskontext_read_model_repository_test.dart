@@ -1176,6 +1176,7 @@ void main() {
 
   group('EFZ und Qualifikationen im refresh', () {
     const stamm = ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf');
+    final jetzt = DateTime(2026, 10, 29, 12);
     HitobitoArbeitskontextReadModelRepository repositoryMit({
       required _FakeHitobitoEfzService efzService,
       required _FakeHitobitoQualificationsService qualificationsService,
@@ -1207,8 +1208,22 @@ void main() {
         qualificationsService: qualificationsService,
         localRepository:
             localRepository ?? _FakeArbeitskontextLocalRepository(),
+        jetzt: () => jetzt,
+        maxDataAge: const Duration(days: 60),
       );
     }
+
+    Future<ArbeitskontextReadModel> refreshMitEfzFehler(
+      ArbeitskontextReadModel vorher,
+    ) =>
+        repositoryMit(
+          efzService: _FakeHitobitoEfzService(error: Exception('offline')),
+          qualificationsService: _FakeHitobitoQualificationsService(),
+          localRepository: _FakeArbeitskontextLocalRepository(cached: vorher),
+        ).refresh(
+          accessToken: 'token',
+          arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
+        );
 
     test('speichert nur Eintraege der Personen im Kontext', () async {
       final efzService = _FakeHitobitoEfzService(
@@ -1239,6 +1254,8 @@ void main() {
       ]);
       expect(readModel.qualifikationenStand, TeildatenStand.geladen);
       expect(readModel.findeQualifikationen(1).single.label, 'Woodbadge');
+      expect(readModel.efzGeladenAm, jetzt);
+      expect(readModel.qualifikationenGeladenAm, jetzt);
     });
 
     test(
@@ -1268,28 +1285,102 @@ void main() {
     );
 
     test(
-      'behaelt bei einem Fehlschlag den zuletzt geladenen Bestand',
+      'behaelt bei einem Fehlschlag den zuletzt geladenen Bestand als veraltet',
       () async {
-        final vorher = ArbeitskontextReadModel(
+        final geladenAm = DateTime(2026, 10, 12, 8);
+        final readModel = await refreshMitEfzFehler(
+          ArbeitskontextReadModel(
+            arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
+            efzStand: TeildatenStand.geladen,
+            efzEinsichtnahmen: <EfzEinsichtnahme>[
+              EfzEinsichtnahme(id: 7, personId: 1, issuedOn: DateTime(2023)),
+            ],
+            efzGeladenAm: geladenAm,
+          ),
+        );
+
+        expect(readModel.efzStand, TeildatenStand.veraltet);
+        expect(readModel.efzEinsichtnahmen.single.id, 7);
+        expect(readModel.efzGeladenAm, geladenAm);
+        expect(readModel.qualifikationenStand, TeildatenStand.geladen);
+      },
+    );
+
+    test(
+      'filtert den Altbestand auf die Personen im Kontext (A-132)',
+      () async {
+        final readModel = await refreshMitEfzFehler(
+          ArbeitskontextReadModel(
+            arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
+            efzStand: TeildatenStand.geladen,
+            efzEinsichtnahmen: <EfzEinsichtnahme>[
+              EfzEinsichtnahme(id: 7, personId: 1, issuedOn: DateTime(2023)),
+              EfzEinsichtnahme(id: 8, personId: 99, issuedOn: DateTime(2023)),
+            ],
+            efzGeladenAm: DateTime(2026, 10, 12),
+          ),
+        );
+
+        expect(readModel.efzStand, TeildatenStand.veraltet);
+        expect(readModel.efzEinsichtnahmen.map((e) => e.id), <int>[7]);
+      },
+    );
+
+    test('verwirft einen Altbestand nach Ablauf der Datenfrist', () async {
+      final readModel = await refreshMitEfzFehler(
+        ArbeitskontextReadModel(
           arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
-          efzStand: TeildatenStand.geladen,
+          efzStand: TeildatenStand.veraltet,
           efzEinsichtnahmen: <EfzEinsichtnahme>[
             EfzEinsichtnahme(id: 7, personId: 1, issuedOn: DateTime(2023)),
           ],
-        );
-        final repository = repositoryMit(
-          efzService: _FakeHitobitoEfzService(error: Exception('offline')),
-          qualificationsService: _FakeHitobitoQualificationsService(),
-          localRepository: _FakeArbeitskontextLocalRepository(cached: vorher),
-        );
+          efzGeladenAm: jetzt.subtract(const Duration(days: 61)),
+        ),
+      );
 
-        final readModel = await repository.refresh(
-          accessToken: 'token',
+      expect(readModel.efzStand, TeildatenStand.fehlgeschlagen);
+      expect(readModel.efzEinsichtnahmen, isEmpty);
+      expect(readModel.efzGeladenAm, isNull);
+    });
+
+    test('behaelt bei erneutem Fehlschlag Bestand und Datum', () async {
+      final geladenAm = jetzt.subtract(const Duration(days: 59));
+      final readModel = await refreshMitEfzFehler(
+        ArbeitskontextReadModel(
           arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
-        );
+          efzStand: TeildatenStand.veraltet,
+          efzEinsichtnahmen: <EfzEinsichtnahme>[
+            EfzEinsichtnahme(id: 7, personId: 1, issuedOn: DateTime(2023)),
+          ],
+          efzGeladenAm: geladenAm,
+        ),
+      );
 
-        expect(readModel.efzStand, TeildatenStand.geladen);
-        expect(readModel.efzEinsichtnahmen.single.id, 7);
+      expect(readModel.efzStand, TeildatenStand.veraltet);
+      expect(readModel.efzEinsichtnahmen.single.id, 7);
+      expect(readModel.efzGeladenAm, geladenAm);
+    });
+
+    test(
+      'alter Cache ohne Datum zaehlt einmal als veraltet, dann verworfen',
+      () async {
+        final eintraege = <EfzEinsichtnahme>[
+          EfzEinsichtnahme(id: 7, personId: 1, issuedOn: DateTime(2023)),
+        ];
+        final erster = await refreshMitEfzFehler(
+          ArbeitskontextReadModel(
+            arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
+            efzStand: TeildatenStand.geladen,
+            efzEinsichtnahmen: eintraege,
+          ),
+        );
+        expect(erster.efzStand, TeildatenStand.veraltet);
+        expect(erster.efzEinsichtnahmen.single.id, 7);
+        expect(erster.efzGeladenAm, isNull);
+
+        final zweiter = await refreshMitEfzFehler(erster);
+        expect(zweiter.efzStand, TeildatenStand.fehlgeschlagen);
+        expect(zweiter.efzEinsichtnahmen, isEmpty);
       },
     );
   });

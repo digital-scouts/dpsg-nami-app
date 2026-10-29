@@ -68,10 +68,13 @@ class SecureArbeitskontextLocalRepository
         growable: false,
       ),
       'efz_stand': readModel.efzStand.name,
+      'efz_geladen_am': readModel.efzGeladenAm?.toIso8601String(),
       'efz_einsichtnahmen': readModel.efzEinsichtnahmen
           .map((eintrag) => eintrag.toJson())
           .toList(growable: false),
       'qualifikationen_stand': readModel.qualifikationenStand.name,
+      'qualifikationen_geladen_am': readModel.qualifikationenGeladenAm
+          ?.toIso8601String(),
       'qualifikationen': readModel.qualifikationen
           .map((eintrag) => eintrag.toJson())
           .toList(growable: false),
@@ -153,6 +156,8 @@ class SecureArbeitskontextLocalRepository
               .whereType<EfzEinsichtnahme>(),
         _ => const <EfzEinsichtnahme>[],
       },
+      // Caches vor der Angabe kennen kein Datum des letzten Abrufs.
+      efzGeladenAm: _datum(json['efz_geladen_am']),
       qualifikationenStand: TeildatenStand.ausName(
         json['qualifikationen_stand'],
       ),
@@ -164,8 +169,12 @@ class SecureArbeitskontextLocalRepository
               .whereType<Qualifikation>(),
         _ => const <Qualifikation>[],
       },
+      qualifikationenGeladenAm: _datum(json['qualifikationen_geladen_am']),
     );
   }
+
+  static DateTime? _datum(Object? wert) =>
+      wert is String ? DateTime.tryParse(wert) : null;
 
   Map<String, dynamic> _layerToJson(ArbeitskontextLayer layer) {
     return <String, dynamic>{

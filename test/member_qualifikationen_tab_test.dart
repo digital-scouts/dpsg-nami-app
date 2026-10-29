@@ -37,6 +37,8 @@ void main() {
     List<EfzEinsichtnahme> efz = const <EfzEinsichtnahme>[],
     TeildatenStand qualiStand = TeildatenStand.geladen,
     List<Qualifikation> qualis = const <Qualifikation>[],
+    DateTime? efzGeladenAm,
+    DateTime? qualiGeladenAm,
     bool vollLesbar = true,
     List<SingleChildWidget> provider = const <SingleChildWidget>[],
     Mitglied? anzeigen,
@@ -57,8 +59,10 @@ void main() {
           heute: MitgliedEdgeCases.heute,
           efzStand: efzStand,
           efzEinsichtnahmen: efz,
+          efzGeladenAm: efzGeladenAm,
           qualifikationenStand: qualiStand,
           qualifikationen: qualis,
+          qualifikationenGeladenAm: qualiGeladenAm,
           vollLesbar: vollLesbar,
         ),
       ),
@@ -117,6 +121,36 @@ void main() {
       );
     },
   );
+
+  testWidgets('veralteter Stand zeigt die Daten mit Pille am Abschnitt', (
+    tester,
+  ) async {
+    await zeige(
+      tester,
+      efzStand: TeildatenStand.veraltet,
+      efz: [ausgestellt(MitgliedEdgeCases.heute)],
+      efzGeladenAm: DateTime(2026, 10, 12),
+      qualis: [Qualifikation(id: 1, personId: 1, label: 'Woodbadge')],
+    );
+
+    expect(find.byKey(const ValueKey('veraltet-pille')), findsOneWidget);
+    expect(find.text('Stand 12.10.'), findsOneWidget);
+    expect(find.textContaining('Gültig bis'), findsOneWidget);
+    expect(find.text('Woodbadge'), findsOneWidget);
+
+    await zeige(
+      tester,
+      efzStand: TeildatenStand.veraltet,
+      efz: [ausgestellt(MitgliedEdgeCases.heute)],
+      efzGeladenAm: DateTime(2026, 10, 12),
+      qualiStand: TeildatenStand.veraltet,
+      qualis: [Qualifikation(id: 1, personId: 1, label: 'Woodbadge')],
+    );
+
+    // Ohne Datum (alter Cache) nur „veraltet“.
+    expect(find.byKey(const ValueKey('veraltet-pille')), findsNWidgets(2));
+    expect(find.text('veraltet'), findsOneWidget);
+  });
 
   testWidgets('sortiert abgelaufene Qualifikationen ans Ende', (tester) async {
     await zeige(
