@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/member/efz_einsichtnahme.dart';
 import 'package:nami/domain/qualifikation/qualifikations_einstellungen.dart';
 import 'package:nami/services/lokale_mitteilungen.dart';
@@ -82,13 +83,16 @@ void main() {
     bool pushErlaubt = true,
     QualifikationsEinstellungen einstellungen =
         const QualifikationsEinstellungen(),
+    ArbeitskontextReadModel? daten,
+    DateTime? datenEnde,
   }) => service.aktualisiere(
-    readModel: readModel,
+    readModel: daten ?? readModel,
     einstellungen: einstellungen,
     eigenePersonId: 1,
     supporter: true,
     pushErlaubt: pushErlaubt,
     sprache: 'de',
+    datenEnde: datenEnde,
   );
 
   test('plant im eigenen ID-Bereich mit deutschen Texten', () async {
@@ -101,8 +105,58 @@ void main() {
     expect(eigene.zeitpunkt, DateTime(2026, 10, 2, 9));
     final fremde =
         mitteilungen.geplant[QualifikationsErinnerungService.idErste + 1]!;
-    expect(fremde.text, 'PersonB Test: gültig bis 01.03.2027.');
+    expect(fremde.titel, 'Erweitertes Führungszeugnis läuft ab');
+    expect(fremde.text, 'Bei einer Person gültig bis 01.03.2027.');
+    expect(fremde.text, isNot(contains('PersonB')));
     expect(mitteilungen.geplant.containsKey(94031), isTrue);
+  });
+
+  test('mehrere fremde Ablaeufe nennen nur die Anzahl', () async {
+    await aktualisiere(
+      daten: qualiReadModel(
+        mitglieder: [
+          qualiMitglied('ICH', 1, [leitung('Rover')]),
+          qualiMitglied('B', 2, [leitung('Pfadfinder')]),
+          qualiMitglied('C', 3, [amt('Kurat')]),
+        ],
+        efz: [
+          EfzEinsichtnahme(id: 2, personId: 2, issuedOn: DateTime(2022, 3, 1)),
+          EfzEinsichtnahme(id: 3, personId: 3, issuedOn: DateTime(2022, 3, 1)),
+        ],
+      ),
+    );
+
+    final texte = mitteilungen.geplant.values.map((m) => m.text);
+    expect(texte, contains('Bei 2 Personen, ab 01.03.2027.'));
+    expect(texte.where((t) => t.contains('Person')), hasLength(1));
+  });
+
+  test('nichts ab dem Datenablauf, Entfallenes kommt nach dem Sync', () async {
+    // Der eigene Termin liegt am 02.10., der fremde am 01.12.
+    await aktualisiere(datenEnde: DateTime(2026, 12, 1, 9));
+
+    expect(mitteilungen.geplant.values.map((m) => m.text), [
+      'y',
+      'Deine Qualifikation ist gültig bis 20.11.2026.',
+    ]);
+
+    // Neuer Sync verschiebt den Datenablauf; der fremde Ablauf gilt nicht
+    // als gemeldet.
+    uhr = DateTime(2026, 10, 3, 8);
+    await aktualisiere(datenEnde: DateTime(2026, 12, 2));
+
+    expect(
+      mitteilungen.geplant.values.map((m) => m.text),
+      contains('Bei einer Person gültig bis 01.03.2027.'),
+    );
+  });
+
+  test('abgelaufene Daten planen nichts', () async {
+    await aktualisiere();
+
+    await aktualisiere(datenEnde: DateTime(2026, 10, 1));
+
+    expect(mitteilungen.geplant.keys, <int>[94031]);
   });
 
   test('raeumt nur den eigenen Bereich', () async {
@@ -159,6 +213,7 @@ void main() {
       supporter: true,
       pushErlaubt: true,
       sprache: 'de',
+      datenEnde: null,
     );
 
     final texte = mitteilungen.geplant.values.map((m) => m.titel);
@@ -177,6 +232,7 @@ void main() {
       supporter: true,
       pushErlaubt: true,
       sprache: 'en',
+      datenEnde: null,
     );
 
     expect(mitteilungen.geplant, vorher);
@@ -189,6 +245,7 @@ void main() {
       supporter: true,
       pushErlaubt: true,
       sprache: 'en',
+      datenEnde: null,
     );
     expect(
       mitteilungen.geplant[QualifikationsErinnerungService.idErste]!.titel,

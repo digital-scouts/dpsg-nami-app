@@ -642,6 +642,7 @@ Future<void> _startApp({
         supporter: appearanceModel.access.qualifikationenFrei,
         pushErlaubt: appSettingsModel.notificationsEnabled,
         sprache: appSettingsModel.languageCode,
+        datenEnde: authModel.dataExpiresAt,
       ),
     );
   }
@@ -677,6 +678,7 @@ Future<void> _startApp({
         stufen: appSettingsModel.geburstagsbenachrichtigungStufen,
         pushErlaubt: appSettingsModel.notificationsEnabled,
         sprache: appSettingsModel.languageCode,
+        datenEnde: authModel.dataExpiresAt,
       ),
     );
   }

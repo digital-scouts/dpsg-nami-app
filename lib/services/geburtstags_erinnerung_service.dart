@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../domain/member/plane_geburtstags_erinnerungen_usecase.dart';
@@ -13,7 +14,9 @@ import 'lokale_mitteilungen.dart';
 /// Einstellungsaenderung neu. Nutzt einen eigenen ID-Bereich und raeumt nur
 /// diesen, damit andere Erinnerungen (Datenablauf, Qualifikationen) bestehen
 /// bleiben. Rechte fragt der Dienst nie an; ohne Erlaubnis zeigt das System
-/// nichts.
+/// nichts. Die Mitteilungen nennen Namen; Android blendet sie deshalb auf dem
+/// gesperrten Geraet aus, unter iOS gilt die Systemeinstellung fuer
+/// Vorschauen.
 class GeburtstagsErinnerungService {
   GeburtstagsErinnerungService({
     required LoggerService logger,
@@ -23,7 +26,11 @@ class GeburtstagsErinnerungService {
         const PlaneGeburtstagsErinnerungenUseCase(),
   }) : _logger = logger,
        _mitteilungen =
-           mitteilungen ?? PluginLokaleMitteilungen(kanalId: 'geburtstage'),
+           mitteilungen ??
+           PluginLokaleMitteilungen(
+             kanalId: 'geburtstage',
+             visibility: NotificationVisibility.secret,
+           ),
        _jetzt = jetzt ?? DateTime.now,
        _planer = planer;
 
@@ -31,6 +38,9 @@ class GeburtstagsErinnerungService {
   /// [PlaneGeburtstagsErinnerungenUseCase.maxMitteilungen] davon.
   static const idErste = 96000;
   static const idLetzte = 96099;
+
+  /// Mehr Namen kuerzt die Mitteilung auf „und n weitere“.
+  static const maxNamen = 3;
 
   final LoggerService _logger;
   final LokaleMitteilungen _mitteilungen;
@@ -41,12 +51,14 @@ class GeburtstagsErinnerungService {
   Future<void> _laufend = Future<void>.value();
 
   /// Plant neu, wenn sich der Plan seit dem letzten Lauf geaendert hat.
-  /// Ohne Read Model wird geraeumt.
+  /// Ohne Read Model wird geraeumt. Ab [datenEnde] (Datenablauf) kommt
+  /// nichts mehr.
   Future<void> aktualisiere({
     required ArbeitskontextReadModel? readModel,
     required Set<Stufe> stufen,
     required bool pushErlaubt,
     required String sprache,
+    required DateTime? datenEnde,
   }) {
     _laufend = _laufend.then(
       (_) =>
@@ -55,6 +67,7 @@ class GeburtstagsErinnerungService {
             stufen: stufen,
             pushErlaubt: pushErlaubt,
             sprache: sprache,
+            datenEnde: datenEnde,
           ).catchError((Object fehler, StackTrace stack) {
             // Etwa ohne Systemerlaubnis: Stand vergessen, damit die naechste
             // Aenderung (z. B. die Erlaubnis im Stepper) neu plant.
@@ -81,6 +94,7 @@ class GeburtstagsErinnerungService {
     required Set<Stufe> stufen,
     required bool pushErlaubt,
     required String sprache,
+    required DateTime? datenEnde,
   }) async {
     if (readModel == null) {
       await _raeumen();
@@ -88,7 +102,12 @@ class GeburtstagsErinnerungService {
     }
     final jetzt = _jetzt();
     final plan = pushErlaubt
-        ? _planer(readModel: readModel, stufen: stufen, jetzt: jetzt)
+        ? _planer(
+            readModel: readModel,
+            stufen: stufen,
+            jetzt: jetzt,
+            datenEnde: datenEnde,
+          )
         : const <GeplanteGeburtstagsErinnerung>[];
     // Die Zeitzone gehoert zum Stand, damit nach einem Wechsel neu geplant
     // wird.
@@ -120,14 +139,12 @@ class GeburtstagsErinnerungService {
     // bleiben die bisherigen Erinnerungen erhalten.
     for (var i = 0; i < anzahl; i++) {
       final erinnerung = plan[i];
+      final (titel, text) = _texte(t, erinnerung);
       try {
         await _mitteilungen.planen(
           id: idErste + i,
-          titel: t.t('geburtstag_push_titel'),
-          text: t.t('geburtstag_push_text', {
-            'name': erinnerung.kurzname,
-            'alter': erinnerung.alter,
-          }),
+          titel: titel,
+          text: text,
           zeitpunkt: erinnerung.zeitpunkt,
           kanalName: t.t('geburtstag_push_kanal'),
         );
@@ -144,6 +161,35 @@ class GeburtstagsErinnerungService {
     await _logger.logInfo(
       'notifications',
       'Geburtstags-Erinnerungen geplant (anzahl=${plan.length})',
+    );
+  }
+
+  /// Einzeln mit Alter, sonst „Heute haben A, B und C Geburtstag.“
+  (String, String) _texte(
+    AppLocalizations t,
+    GeplanteGeburtstagsErinnerung erinnerung,
+  ) {
+    final personen = erinnerung.personen;
+    if (personen.length == 1) {
+      return (
+        t.t('geburtstag_push_titel'),
+        t.t('geburtstag_push_text', {
+          'name': personen.first.kurzname,
+          'alter': personen.first.alter,
+        }),
+      );
+    }
+    final namen = <String>[
+      for (final person in personen.take(maxNamen)) person.kurzname,
+      if (personen.length > maxNamen)
+        t.t('geburtstag_push_weitere', {'n': personen.length - maxNamen}),
+    ];
+    final aufzaehlung =
+        '${namen.sublist(0, namen.length - 1).join(', ')} '
+        '${t.t('geburtstag_push_und')} ${namen.last}';
+    return (
+      t.t('geburtstag_push_titel_mehr'),
+      t.t('geburtstag_push_text_mehr', {'namen': aufzaehlung}),
     );
   }
 

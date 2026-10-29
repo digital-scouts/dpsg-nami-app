@@ -18,6 +18,7 @@ Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Erweiterung der Seite �
 - **Erinnerungen:** `QualifikationsErinnerungService` plant lokale Mitteilungen um 9 Uhr.
   - Er nutzt die IDs 95000–95099 und räumt beim Abmelden nur diesen Bereich.
   - Gemeldete Abläufe merkt er sich unter `qualifikationsErinnerungenGeplant`.
+  - Fremde Abläufe nennen keine Namen, nur Art, Anzahl und Datum („Bei 2 Personen, ab 01.03.2027.“), weil der Sperrbildschirm sie sonst zeigt.
 - **Meldung im Hub:** `qualifikation-laeuft-ab`. Ein Tipp öffnet die eigenen Mitgliedsdetails.
 - **Förderer:** Die Übersicht hängt an `SupportAccess.qualifikationenFrei`, also am Förderer-Abo. Bis zur Store-Anbindung simuliert der Testschalter `supporterTestZugang` in Debug & Tools einen Kauf (keiner, ein Design-Paket oder Förderer), standardmäßig keiner. Der Demo-Modus ist freigeschaltet.
 - **Offen:**
@@ -122,10 +123,11 @@ Befunde zur API:
 - **Unbekanntes Geburtsdatum:** Altersregeln treffen nicht. Die Person fällt aus Kreisen mit Altersgrenze heraus und erscheint als Hinweis in der Vorschau.
 - **Gleiche Art in zwei Instanzen:** Die Zuordnung der Vorgaben läuft über den Namen. Nach dem ersten Treffer gilt die Art-ID.
 - **Viele Abläufe:** iOS erlaubt höchstens 64 geplante Mitteilungen. Fremde Abläufe werden pro Tag gebündelt, die Anzahl ist begrenzt.
-- **Logout:** Geplante und bereits angezeigte Mitteilungen mit Namen werden gelöscht. Die Einstellungen bleiben.
+- **Logout:** Geplante und bereits angezeigte Mitteilungen werden gelöscht. Die Einstellungen bleiben.
+- **Datenablauf:** Ab `dataExpiresAt` wird nichts geplant. Was deshalb entfällt, gilt nicht als gemeldet und kommt, sobald ein Sync die Frist verlängert.
 - **Planungsfehler:** Schlägt das Planen fehl, bleiben die bisherigen Erinnerungen bestehen. Beim nächsten Anlass (Änderung, Rückkehr in die App) wird erneut geplant.
 - **Mitteilungen aus und wieder an:** Beim Ausschalten werden Erinnerungen entfernt. Noch nicht zugestellte gelten nicht als gemeldet und kommen nach dem Einschalten wieder, verpasste spätestens am nächsten Morgen.
 - **Zeitzone:** Wechselt die Zeitzone oder die Sommerzeit, plant die App beim nächsten Abgleich neu, damit die Erinnerungen wieder um 9 Uhr Ortszeit kommen.
 - **Zustellzeit:** Android stellt ungenau zu (`inexactAllowWhileIdle`), die Uhrzeit kann sich im Ruhezustand verschieben. Exakte Alarme sind bewusst nicht vorgesehen, sie bräuchten eine Berechtigung ohne Nutzen für Tageserinnerungen.
-- **Lange nicht geöffnet:** Erinnerungen beruhen auf dem letzten Sync, eine Hintergrundaktualisierung gibt es nicht.
+- **Lange nicht geöffnet:** Erinnerungen beruhen auf dem letzten Sync, eine Hintergrundaktualisierung gibt es nicht. Spätestens mit dem Datenablauf enden sie.
 - **Demo-Modus:** Synthetische Arten mit festen IDs. Die Einstellungen liegen nur im Speicher und gehen beim Neustart verloren.

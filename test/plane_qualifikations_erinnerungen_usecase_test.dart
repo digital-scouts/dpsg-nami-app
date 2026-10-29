@@ -46,9 +46,22 @@ void main() {
     final fremde = plan[1];
     expect(fremde.eigene, isFalse);
     expect(fremde.zeitpunkt, DateTime(2026, 12, 1, 9));
-    expect(fremde.personen, hasLength(2));
+    expect(fremde.anzahl, 2);
     expect(fremde.meldeSchluessel, hasLength(2));
     expect(plan.last.zeitpunkt, DateTime(2029, 10, 3, 9));
+  });
+
+  test('ab dem Datenablauf wird nichts geplant', () {
+    final plan = useCase(
+      readModel: readModel,
+      einstellungen: const QualifikationsEinstellungen(),
+      eigenePersonId: 1,
+      supporter: true,
+      jetzt: jetzt,
+      datenEnde: DateTime(2026, 12, 1, 9),
+    );
+
+    expect(plan.map((p) => p.zeitpunkt), [DateTime(2026, 10, 2, 9)]);
   });
 
   test(

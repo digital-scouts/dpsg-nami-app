@@ -45,7 +45,7 @@ Fehler, Sync-Ereignisse und Performance-Metriken werden strukturiert geloggt (Le
 - Datenvalidierung: Domain Entities garantieren Pflichtfelder; optionale Felder bleiben null und werden im UI ausgeblendet.
 - Package Policy: Externe Pakete nur bei aktivem Wartungsstatus & kompatibler Lizenz (MIT/Apache2 bevorzugt). Minimaler Zusatzumfang.
 - Rollen & Rechte: Nutzer ohne arbeitskontextrelevantes Layer- oder Gruppen-Lese- beziehungsweise Schreibrecht können die App fachlich nicht nutzen → explizite Nicht-berechtigt-Meldung + Logout.
-- Push Notifications: Geburtstags-Erinnerungen (lokal berechnet), Warnung bei baldiger Auto-Abmeldung (≥25 Tage Inaktivität), Deep Link zur Mitglieder-Detailseite (`app://member/<id>`).
+- Push Notifications: Geburtstags-Erinnerungen (lokal berechnet, je Tag gebündelt mit bis zu drei Kurznamen; Android blendet sie auf dem gesperrten Gerät aus, unter iOS gilt die Vorschau-Einstellung), Warnung bei baldiger Auto-Abmeldung (≥25 Tage Inaktivität), Deep Link zur Mitglieder-Detailseite (`app://member/<id>`).
 - Logging: Ausführlich aber anonymisiert (IDs können gehasht werden – konkrete Hash-Strategie beliebig). Kein Klartext von Personenfeldern. Manuelles Exportieren der Logs per Mail. Reaktion auf Login-Fehler wegen zu vieler falscher Eingaben mit spezifischer Meldung.
 
 ## Entwicklungs-Workflow & Quality Gates

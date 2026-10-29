@@ -3,48 +3,63 @@ import '../taetigkeit/stufe.dart';
 import 'member_utils.dart';
 import 'mitglied.dart';
 
-/// Eine geplante Geburtstags-Mitteilung mit datensparsamem Namen
-/// (Vorname und Initial des Nachnamens) und dem neuen Alter.
+/// Ein Geburtstagskind mit datensparsamem Namen (Vorname und Initial des
+/// Nachnamens) und dem neuen Alter.
+typedef GeburtstagsPerson = ({String kurzname, int alter});
+
+/// Eine geplante Geburtstags-Mitteilung je Tag; mehrere Geburtstage am
+/// selben Tag kommen gebuendelt.
 class GeplanteGeburtstagsErinnerung {
   const GeplanteGeburtstagsErinnerung({
     required this.zeitpunkt,
-    required this.kurzname,
-    required this.alter,
+    required this.personen,
   });
 
   final DateTime zeitpunkt;
-  final String kurzname;
-  final int alter;
+
+  /// Nach Kurzname und Mitgliedsnummer sortiert, nie leer.
+  final List<GeburtstagsPerson> personen;
 
   @override
-  bool operator ==(Object other) =>
-      other is GeplanteGeburtstagsErinnerung &&
-      other.zeitpunkt == zeitpunkt &&
-      other.kurzname == kurzname &&
-      other.alter == alter;
+  bool operator ==(Object other) {
+    if (other is! GeplanteGeburtstagsErinnerung ||
+        other.zeitpunkt != zeitpunkt ||
+        other.personen.length != personen.length) {
+      return false;
+    }
+    for (var i = 0; i < personen.length; i++) {
+      if (other.personen[i] != personen[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   @override
-  int get hashCode => Object.hash(zeitpunkt, kurzname, alter);
+  int get hashCode => Object.hash(zeitpunkt, Object.hashAll(personen));
 }
 
 class PlaneGeburtstagsErinnerungenUseCase {
   const PlaneGeburtstagsErinnerungenUseCase();
 
   /// iOS behaelt hoechstens 64 geplante Mitteilungen je App; Platz fuer
-  /// Qualifikationen und Datenablauf bleibt.
+  /// Qualifikationen und Datenablauf bleibt. Gezaehlt werden Tage.
   static const maxMitteilungen = 30;
   static const fensterTage = 60;
   static const stunde = 9;
 
   /// Plant die naechsten Geburtstage innerhalb von [fensterTage] Tagen
-  /// (heute eingeschlossen) jeweils um 9 Uhr Ortszeit, fruehester zuerst.
-  /// Beruecksichtigt nur Mitglieder, deren Stufe in [stufen] liegt; ohne
-  /// bekanntes Geburtsdatum oder ohne aktive Rolle entfaellt die Person.
-  /// Ist es heute schon 9 Uhr oder spaeter, kommt der heutige nicht mehr.
+  /// (heute eingeschlossen) jeweils um 9 Uhr Ortszeit, je Tag eine
+  /// Mitteilung, fruehester zuerst. Beruecksichtigt nur Mitglieder, deren
+  /// Stufe in [stufen] liegt; ohne bekanntes Geburtsdatum oder ohne aktive
+  /// Rolle entfaellt die Person. Ist es heute schon 9 Uhr oder spaeter, kommt
+  /// der heutige nicht mehr. Ab [datenEnde] (Datenablauf) wird nichts mehr
+  /// geplant.
   List<GeplanteGeburtstagsErinnerung> call({
     required ArbeitskontextReadModel readModel,
     required Set<Stufe> stufen,
     required DateTime jetzt,
+    DateTime? datenEnde,
   }) {
     if (stufen.isEmpty) {
       return const <GeplanteGeburtstagsErinnerung>[];
@@ -55,7 +70,7 @@ class PlaneGeburtstagsErinnerungenUseCase {
       heute.month,
       heute.day + fensterTage,
     );
-    final kandidaten = <(GeplanteGeburtstagsErinnerung, Mitglied)>[];
+    final kandidaten = <(DateTime, GeburtstagsPerson, Mitglied)>[];
     for (final mitglied in readModel.mitglieder) {
       if (!mitglied.hatBekanntesGeburtsdatum) {
         continue;
@@ -65,7 +80,8 @@ class PlaneGeburtstagsErinnerungenUseCase {
         continue;
       }
       final zeitpunkt = _naechsterTermin(mitglied.geburtsdatum, jetzt);
-      if (!zeitpunkt.isBefore(fensterEnde)) {
+      if (!zeitpunkt.isBefore(fensterEnde) ||
+          (datenEnde != null && !zeitpunkt.isBefore(datenEnde))) {
         continue;
       }
       final alter = zeitpunkt.year - mitglied.geburtsdatum.year;
@@ -73,28 +89,36 @@ class PlaneGeburtstagsErinnerungenUseCase {
         continue;
       }
       kandidaten.add((
-        GeplanteGeburtstagsErinnerung(
-          zeitpunkt: zeitpunkt,
-          kurzname: kurzname(mitglied),
-          alter: alter,
-        ),
+        zeitpunkt,
+        (kurzname: kurzname(mitglied), alter: alter),
         mitglied,
       ));
     }
     kandidaten.sort((a, b) {
-      final zeit = a.$1.zeitpunkt.compareTo(b.$1.zeitpunkt);
+      final zeit = a.$1.compareTo(b.$1);
       if (zeit != 0) {
         return zeit;
       }
-      final name = a.$1.kurzname.compareTo(b.$1.kurzname);
+      final name = a.$2.kurzname.compareTo(b.$2.kurzname);
       if (name != 0) {
         return name;
       }
-      return a.$2.mitgliedsnummer.compareTo(b.$2.mitgliedsnummer);
+      return a.$3.mitgliedsnummer.compareTo(b.$3.mitgliedsnummer);
     });
-    return kandidaten
+    final jeTag = <DateTime, List<GeburtstagsPerson>>{};
+    for (final kandidat in kandidaten) {
+      jeTag
+          .putIfAbsent(kandidat.$1, () => <GeburtstagsPerson>[])
+          .add(kandidat.$2);
+    }
+    return jeTag.entries
         .take(maxMitteilungen)
-        .map((kandidat) => kandidat.$1)
+        .map(
+          (tag) => GeplanteGeburtstagsErinnerung(
+            zeitpunkt: tag.key,
+            personen: List<GeburtstagsPerson>.unmodifiable(tag.value),
+          ),
+        )
         .toList(growable: false);
   }
 

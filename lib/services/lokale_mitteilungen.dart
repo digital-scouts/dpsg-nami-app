@@ -41,17 +41,21 @@ extension LokaleMitteilungenBereich on LokaleMitteilungen {
 
 class PluginLokaleMitteilungen implements LokaleMitteilungen {
   /// [kanalId] ist die Android-Kanal-ID; der sichtbare Name kommt beim
-  /// Planen lokalisiert mit.
+  /// Planen lokalisiert mit. [visibility] steuert unter Android den
+  /// Sperrbildschirm; unter iOS entscheidet allein die Systemeinstellung
+  /// „Vorschauen zeigen“.
   PluginLokaleMitteilungen({
     required this.kanalId,
     this.importance = Importance.defaultImportance,
     this.priority = Priority.defaultPriority,
+    this.visibility,
     FlutterLocalNotificationsPlugin? plugin,
   }) : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
   final String kanalId;
   final Importance importance;
   final Priority priority;
+  final NotificationVisibility? visibility;
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialisiert = false;
 
@@ -120,6 +124,7 @@ class PluginLokaleMitteilungen implements LokaleMitteilungen {
         kanalName,
         importance: importance,
         priority: priority,
+        visibility: visibility,
       ),
       iOS: const DarwinNotificationDetails(),
       macOS: const DarwinNotificationDetails(),
