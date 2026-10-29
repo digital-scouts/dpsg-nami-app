@@ -173,4 +173,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Schritt 1 von 4'), findsOneWidget);
   });
+
+  group('Schrittwechsel', () {
+    final gleiten = find.descendant(
+      of: find.byType(WillkommenStepper),
+      matching: find.byType(SlideTransition),
+    );
+    final blenden = find.descendant(
+      of: find.byType(WillkommenStepper),
+      matching: find.byType(FadeTransition),
+    );
+
+    testWidgets('der nächste Schritt gleitet herein', (tester) async {
+      await _starte(tester, _optionen(_Aufrufe()));
+      await _tippe(tester, const Key('welcome-next'));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(gleiten, findsWidgets);
+      await tester.pumpAndSettle();
+      expect(find.text('Schritt 2 von 4'), findsOneWidget);
+    });
+
+    testWidgets('bei „Bewegung reduzieren“ blenden die Schritte nur über', (
+      tester,
+    ) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+
+      await _starte(tester, _optionen(_Aufrufe()));
+      await _tippe(tester, const Key('welcome-next'));
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(gleiten, findsNothing);
+      expect(blenden, findsWidgets);
+      await tester.pumpAndSettle();
+      expect(find.text('Schritt 2 von 4'), findsOneWidget);
+    });
+  });
 }

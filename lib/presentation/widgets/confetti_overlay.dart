@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_bewegung.dart';
+
 class ConfettiOverlay extends StatefulWidget {
   final int particleCount;
   final Duration duration;
@@ -50,12 +52,25 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
   final List<_Particle> _particles = [];
   final Random _rand = Random();
 
+  /// Bei „Bewegung reduzieren“ entfällt das Konfetti ganz.
+  bool _aus = false;
+
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration)
-      ..addListener(_tick)
-      ..forward();
+      ..addListener(_tick);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _aus = AppBewegung.reduziert(context);
+    if (_aus) {
+      _controller.stop();
+    } else if (!_controller.isAnimating && !_controller.isCompleted) {
+      _controller.forward();
+    }
   }
 
   @override
@@ -115,6 +130,9 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
 
   @override
   Widget build(BuildContext context) {
+    if (_aus) {
+      return const SizedBox.shrink();
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);

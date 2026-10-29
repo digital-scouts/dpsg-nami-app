@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme/app_bewegung.dart';
 
 /// Optionen und Rueckmeldungen fuer den Willkommen-Stepper nach dem ersten
 /// Login. Der Stepper selbst speichert nichts.
@@ -206,17 +207,28 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
                 const SizedBox(height: 20),
                 Expanded(
                   // Wischen: vorwaerts kommt der Schritt von rechts, zurueck
-                  // von links; der alte gleitet zur Gegenseite hinaus.
+                  // von links; der alte gleitet zur Gegenseite hinaus. Bei
+                  // reduzierter Bewegung blenden die Schritte nur ueber.
+                  // Der alte Schritt laeuft rueckwaerts, deshalb die
+                  // gespiegelte Kurve: Auch er setzt sofort ein.
                   child: ClipRect(
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 280),
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
+                      duration: AppBewegung.reduziert(context)
+                          ? AppBewegung.klein
+                          : AppBewegung.standard,
+                      switchInCurve: AppBewegung.ausgang,
+                      switchOutCurve: AppBewegung.ausgang.flipped,
                       layoutBuilder: (aktuell, vorherige) => Stack(
                         alignment: Alignment.topLeft,
                         children: [...vorherige, ?aktuell],
                       ),
                       transitionBuilder: (child, animation) {
+                        if (AppBewegung.reduziert(context)) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        }
                         final richtung = _vorwaerts ? 1.0 : -1.0;
                         final eingehend = child.key == ValueKey(_aktuell);
                         return SlideTransition(
@@ -675,7 +687,8 @@ class _AktivierenKarte extends StatelessWidget {
     }
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: AppBewegung.klein,
+      curve: AppBewegung.ausgang,
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       decoration: BoxDecoration(
@@ -854,7 +867,8 @@ class _Fortschritt extends StatelessWidget {
           if (i > 0) const SizedBox(width: 6),
           Expanded(
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: AppBewegung.klein,
+              curve: AppBewegung.ausgang,
               height: 4,
               decoration: BoxDecoration(
                 color: i <= aktiv ? colors.primary : colors.outline,

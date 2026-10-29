@@ -54,6 +54,7 @@ Story confettiOverlayStory() {
         max: 400,
         min: 0,
       );
+      final ruhig = knobs.boolean(label: 'Bewegung reduzieren', initial: false);
 
       return _ConfettiStoryContent(
         count: count,
@@ -63,6 +64,7 @@ Story confettiOverlayStory() {
         speedMax: speedMax,
         spread: spread,
         bottomSpawnHeight: bottomSpawnHeight,
+        ruhig: ruhig,
       );
     },
   );
@@ -77,6 +79,9 @@ class _ConfettiStoryContent extends StatefulWidget {
   final double spread;
   final double bottomSpawnHeight;
 
+  /// Simuliert „Bewegung reduzieren“: Dann bleibt das Konfetti aus.
+  final bool ruhig;
+
   const _ConfettiStoryContent({
     required this.count,
     required this.durationSeconds,
@@ -85,6 +90,7 @@ class _ConfettiStoryContent extends StatefulWidget {
     required this.speedMax,
     required this.spread,
     required this.bottomSpawnHeight,
+    required this.ruhig,
   });
 
   @override
@@ -96,6 +102,13 @@ class _ConfettiStoryContentState extends State<_ConfettiStoryContent> {
 
   @override
   Widget build(BuildContext context) {
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(disableAnimations: widget.ruhig),
+      child: _buehne(context),
+    );
+  }
+
+  Widget _buehne(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [

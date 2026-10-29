@@ -5,6 +5,7 @@ import '../../domain/statistiks/statistik_kachel_einstellungen.dart';
 import '../../domain/statistiks/statistik_kachel_typen.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/statistics_location_service.dart';
+import '../theme/app_bewegung.dart';
 import '../widgets/app_page_header.dart';
 import 'eigene_kachel_editor.dart';
 import 'kacheln/kachel_bearbeiten.dart';
@@ -130,9 +131,9 @@ class _KachelKatalogSheetState extends State<KachelKatalogSheet> {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: MediaQuery.maybeDisableAnimationsOf(context) ?? false
+      duration: AppBewegung.reduziert(context)
           ? Duration.zero
-          : const Duration(milliseconds: 180),
+          : AppBewegung.klein,
       child: switch (_ansicht) {
         _Ansicht.liste => _liste(context),
         _Ansicht.detail => _detail(context, _gewaehlt!),
