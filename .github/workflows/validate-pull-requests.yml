@@ -165,6 +165,12 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
+      # Flutter gibt ein NDK vor, das die Runner nicht mitbringen. Vorab mit
+      # Wiederholung installieren, statt es Gradle mitten im Build laden zu
+      # lassen, wo ein abgebrochener Download den Build scheitern laesst.
+      - name: Install Android NDK
+        run: tool/android/install_ndk.sh
+
       # Release statt Debug: R8/minify und AAB-Packaging brechen sonst erst im
       # Deploy nach dem Merge.
       - name: Build Android App Bundle (release, unsigned)
@@ -215,6 +221,12 @@ jobs:
           sed -e 's/^WIREDASH_SECRET=.*/WIREDASH_SECRET=ci-dummy/' \
               -e 's/^WIREDASH_PROJECT_ID=.*/WIREDASH_PROJECT_ID=ci-dummy/' \
               .env.example > .env
+
+      # Flutter gibt ein NDK vor, das die Runner nicht mitbringen. Vorab mit
+      # Wiederholung installieren, statt es Gradle mitten im Build laden zu
+      # lassen, wo ein abgebrochener Download den Build scheitern laesst.
+      - name: Install Android NDK
+        run: tool/android/install_ndk.sh
 
       - name: Download Android App Bundle
         uses: actions/download-artifact@v4
