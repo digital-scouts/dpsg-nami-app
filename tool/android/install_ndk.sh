@@ -39,10 +39,16 @@ if [[ -z "$SDKMANAGER" ]]; then
   exit 2
 fi
 
+# Lizenzen vorab bestaetigen. `yes` endet hier mit SIGPIPE, sobald
+# sdkmanager fertig ist; mit pipefail darf das nicht als Fehler zaehlen.
+yes 2>/dev/null | "$SDKMANAGER" --sdk_root="$SDK" --licenses >/dev/null || true
+
 for versuch in 1 2 3; do
   echo "Installiere NDK $VERSION (Versuch $versuch) ..."
-  if yes | "$SDKMANAGER" --sdk_root="$SDK" --install "ndk;$VERSION" >/dev/null &&
-    [[ -f "$ZIEL/source.properties" ]]; then
+  # Massgeblich ist, ob das NDK danach vollstaendig da ist, nicht der
+  # Exit-Code von sdkmanager.
+  "$SDKMANAGER" --sdk_root="$SDK" --install "ndk;$VERSION" </dev/null >/dev/null || true
+  if [[ -f "$ZIEL/source.properties" ]]; then
     echo "NDK $VERSION installiert."
     exit 0
   fi
