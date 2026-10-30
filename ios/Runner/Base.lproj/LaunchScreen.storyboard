@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Startbild der Startbühne (#279): Verlauf (LaunchFlaeche) und mittig die
+     Person ohne Halstuch (LaunchImage, 160 pt). Bilder aus
+     design/marke/export_startbild.mjs; Flutter übernimmt davon pixelgleich. -->
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12121" systemVersion="16G29" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
     <dependencies>
         <deployment identifier="iOS"/>
@@ -16,13 +19,21 @@
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
+                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" image="LaunchFlaeche" translatesAutoresizingMaskIntoConstraints="NO" id="Fl4-cH-e01">
+                            </imageView>
+                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleAspectFit" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
                             </imageView>
                         </subviews>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0" green="0.18823529411764706" blue="0.33725490196078434" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
+                            <constraint firstItem="Fl4-cH-e01" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="Fl4-cT-001"/>
+                            <constraint firstItem="Fl4-cH-e01" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="Fl4-cB-002"/>
+                            <constraint firstItem="Fl4-cH-e01" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="Fl4-cL-003"/>
+                            <constraint firstItem="Fl4-cH-e01" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="Fl4-cR-004"/>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
+                            <constraint firstAttribute="width" constant="160" firstItem="YRO-k0-Ey4" id="Pw1-dt-160"/>
+                            <constraint firstAttribute="height" constant="160" firstItem="YRO-k0-Ey4" id="Ph1-gt-160"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -32,6 +43,7 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchImage" width="168" height="185"/>
+        <image name="LaunchFlaeche" width="512" height="512"/>
+        <image name="LaunchImage" width="160" height="160"/>
     </resources>
 </document>

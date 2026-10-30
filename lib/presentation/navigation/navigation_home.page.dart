@@ -5,13 +5,13 @@ import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/l10n/app_localizations.dart';
-import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/model/achievements_model.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
+import 'package:nami/presentation/theme/app_bewegung.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/notifications/notification_links.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
@@ -24,12 +24,13 @@ import 'package:nami/presentation/screens/settings_qualifikationen_page.dart';
 import 'package:nami/presentation/screens/veranstaltungen/veranstaltungen_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
-import 'package:nami/presentation/theme/status_farben.dart';
 import 'package:nami/presentation/widgets/abmeldung_hinweis_karte.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/app_falz.dart';
 import 'package:nami/presentation/widgets/app_seitenleiste.dart';
+import 'package:nami/presentation/widgets/app_startbuehne.dart';
+import 'package:nami/presentation/widgets/arbeitskontext_lade_checkliste.dart';
 import 'package:nami/presentation/widgets/demo_zugang_sheet.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
@@ -656,6 +657,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     return state == AuthState.signedIn || state == AuthState.unlockRequired;
   }
 
+  String? _vorherArt;
+  bool _vorherLaedt = false;
+
   Widget _buildProtectedBody(
     BuildContext context, {
     required Widget readyBody,
@@ -667,7 +671,36 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       authModel: authModel,
       arbeitskontextModel: arbeitskontextModel,
     );
-    return placeholder ?? readyBody;
+    // Zwischen Status, Checkliste und Inhalt blenden statt hart schneiden
+    // (#279); innerhalb desselben Zustands bleibt das Kind stehen. Ein
+    // Ladezustand liegt immer unter der Startbühne: Der Wechsel weg von ihm
+    // geschieht sofort, sonst sähe man beim Abgang der Bühne noch die
+    // Überblendung.
+    final art = placeholder == null
+        ? 'inhalt'
+        : '${authModel.state.name}-${arbeitskontextModel.status.name}';
+    final laedt = StartbuehneLage.aus(authModel, arbeitskontextModel).laedt;
+    final unterBuehne = _vorherLaedt && art != _vorherArt;
+    _vorherArt = art;
+    _vorherLaedt = laedt;
+    final reduziert = AppBewegung.reduziert(context);
+    return AnimatedSwitcher(
+      duration: unterBuehne ? Duration.zero : AppBewegung.standard,
+      switchInCurve: AppBewegung.ausgang,
+      switchOutCurve: AppBewegung.ausgang,
+      layoutBuilder: (aktuell, vorige) =>
+          Stack(fit: StackFit.expand, children: [...vorige, ?aktuell]),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: reduziert
+            ? child
+            : ScaleTransition(
+                scale: Tween<double>(begin: 0.98, end: 1).animate(animation),
+                child: child,
+              ),
+      ),
+      child: KeyedSubtree(key: ValueKey(art), child: placeholder ?? readyBody),
+    );
   }
 
   Widget? _buildPlaceholder(
@@ -747,7 +780,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           return _ShellStatusView(
             title: t.t('nav_work_context_loading_title'),
             message: t.t('nav_work_context_loading_body'),
-            child: _ArbeitskontextLoadingChecklist(
+            child: ArbeitskontextLadeCheckliste(
               steps: arbeitskontextModel.loadingSteps,
             ),
           );
@@ -1043,104 +1076,6 @@ class _StaleDataWarningBanner extends StatelessWidget {
             icon: const Icon(Icons.refresh),
             onPressed: onRetry,
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ArbeitskontextLoadingChecklist extends StatelessWidget {
-  const _ArbeitskontextLoadingChecklist({required this.steps});
-
-  final List<ArbeitskontextLoadingStepStatus> steps;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final step in steps)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: _ArbeitskontextLoadingStepRow(step: step),
-          ),
-      ],
-    );
-  }
-}
-
-class _ArbeitskontextLoadingStepRow extends StatelessWidget {
-  const _ArbeitskontextLoadingStepRow({required this.step});
-
-  final ArbeitskontextLoadingStepStatus step;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    const iconSize = 20.0;
-    // "Wartet" wird bewusst nicht mit theme.colorScheme.outline eingefaerbt:
-    // dieser Farbton ist in Material 3 fuer Raender/Trenner gedacht und in
-    // beiden Themes zu kontrastarm fuer Text/Icons.
-    final Widget icon = switch (step.state) {
-      ArbeitskontextLoadingStepState.done => Icon(
-        Icons.check_circle,
-        size: iconSize,
-        color: theme.colorScheme.primary,
-      ),
-      ArbeitskontextLoadingStepState.loading => SizedBox(
-        width: iconSize,
-        height: iconSize,
-        child: const CircularProgressIndicator(strokeWidth: 2),
-      ),
-      ArbeitskontextLoadingStepState.waiting => Icon(
-        Icons.circle_outlined,
-        size: iconSize,
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-      // Entscheidung design/entscheidung/2026-10-29-teildaten-veraltet.md, L2.
-      ArbeitskontextLoadingStepState.stale => Icon(
-        Icons.error,
-        size: iconSize,
-        color: StatusFarben.of(context).warnung,
-      ),
-    };
-    final hasDetail = step.detailKey != null;
-    final textStyle = theme.textTheme.bodyMedium;
-    final dimmed = step.state == ArbeitskontextLoadingStepState.waiting;
-    return Padding(
-      padding: EdgeInsets.only(left: step.indent ? 28 : 0),
-      child: Row(
-        children: [
-          icon,
-          const SizedBox(width: 10),
-          Text(
-            t.t(step.labelKey),
-            style: textStyle?.copyWith(
-              color: dimmed ? theme.colorScheme.onSurfaceVariant : null,
-            ),
-          ),
-          if (hasDetail) ...[
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                t.t(step.detailKey!, {
-                  if (step.detailCount != null) 'count': '${step.detailCount}',
-                  if (step.detailDatum != null)
-                    'datum': DateFormatter.formatGermanDayMonth(
-                      step.detailDatum!,
-                    ),
-                }),
-                textAlign: TextAlign.right,
-                style: textStyle?.copyWith(
-                  color: step.state == ArbeitskontextLoadingStepState.stale
-                      ? StatusFarben.of(context).warnung
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );

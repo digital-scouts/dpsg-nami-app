@@ -61,14 +61,13 @@ Nächste Aufgaben:
 
 - GitHub-Pages-Wiki/Userguide für Konfliktlösung, Datenspeicherung und Löschung schreiben.
 - Problemlösungs-Screen prüfen: Bereich "Mitglied bearbeiten" bleibt beim Einstieg eingeklappt, kann aber gut sichtbar aufgeklappt werden.
-- Erstes Laden: Skeleton oder gleichwertige Fortschrittsanzeige prüfen (mit der Startbühne #279 abstimmen).
+- Erstes Laden: Skeleton für Listen prüfen; Status und Checkliste zeigt die Startbühne (#279).
 - Erststart nach Update von Versionen vor 1.0.0: alten Datenstand vollständig entfernen und App neu initialisieren, wenn die alte Datenstruktur nicht kompatibel ist.
 
 ## Priorität 7: Look & Feel mit iOS-Fokus
 
 iOS hat Vorrang und soll sich iOS-typisch anfühlen. Wo Android abweicht, wird je Punkt entschieden, ob und wie eine eigene Lösung entsteht.
 
-- (#279) Startbühne: nativer Start ohne weißen Blitz, Startanimation mit Supporter-Palette und Icon, Abgang wie beim Entsperren. Vorher Feedbackrunden.
 - (#280) Tabs behalten Suche, Filter, Scrollposition und offene Unterseiten.
 - (#281) Spürbare Rückmeldung bei Favorit-Wischen, Kacheln und Pull-to-Refresh; `AppHaptik` und `AppBewegung` stehen bereit.
 - (#282) Status-, Leer- und Fehleransichten vereinheitlichen (nimmt Punkte aus #201 auf).

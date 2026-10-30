@@ -51,6 +51,7 @@ import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/theme/schrift_lizenzen.dart';
 import 'package:nami/presentation/theme/theme.dart';
+import 'package:nami/presentation/widgets/app_startbuehne.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
 import 'package:nami/services/hitobito_efz_service.dart';
 import 'package:nami/services/hitobito_events_service.dart';
@@ -141,6 +142,10 @@ final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 /// Fehlerbehandlung.
 LoggerService? _activeLogger;
 int _appGeneration = 0;
+
+/// Nach dem Demo-/Live-Wechsel startet die Bühne mit geknotetem Halstuch,
+/// weil das Standbild davor die Person schon so zeigt.
+bool _startbuehneGebunden = false;
 StreamSubscription<List<ConnectivityResult>>? _wiredashPufferVerbindung;
 
 void main() {
@@ -881,7 +886,8 @@ Future<void> _startApp({
       // Alten Baum vollstaendig abbauen, bevor der neue die globalen Keys
       // (Navigator, ScaffoldMessenger) uebernimmt. Sonst wuerde Flutter
       // deren State samt Referenzen auf die alten Models weiterverwenden.
-      runApp(const ColoredBox(color: Color(0xFFFFFFFF)));
+      _startbuehneGebunden = true;
+      runApp(const StartbuehneStandbild());
       await WidgetsBinding.instance.endOfFrame;
       await _startApp(
         appDocDir: appDocDir,
@@ -1003,6 +1009,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final LoggerService logger;
   late final AuthSessionModel _authModel;
   late final ArbeitskontextModel _arbeitskontextModel;
+  late final StartbuehneQuelle _startbuehne;
   late final AppSettingsModel _appSettingsModel;
   late final MemberEditModel _memberEditModel;
   late final AppResetService _appResetService;
@@ -1041,6 +1048,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _isDemo = context.read<AppModeController>().isDemo;
     _authModel = context.read<AuthSessionModel>();
     _arbeitskontextModel = context.read<ArbeitskontextModel>();
+    _startbuehne = StartbuehneQuelle(_authModel, _arbeitskontextModel);
     _appSettingsModel = context.read<AppSettingsModel>();
     _memberEditModel = context.read<MemberEditModel>();
     _appResetService = context.read<AppResetService>();
@@ -1705,6 +1713,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _authModel.removeListener(_handleAuthModelChanged);
+    _startbuehne.dispose();
     _sicherheitsUpdate.removeListener(_handleSicherheitsUpdate);
     _appSettingsModel.removeListener(_handleAppSettingsChanged);
     _urgentNotificationModel.setAcknowledgeHandler(null);
@@ -1836,14 +1845,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     ),
                   ],
                 );
+                final mitBuehne = AppStartbuehne(
+                  lage: _startbuehne,
+                  onEntsperren: authModel.unlock,
+                  gebunden: _startbuehneGebunden,
+                  child: content,
+                );
                 if (!_isDemo) {
-                  return content;
+                  return mitBuehne;
                 }
                 return Banner(
                   message: AppLocalizations.of(context).t('demo_ribbon'),
                   location: BannerLocation.topStart,
                   color: Theme.of(context).colorScheme.tertiary,
-                  child: content,
+                  child: mitBuehne,
                 );
               },
               supportedLocales: const [Locale('de'), Locale('en')],

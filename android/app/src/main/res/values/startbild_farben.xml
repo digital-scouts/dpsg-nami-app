@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Verlauf der Startbühne (hell), erzeugt von design/marke/export_startbild.mjs -->
+<resources>
+    <color name="startflaeche_oben">#144164</color>
+    <color name="startflaeche_mitte">#003056</color>
+    <color name="startflaeche_unten">#001a2f</color>
+</resources>

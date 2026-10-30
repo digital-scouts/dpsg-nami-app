@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Startbild der Startbühne (#279) bis Android 11: Verlauf und mittig die
+     Person ohne Halstuch (160 dp). Farben in values(-night)/startbild_farben.xml,
+     Bild aus design/marke/export_startbild.mjs; Flutter übernimmt davon. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="?android:colorBackground" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:centerY="0.55"
+                android:startColor="@color/startflaeche_oben"
+                android:centerColor="@color/startflaeche_mitte"
+                android:endColor="@color/startflaeche_unten" />
+        </shape>
+    </item>
+    <item>
         <bitmap
             android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+            android:src="@drawable/startbild_person" />
+    </item>
 </layer-list>
