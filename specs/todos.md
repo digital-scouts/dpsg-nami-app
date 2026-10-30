@@ -166,7 +166,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 - `feature/member-edit-felder` mergen, sobald der Hitobito-PR mit den Label-IDs durch ist.
 - (#215) Den 1.0.0-Eintrag in `assets/changelog.json` auf den tatsächlichen Umfang bringen.
 - (#215) Crash-Reporting entscheiden.
-- (#243) Antwort der DPSG zu Datenschutzrollen, OAuth-Client samt Review-Zugang für Apple/Google sowie Name, Lilie und Stufensymbolen einholen (A-84, A-59, A-64); danach über DSFA für die Geokodierung entscheiden (`specs/datenschutz/dsfa-schwellwert.md`).
+- (#243) Antwort der DPSG zu Datenschutzrollen, OAuth-Client samt Review-Zugang für Apple/Google sowie zum App-Namen einholen (A-84, A-59, A-64; die DPSG-Zeichen einschließlich der Lilie sind laut CI für diesen Zweck freigegeben, 30.10.2026); danach über DSFA für die Geokodierung entscheiden (`specs/datenschutz/dsfa-schwellwert.md`).
 - Impressum: ladungsfähige Anschrift ergänzen, spätestens bevor Supporter-Käufe live gehen (§ 5 DDG).
 - (#245) Offene Kartenbefunde klären: GPL-Lizenz von FMTC und erlaubte Quelle für Offline-Kacheln (A-62, A-51, A-55). Bewertung und Empfehlung in `specs/rechtliches.md`.
 - (#243) Prüfen, ob der Caddy des News-Stacks Access-Logs mit IP-Adressen schreibt (Rest von S-06).
