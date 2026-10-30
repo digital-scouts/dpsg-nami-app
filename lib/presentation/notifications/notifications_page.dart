@@ -15,6 +15,7 @@ import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
+import 'package:nami/presentation/widgets/app_aktualisieren.dart';
 import 'package:nami/presentation/widgets/neuanmeldung_sheet.dart';
 import 'package:provider/provider.dart';
 
@@ -227,7 +228,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   );
 
                   if (messages.isEmpty) {
-                    return RefreshIndicator(
+                    return AppAktualisieren(
                       onRefresh: () => _reload(forceRefresh: true),
                       child: _LeererZustand(
                         lastFetchAt: data.lastFetchAt,
@@ -236,7 +237,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     );
                   }
 
-                  return RefreshIndicator(
+                  return AppAktualisieren(
                     onRefresh: () => _reload(forceRefresh: true),
                     child: ListView(
                       physics: const AlwaysScrollableScrollPhysics(),

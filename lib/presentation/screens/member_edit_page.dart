@@ -15,6 +15,7 @@ import '../../services/store_review_prompt_service.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../notifications/app_snackbar.dart';
+import '../theme/app_haptik.dart';
 
 class MemberEditPage extends StatefulWidget {
   const MemberEditPage({
@@ -1362,10 +1363,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
         final storeReview = result.success
             ? context.read<StoreReviewPromptService?>()
             : null;
+        // Gespeichert oder fuer spaeter vorgemerkt (#281).
+        unawaited(AppHaptik.erfolg());
         Navigator.of(context).pop(result);
         unawaited(storeReview?.requestAfterMemberSaved());
         return;
       }
+      // Das Senden ist gescheitert, mit oder ohne zugeordnete Feldfehler.
+      unawaited(AppHaptik.fehler());
       final hasMappedValidationErrors = _applyValidationErrors(result);
       if (!hasMappedValidationErrors) {
         _showMessage(

@@ -10,6 +10,7 @@ import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/bundesstatistik_model.dart';
 import '../statistics/statistics_ui.dart';
+import '../widgets/app_aktualisieren.dart';
 import '../widgets/bundesstatistik_einwilligung_dialog.dart';
 
 /// Bundesweiter Vergleich mit Einwilligung und Transparenz ueber geteilte Daten.
@@ -66,7 +67,7 @@ class _BundesvergleichBodyState extends State<BundesvergleichBody> {
   @override
   Widget build(BuildContext context) {
     final model = context.watch<BundesstatistikModel>();
-    return RefreshIndicator(
+    return AppAktualisieren(
       onRefresh: model.hatEinwilligung ? model.aktualisieren : () async {},
       child: BundesvergleichView(
         status: model.status,

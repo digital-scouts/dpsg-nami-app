@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
@@ -6,6 +8,8 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
+import 'package:nami/presentation/theme/app_bewegung.dart';
+import 'package:nami/presentation/theme/app_haptik.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/supporter_badge.dart';
 
@@ -105,6 +109,12 @@ class MemberListTile extends StatelessWidget {
             toggleFavorites!();
           }
           return false;
+        },
+        // Spuerbar, sobald Loslassen den Favoriten umschaltet (#281).
+        onUpdate: (details) {
+          if (details.reached && !details.previousReached) {
+            unawaited(AppHaptik.auswahl());
+          }
         },
         onDismissed: (_) {},
         background: Container(
@@ -232,10 +242,7 @@ class MemberListTile extends StatelessWidget {
                       ),
                     ),
                   ],
-                  if (isFavourite) ...[
-                    const SizedBox(width: 8),
-                    const Icon(Icons.bookmark, size: 18, color: Colors.amber),
-                  ],
+                  _FavoritLesezeichen(sichtbar: isFavourite),
                   const SizedBox(width: 6),
                   Icon(
                     Icons.chevron_right,
@@ -287,6 +294,45 @@ class _HighlightedSubtitle extends StatelessWidget {
       ),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+/// Lesezeichen fuer Favoriten; erscheint mit Fade und Scale statt
+/// schlagartig (#281), bei „Bewegung reduzieren“ nur mit Fade.
+class _FavoritLesezeichen extends StatelessWidget {
+  const _FavoritLesezeichen({required this.sichtbar});
+
+  final bool sichtbar;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduziert = AppBewegung.reduziert(context);
+    return AnimatedSize(
+      duration: AppBewegung.lage(context, AppBewegung.klein),
+      curve: AppBewegung.ausgang,
+      alignment: Alignment.centerRight,
+      child: AnimatedSwitcher(
+        duration: AppBewegung.klein,
+        switchInCurve: AppBewegung.ausgang,
+        switchOutCurve: AppBewegung.ausgang,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: reduziert
+              ? child
+              : ScaleTransition(
+                  scale: Tween<double>(begin: 0.8, end: 1).animate(animation),
+                  child: child,
+                ),
+        ),
+        child: sichtbar
+            ? const Padding(
+                key: ValueKey('favorit'),
+                padding: EdgeInsets.only(left: 8),
+                child: Icon(Icons.bookmark, size: 18, color: Colors.amber),
+              )
+            : const SizedBox.shrink(key: ValueKey('kein-favorit')),
+      ),
     );
   }
 }

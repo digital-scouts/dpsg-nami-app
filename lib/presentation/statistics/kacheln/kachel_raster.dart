@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -8,6 +9,7 @@ import '../../../domain/statistiks/statistik_kachel_einstellungen.dart';
 import '../../../domain/statistiks/statistik_kachel_typen.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_bewegung.dart';
+import '../../theme/app_haptik.dart';
 import '../../widgets/app_page_header.dart';
 import 'kachel_bearbeiten.dart';
 import 'kachel_daten.dart';
@@ -145,6 +147,8 @@ class _KachelRasterState extends State<KachelRaster>
       _fingerGlobal = global;
       _griff = _imRaster(global) - rect.topLeft;
     });
+    // Spuerbar im selben Frame wie das Anheben (#281).
+    unawaited(AppHaptik.anheben());
     final scrollable = Scrollable.maybeOf(context);
     _autoScroller = scrollable == null
         ? null
@@ -187,6 +191,7 @@ class _KachelRasterState extends State<KachelRaster>
     final id = _gezogenId;
     _ziehenAbbrechen();
     if (reihenfolge == null || id == null) return;
+    unawaited(AppHaptik.ablegen());
     final nach = reihenfolge.indexWhere((e) => e.id == id);
     if (nach >= 0 && nach != _gezogenVon) {
       widget.bearbeitung?.onVerschieben(_gezogenVon, nach);
@@ -241,7 +246,10 @@ class _KachelRasterState extends State<KachelRaster>
       spalten,
       zeilen,
     );
-    if (neu != _neueGroesse) setState(() => _neueGroesse = neu);
+    if (neu == _neueGroesse) return;
+    // Eine neue Groesse rastet ein.
+    unawaited(AppHaptik.auswahl());
+    setState(() => _neueGroesse = neu);
   }
 
   void _groesseBeenden(KachelEintrag eintrag, bool abgebrochen) {
