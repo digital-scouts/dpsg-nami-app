@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon des System-Splash ab Android 12: die Person ohne Halstuch. Das System
+     streckt das Icon auf 288 dp und schneidet auf einen 192-dp-Kreis; der
+     Einzug von 24 % je Seite hält die Person knapp unter Bühnengröße im Kreis. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/startbild_person"
+    android:inset="24%" />

@@ -55,11 +55,14 @@ export function halstuch(cx, y, s, { schulter, auf = 0, tuch, leder }) {
     }
     return `M${pts.join(' L')} Q${P(-2.4 * sx, 2.6)} ${P(-0.15 * sx, oben)} L${P(-1.9 * sx, oben + 0.4)} Q${P(-8.6 * sx, 4.6)} ${P(-aussen * sx, kurve(aussen) - auf)} Z`;
   };
-  const zipfel = (sx) => `M${P(-1.9 * sx, 9.6)} L${P(-0.1 * sx, 9.6)} L${P(-4 * sx, 17.2)} Z`;
+  const zipfel = (sx) => `M${P(-1.6 * sx, 9.6)} L${P(-0.1 * sx, 9.6)} L${P(-4 * sx, 17.2)} Z`;
+  // Tuch unter dem Ring, sanft eingezogen in die Zipfel (W2), damit es auch
+  // ohne Ring sauber aussieht (Startanimation).
+  const kern = `M${P(-1.9, oben + 0.4)} Q${P(-1.5, 7.9)} ${P(-1.6, 9.8)} L${P(1.6, 9.8)} Q${P(1.5, 7.9)} ${P(1.9, oben + 0.4)} Z`;
   const flaeche = (d) => `<path d="${d}" fill="${tuch}" stroke="${tuch}" stroke-width="${n(0.5 * s)}" stroke-linejoin="round"/>`;
   return {
     zipfel: flaeche(`${zipfel(1)} ${zipfel(-1)}`),
-    tuch: flaeche(`${band(1)} ${band(-1)}`),
+    tuch: flaeche(`${band(1)} ${band(-1)} ${kern}`),
     knoten: `<rect x="${n(cx - 2.4 * s)}" y="${n(y + 5 * s)}" width="${n(4.8 * s)}" height="${n(5.2 * s)}" rx="${n(2 * s)}" fill="${leder}"/><path d="M${P(-1.7, 6.7)} H${n(cx + 1.7 * s)} M${P(-1.7, 8.4)} H${n(cx + 1.7 * s)}" stroke="#fff" stroke-opacity=".35" stroke-width="${n(0.45 * s)}"/>`,
   };
 }
@@ -129,4 +132,45 @@ export function icon(modus, { ebenen = ['grund', 'person', 'zeilen', 'zipfel', '
     return avatar(x, y, r, f.figur[k], f, ebenen, mono) + balken;
   }).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-8 - rand} ${-8 - rand} ${116 + 2 * rand} ${116 + 2 * rand}">${grund}${zeilen}</svg>`;
+}
+
+// ---------- Startbühne (#279) ----------
+
+/** Ausschnitt der Startperson (48 Einheiten = 160 pt), wie in Flutter. */
+const START_AUSSCHNITT = '26 16.75 48 48';
+
+/** Standard-Primärfarben wie `DPSGColors.primaryLight` und `primaryDark`. */
+const PRIMAER = { hell: '#003056', dunkel: '#5a9ad8' };
+
+const kanal = (hex) => hex.match(/\w\w/g).map((h) => parseInt(h, 16));
+const lerp = (a, b, t) => {
+  const x = kanal(a);
+  const y = kanal(b);
+  return `#${x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('')}`;
+};
+
+/**
+ * Senkrechter Verlauf der Startfläche wie `AppSperreFlaeche.verlauf` in
+ * Flutter: Farben bei 0, 0,55 und 1.
+ */
+export function startVerlauf(modus) {
+  const p = PRIMAER[modus];
+  return modus === 'dunkel'
+    ? [lerp(p, '#000000', 0.62), lerp(p, '#000000', 0.8), lerp(p, '#000000', 0.9)]
+    : [lerp(p, '#ffffff', 0.08), p, lerp(p, '#000000', 0.45)];
+}
+
+/** Verlauf als quadratisches SVG; die Plattform streckt es auf den Bildschirm. */
+export function startFlaeche(modus) {
+  const [a, b, c] = startVerlauf(modus);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="0.55" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><rect width="100" height="100" fill="url(#v)"/></svg>`;
+}
+
+/**
+ * Person der Startbühne ohne Halstuch, weiße Linie (P1), wie das erste Bild
+ * von `StartbuehnePerson` in Flutter (160 pt). Der Ausschnitt ist senkrecht
+ * auf die Person zentriert, vom Kopf bis zum Ende der Schulterlinien.
+ */
+export function startPerson() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${START_AUSSCHNITT}"><g fill="none" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round"><circle cx="50" cy="26" r="7.5"/><path d="M34,62.85 L34,53 Q34,40 50,40 Q66,40 66,53 L66,62.85"/></g></svg>`;
 }

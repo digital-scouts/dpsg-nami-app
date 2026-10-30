@@ -7,7 +7,9 @@ import '../../domain/auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/auth_session_model.dart';
 import '../navigation/navigation_home.page.dart';
+import '../theme/app_bewegung.dart';
 import '../widgets/app_sperre_flaeche.dart';
+import '../widgets/app_startbuehne.dart';
 
 class AuthGateScreen extends StatelessWidget {
   const AuthGateScreen({super.key});
@@ -21,25 +23,90 @@ class AuthGateScreen extends StatelessWidget {
 /// Deckende Sperre bei [AuthState.unlockRequired] (A-16). Der Inhalt darunter
 /// bleibt aufgebaut, ist aber durch [AppGesperrterInhalt] von Fokus,
 /// Zeigern und Screenreader abgeschirmt.
-class AppLockOverlay extends StatelessWidget {
+///
+/// Die Sperre erscheint sofort. Nach dem Entsperren blenden erst Glas und
+/// Knopf aus, dann geht die Fläche wie die Startbühne (E1,
+/// `design/entscheidung/2026-10-30-startbuehne.md`). Solange die Startbühne
+/// steht, zeigt sie die Sperre selbst.
+class AppLockOverlay extends StatefulWidget {
   const AppLockOverlay({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthSessionModel>(
-      builder: (context, authModel, _) {
-        if (authModel.state != AuthState.unlockRequired) {
-          return const SizedBox.shrink();
+  State<AppLockOverlay> createState() => _AppLockOverlayState();
+}
+
+class _AppLockOverlayState extends State<AppLockOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _abgang;
+  bool _warGesperrt = false;
+  bool _geht = false;
+  String? _fehler;
+
+  @override
+  void initState() {
+    super.initState();
+    _abgang = AnimationController(vsync: this)
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          setState(() => _geht = false);
         }
-        return Material(
-          key: const Key('app_lock_overlay'),
-          type: MaterialType.transparency,
-          child: AppSperreAnsicht(
-            errorMessage: authModel.errorMessage,
-            onEntsperren: authModel.unlock,
+      });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final authModel = Provider.of<AuthSessionModel>(context);
+    final gesperrt = authModel.state == AuthState.unlockRequired;
+    final buehne = AppStartbuehne.sichtbar(context);
+    if (gesperrt) {
+      _fehler = authModel.errorMessage;
+      _geht = false;
+      _abgang.value = 0;
+    } else if (_warGesperrt && !buehne) {
+      final reduziert = AppBewegung.reduziert(context);
+      _geht = true;
+      _abgang
+        ..duration = StartbuehneAbgang.dauer(
+          reduziert: reduziert,
+          mitInhalt: true,
+        )
+        ..forward(from: 0);
+    }
+    _warGesperrt = gesperrt;
+  }
+
+  @override
+  void dispose() {
+    _abgang.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authModel = context.watch<AuthSessionModel>();
+    final gesperrt = authModel.state == AuthState.unlockRequired;
+    if (AppStartbuehne.sichtbar(context) || (!gesperrt && !_geht)) {
+      return const SizedBox.shrink();
+    }
+    return Material(
+      key: const Key('app_lock_overlay'),
+      type: MaterialType.transparency,
+      child: StartbuehneAbgang(
+        animation: _abgang,
+        reduziert: AppBewegung.reduziert(context),
+        mitInhalt: true,
+        builder: (context, inhalt) => AppSperreFlaeche(
+          inhalt: FadeTransition(
+            opacity: inhalt,
+            child: AppSperreText(errorMessage: _fehler),
           ),
-        );
-      },
+          unten: FadeTransition(
+            opacity: inhalt,
+            child: AppSperreKnopf(onEntsperren: authModel.unlock),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -57,52 +124,76 @@ class AppSperreAnsicht extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return AppSperreFlaeche(
+      inhalt: AppSperreText(errorMessage: errorMessage),
+      unten: AppSperreKnopf(onEntsperren: onEntsperren),
+    );
+  }
+}
+
+/// Titel, Text und Fehlermeldung der Sperre auf Glas; auch auf der Startbühne.
+class AppSperreText extends StatelessWidget {
+  const AppSperreText({super.key, this.errorMessage});
+
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final errorMessage = this.errorMessage;
-    return AppSperreFlaeche(
-      inhalt: AppSperreGlas(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    return AppSperreGlas(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            t.t('auth_unlock_title'),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            t.t('auth_unlock_body'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (errorMessage != null && errorMessage.isNotEmpty) ...[
+            const SizedBox(height: 10),
             Text(
-              t.t('auth_unlock_title'),
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              errorMessage,
+              style: TextStyle(color: theme.colorScheme.error),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Text(
-              t.t('auth_unlock_body'),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (errorMessage != null && errorMessage.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                errorMessage,
-                style: TextStyle(color: theme.colorScheme.error),
-                textAlign: TextAlign.center,
-              ),
-            ],
           ],
-        ),
+        ],
       ),
-      unten: FilledButton.icon(
-        key: const Key('app_lock_unlock'),
-        autofocus: true,
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF003056),
-          minimumSize: const Size.fromHeight(48),
-        ),
-        onPressed: onEntsperren,
-        icon: const Icon(Icons.lock_open_outlined),
-        label: Text(t.t('auth_unlock_action')),
+    );
+  }
+}
+
+/// „Jetzt entsperren“ in Daumenreichweite.
+class AppSperreKnopf extends StatelessWidget {
+  const AppSperreKnopf({super.key, required this.onEntsperren});
+
+  final VoidCallback onEntsperren;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      key: const Key('app_lock_unlock'),
+      autofocus: true,
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF003056),
+        minimumSize: const Size.fromHeight(48),
       ),
+      onPressed: onEntsperren,
+      icon: const Icon(Icons.lock_open_outlined),
+      label: Text(AppLocalizations.of(context).t('auth_unlock_action')),
     );
   }
 }

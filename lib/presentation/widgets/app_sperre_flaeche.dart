@@ -92,9 +92,15 @@ class AppSperreFlaeche extends StatelessWidget {
     }
   }
 
-  static BoxDecoration _verlauf(ThemeData theme) {
-    final primary = theme.colorScheme.primary;
-    final dunkel = theme.brightness == Brightness.dark;
+  static BoxDecoration _verlauf(ThemeData theme) => verlauf(
+    theme.colorScheme.primary,
+    dunkel: theme.brightness == Brightness.dark,
+  );
+
+  /// Senkrechter Verlauf in der Primärfarbe. Auch Startbühne und natives
+  /// Startbild nutzen ihn (`design/marke/export_startbild.mjs`), deshalb
+  /// senkrecht: So lässt er sich als gestrecktes Bild exakt nachbilden.
+  static BoxDecoration verlauf(Color primary, {required bool dunkel}) {
     final farben = dunkel
         ? [
             Color.lerp(primary, Colors.black, 0.62)!,
@@ -108,8 +114,8 @@ class AppSperreFlaeche extends StatelessWidget {
           ];
     return BoxDecoration(
       gradient: LinearGradient(
-        begin: const Alignment(-0.3, -1),
-        end: const Alignment(0.3, 1),
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
         colors: farben,
         stops: const [0, 0.55, 1],
       ),

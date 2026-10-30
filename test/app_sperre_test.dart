@@ -128,6 +128,25 @@ void main() {
       semantics.dispose();
     });
 
+    testWidgets('geht nach dem Entsperren erst mit Glas, dann mit der Fläche', (
+      tester,
+    ) async {
+      final model = await _gesperrtesModell();
+      await tester.pumpWidget(_app(authModel: model));
+      await tester.pump();
+
+      await tester.runAsync(model.unlock);
+      expect(model.state, AuthState.signedIn);
+      await tester.pump();
+      // Abgang wie die Startbühne (E1): 150 ms Glas und Knopf, 300 ms Fläche.
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const Key('app_lock_overlay')), findsOneWidget);
+      expect(find.text('Startseite').hitTestable(), findsNothing);
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(find.byKey(const Key('app_lock_overlay')), findsNothing);
+      expect(find.text('Startseite').hitTestable(), findsOneWidget);
+    });
+
     testWidgets('Tastaturfokus gelangt nicht unter die Sperre', (tester) async {
       final model = await _gesperrtesModell();
       await tester.pumpWidget(_app(authModel: model));

@@ -106,6 +106,8 @@ void main() {
 
       await tester.tap(find.text('Jetzt entsperren'));
       await tester.pump();
+      // Die Sperre geht wie die Startbühne ab (Glas, dann Fläche).
+      await tester.pump(const Duration(milliseconds: 460));
 
       expect(find.byKey(const Key('app_lock_overlay')), findsNothing);
       expect(find.text('Zweite Seite'), findsOneWidget);

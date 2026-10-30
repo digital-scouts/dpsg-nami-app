@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ab Android 12 zeigt das System einen eigenen Splash. Fläche und Icon
+         passen zur Startbühne (#279), danach übernimmt Flutter. Das Icon ist
+         fest gesetzt, damit kein Supporter-Icon-Alias durchscheint. -->
+    <style name="LaunchTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/startflaeche_mitte</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/startbild_splash</item>
+    </style>
+    <style name="NormalTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+</resources>
