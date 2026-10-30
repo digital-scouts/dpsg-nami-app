@@ -43,16 +43,23 @@ import 'package:provider/provider.dart';
 class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({super.key});
 
-  /// Navigator des Inhaltsbereichs, solange die Shell sichtbar ist.
+  /// Navigator des aktiven Bereichs, solange die Shell sichtbar ist.
   /// Unterseiten oeffnen darin neben der Seitenleiste bzw. ueber der unteren
   /// Leiste, die dabei sichtbar bleiben.
-  static NavigatorState? get inhaltNavigator =>
-      _NavigationHomeScreenState._aktiv?._inhaltKey.currentState;
+  static NavigatorState? get inhaltNavigator {
+    final shell = _NavigationHomeScreenState._aktiv;
+    return shell?._bereiche[shell._index]?.key.currentState;
+  }
 
-  /// Schliesst alle Unterseiten im Inhaltsbereich, z. B. nach Modus-Wechsel
+  /// Schliesst in allen Bereichen die Unterseiten, z. B. nach Modus-Wechsel
   /// oder Reset.
-  static void zurueckZumHauptbereich() =>
-      inhaltNavigator?.popUntil((route) => route.isFirst);
+  static void zurueckZumHauptbereich() {
+    for (final bereich
+        in _NavigationHomeScreenState._aktiv?._bereiche.values ??
+            const <_Bereich>[]) {
+      bereich.key.currentState?.popUntil((route) => route.isFirst);
+    }
+  }
 
   @override
   State<NavigationHomeScreen> createState() => _NavigationHomeScreenState();
@@ -82,29 +89,77 @@ class _Schnellziel {
   final WidgetBuilder seite;
 }
 
-/// Merkt sich die Routen des Inhalts-Navigators, damit die Shell beim Auf-
-/// und Zuklappen Schnellziele zwischen Seitenleiste und Unterseite verschieben
-/// kann.
+/// Merkt sich die Routen eines Bereichs-Navigators, damit die Shell beim
+/// Auf- und Zuklappen Schnellziele zwischen Seitenleiste und Unterseite
+/// verschieben und Zurueck (Android) richtig verteilen kann.
 class _StapelBeobachter extends NavigatorObserver {
+  _StapelBeobachter(this.onAenderung);
+
+  final VoidCallback onAenderung;
   final List<Route<dynamic>> stapel = [];
 
   @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
-      stapel.add(route);
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    stapel.add(route);
+    onAenderung();
+  }
 
   @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
-      stapel.remove(route);
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    stapel.remove(route);
+    onAenderung();
+  }
 
   @override
-  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
-      stapel.remove(route);
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    stapel.remove(route);
+    onAenderung();
+  }
 
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
     final i = oldRoute == null ? -1 : stapel.indexOf(oldRoute);
     if (i >= 0 && newRoute != null) {
       stapel[i] = newRoute;
+    }
+  }
+}
+
+/// Hauptbereich oder Schnellziel der Seitenleiste mit eigenem Navigator:
+/// Unterseiten, Suche, Filter und Scrollposition bleiben beim Wechsel
+/// erhalten (#280).
+class _Bereich {
+  _Bereich(
+    int ziel, {
+    required VoidCallback onStapel,
+    required LoggerService logger,
+  }) : key = GlobalKey<NavigatorState>(debugLabel: 'shell-bereich-$ziel'),
+       stapel = _StapelBeobachter(onStapel),
+       routenLog = AppNavigationLoggingObserver(logger: logger);
+
+  final GlobalKey<NavigatorState> key;
+  final _StapelBeobachter stapel;
+  final AppNavigationLoggingObserver routenLog;
+
+  /// Scrollt die Startseite nach oben, wenn der aktive Tab erneut getippt
+  /// wird. Listen ohne eigenen Controller haengen sich daran.
+  final ScrollController scroll = ScrollController();
+
+  bool get hatUnterseite => stapel.stapel.length > 1;
+
+  void nachOben({required bool reduziert}) {
+    for (final position in [...scroll.positions]) {
+      if (reduziert) {
+        position.jumpTo(position.minScrollExtent);
+      } else {
+        unawaited(
+          position.animateTo(
+            position.minScrollExtent,
+            duration: AppBewegung.gross,
+            curve: AppBewegung.blatt,
+          ),
+        );
+      }
     }
   }
 }
@@ -122,11 +177,57 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   NamiAiAccessDecision _namiAi = const NamiAiAccessDecision(
     state: NamiAiAccessState.hidden,
   );
-  final GlobalKey<NavigatorState> _inhaltKey = GlobalKey<NavigatorState>(
-    debugLabel: 'shell-inhalt',
+
+  /// Besuchte Bereiche; ein Bereich entsteht beim ersten Besuch.
+  final Map<int, _Bereich> _bereiche = {};
+
+  /// Schnellziele des letzten Aufbaus, fuer Wechsel ausserhalb von build.
+  List<_Schnellziel> _schnellzieleZuletzt = const [];
+  bool _stapelMeldungGeplant = false;
+
+  _Bereich _bereich(int ziel) => _bereiche.putIfAbsent(
+    ziel,
+    () => _Bereich(
+      ziel,
+      onStapel: _stapelGeaendert,
+      logger: context.read<LoggerService>(),
+    ),
   );
-  final _StapelBeobachter _stapel = _StapelBeobachter();
-  AppNavigationLoggingObserver? _routenLog;
+
+  /// Ob Zurueck (Android) die App verlassen darf, haengt am Stapel des
+  /// aktiven Bereichs. Observer melden waehrend der Navigation, daher erst
+  /// nach dem Frame neu aufbauen.
+  void _stapelGeaendert() {
+    if (_stapelMeldungGeplant) {
+      return;
+    }
+    _stapelMeldungGeplant = true;
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) {
+        _stapelMeldungGeplant = false;
+        if (mounted) {
+          setState(() {});
+        }
+      })
+      ..scheduleFrame();
+  }
+
+  /// Entfernt Bereiche samt Zustand; die Controller werden nach dem Frame
+  /// freigegeben, wenn ihre Listen abgebaut sind.
+  void _verwerfe(bool Function(int ziel) weg) {
+    final verworfen = [
+      for (final ziel in _bereiche.keys.where(weg).toList())
+        _bereiche.remove(ziel)!,
+    ];
+    if (verworfen.isEmpty) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final bereich in verworfen) {
+        bereich.scroll.dispose();
+      }
+    });
+  }
 
   /// Ob im letzten Aufbau die Seitenleiste sichtbar war.
   bool? _warSeitenleiste;
@@ -157,9 +258,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     return wahl;
   }
 
-  /// Oeffnet eine Seite im Inhaltsbereich, nicht ueber der Navigation.
+  /// Oeffnet eine Seite im aktiven Bereich, nicht ueber der Navigation.
   Future<void> _unterseite(String route) async {
-    await _inhaltKey.currentState?.pushNamed(route);
+    await _bereiche[_index]?.key.currentState?.pushNamed(route);
   }
 
   /// Rechte Spalte der Einstellungen mit eigenem Navigator: Folgeseiten
@@ -214,6 +315,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       _aktiv = null;
     }
     _syncHinweisTimer?.cancel();
+    for (final bereich in _bereiche.values) {
+      bereich.scroll.dispose();
+    }
     super.dispose();
   }
 
@@ -252,32 +356,149 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   Widget build(BuildContext context) {
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
-    final urgentNotification = _currentUrgentNotification(context);
     if (authModel.state == AuthState.signedOut &&
-        (_index != 0 || _stapel.stapel.length > 1)) {
+        (_index != 0 ||
+            _bereiche.keys.any((ziel) => ziel != 0) ||
+            (_bereiche[0]?.hatUnterseite ?? false))) {
       // Nach dem Abmelden zeigt die Mitgliederliste den Anmeldebildschirm,
-      // statt dass die Person auf einem leeren Tab zurueckbleibt.
+      // statt dass die Person auf einem leeren Tab zurueckbleibt. Alle
+      // Bereiche beginnen neu, ohne Suche, Unterseiten oder alten Stand.
       _index = 0;
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _inhaltKey.currentState?.popUntil((route) => route.isFirst),
-      );
+      _einstellungAuswahl = null;
+      _zugeklappteRoute = null;
+      _verwerfe((_) => true);
     }
     final t = AppLocalizations.of(context);
     final seitenleiste = AppSeitenleiste.sichtbar(
       MediaQuery.sizeOf(context).width,
     );
     final schnellziele = _schnellziele(context, t);
+    _schnellzieleZuletzt = schnellziele;
     _passeAnFensterAn(seitenleiste, schnellziele);
+    final aktiv = _bereich(_index);
+
+    final hauptbereiche = AppBottomNavigation.hauptbereiche(t);
+    // Jeder Bereich hat einen eigenen Navigator und behaelt beim Wechsel
+    // Unterseiten, Suche und Scrollposition. Unterseiten oeffnen im Bereich,
+    // Seitenleiste und untere Leiste bleiben sichtbar.
+    final inhaltsbereich = PopScope<Object?>(
+      // Zurueck (Android) schliesst zuerst die Unterseite, fuehrt dann zu den
+      // Mitgliedern und verlaesst erst dort die App.
+      canPop: _index == 0 && !aktiv.hatUnterseite,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _zurueck();
+        }
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          for (final MapEntry(key: ziel, value: bereich) in _bereiche.entries)
+            _bereichsAnsicht(
+              context,
+              ziel: ziel,
+              bereich: bereich,
+              aktiv: ziel == _index,
+              startseite: _startseite(
+                context,
+                ziel,
+                seitenleiste: seitenleiste,
+                schnellziele: schnellziele,
+                authModel: authModel,
+                arbeitskontextModel: arbeitskontextModel,
+              ),
+            ),
+        ],
+      ),
+    );
+
+    final leistenbreite = AppSeitenleiste.breiteFuer(
+      MediaQuery.sizeOf(context).width,
+    );
+    return Scaffold(
+      // Der Inhalt behaelt seinen Zustand, wenn die Seitenleiste beim Auf-
+      // oder Zuklappen erscheint oder verschwindet.
+      body: Row(
+        children: [
+          if (seitenleiste)
+            AppSeitenleiste(
+              profil: _seitenleistenProfil(context, authModel),
+              oben: hauptbereiche.sublist(0, 3),
+              schnellzugriff: [for (final z in schnellziele) ?z.eintrag],
+              unten: hauptbereiche.sublist(3),
+              ausgewaehlt: _index,
+              breite: leistenbreite,
+              onAuswahl: _wechsle,
+            ),
+          Expanded(
+            key: const ValueKey('shell-inhalt'),
+            child: AppFalzBereich.fuer(
+              context,
+              versatz: seitenleiste ? leistenbreite : 0,
+              child: inhaltsbereich,
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: seitenleiste
+          ? null
+          : AppBottomNavigation(currentIndex: _index, onTap: _wechsle),
+    );
+  }
+
+  /// Navigator eines Bereichs. Inaktive Bereiche bleiben erhalten, werden
+  /// aber weder gezeichnet noch animiert und geben den Fokus ab.
+  Widget _bereichsAnsicht(
+    BuildContext context, {
+    required int ziel,
+    required _Bereich bereich,
+    required bool aktiv,
+    required Widget startseite,
+  }) {
+    return Offstage(
+      key: ObjectKey(bereich),
+      offstage: !aktiv,
+      child: TickerMode(
+        enabled: aktiv,
+        child: ExcludeFocus(
+          excluding: !aktiv,
+          child: Navigator(
+            key: bereich.key,
+            observers: [bereich.stapel, bereich.routenLog],
+            pages: [
+              MaterialPage<void>(
+                key: const ValueKey('hauptbereich'),
+                name: Navigator.defaultRouteName,
+                child: PrimaryScrollController(
+                  controller: bereich.scroll,
+                  child: startseite,
+                ),
+              ),
+            ],
+            onDidRemovePage: (_) {},
+            onGenerateRoute: onGenerateRoute,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Startseite des Bereichs [ziel]: Hauptbereich mit Status-Bannern oder
+  /// Schnellziel der Seitenleiste.
+  Widget _startseite(
+    BuildContext context,
+    int ziel, {
+    required bool seitenleiste,
+    required List<_Schnellziel> schnellziele,
+    required AuthSessionModel authModel,
+    required ArbeitskontextModel arbeitskontextModel,
+  }) {
+    final schnellziel = _schnellziel(ziel, schnellziele);
+    if (schnellziel != null) {
+      return schnellziel.seite(context);
+    }
     Widget body;
-    switch (_index) {
-      case 0:
-        body = _buildProtectedBody(
-          context,
-          readyBody: const MemberPeoplePage(),
-          authModel: authModel,
-          arbeitskontextModel: arbeitskontextModel,
-        );
-        break;
+    switch (ziel) {
       case 1:
         body = _buildProtectedBody(
           context,
@@ -331,79 +552,21 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         );
         break;
       default:
-        body = const MemberPeoplePage();
+        body = _buildProtectedBody(
+          context,
+          readyBody: const MemberPeoplePage(),
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        );
     }
-
-    final schnellziel = _schnellziel(_index, schnellziele);
-    final inhalt = schnellziel != null
-        ? schnellziel.seite(context)
-        : _buildMainTabShell(
-            context,
-            content: body,
-            urgentNotification: urgentNotification,
-            authModel: authModel,
-            arbeitskontextModel: arbeitskontextModel,
-            // Die Einstellungen bleiben ohne Sync- und Lade-Banner.
-            showStatusBanners: _index != 3,
-          );
-
-    _routenLog ??= AppNavigationLoggingObserver(
-      logger: context.read<LoggerService>(),
-    );
-    final hauptbereiche = AppBottomNavigation.hauptbereiche(t);
-    // Unterseiten oeffnen im Inhaltsbereich, Seitenleiste und untere Leiste
-    // bleiben sichtbar. Zurueck (Android) schliesst zuerst die Unterseite.
-    final inhaltsbereich = NavigatorPopHandler<Object?>(
-      onPopWithResult: (_) => _inhaltKey.currentState?.maybePop(),
-      child: Navigator(
-        key: _inhaltKey,
-        observers: [_stapel, _routenLog!],
-        pages: [
-          MaterialPage<void>(
-            key: const ValueKey('hauptbereich'),
-            name: Navigator.defaultRouteName,
-            child: inhalt,
-          ),
-        ],
-        onDidRemovePage: (_) {},
-        onGenerateRoute: onGenerateRoute,
-      ),
-    );
-
-    final leistenbreite = AppSeitenleiste.breiteFuer(
-      MediaQuery.sizeOf(context).width,
-    );
-    return Scaffold(
-      // Der Inhalt behaelt seinen Zustand, wenn die Seitenleiste beim Auf-
-      // oder Zuklappen erscheint oder verschwindet.
-      body: Row(
-        children: [
-          if (seitenleiste)
-            AppSeitenleiste(
-              profil: _seitenleistenProfil(context, authModel),
-              oben: hauptbereiche.sublist(0, 3),
-              schnellzugriff: [for (final z in schnellziele) ?z.eintrag],
-              unten: hauptbereiche.sublist(3),
-              ausgewaehlt: _index,
-              breite: leistenbreite,
-              onAuswahl: (i) => _wechsle(i, schnellziele),
-            ),
-          Expanded(
-            key: const ValueKey('shell-inhalt'),
-            child: AppFalzBereich.fuer(
-              context,
-              versatz: seitenleiste ? leistenbreite : 0,
-              child: inhaltsbereich,
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: seitenleiste
-          ? null
-          : AppBottomNavigation(
-              currentIndex: _index,
-              onTap: (i) => _wechsle(i, schnellziele),
-            ),
+    return _buildMainTabShell(
+      context,
+      content: body,
+      urgentNotification: _currentUrgentNotification(context, ziel),
+      authModel: authModel,
+      arbeitskontextModel: arbeitskontextModel,
+      // Die Einstellungen bleiben ohne Sync- und Lade-Banner.
+      showStatusBanners: ziel != 3,
     );
   }
 
@@ -421,20 +584,33 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         if (ziel != null) {
           _zugeklappteRoute = ziel.route;
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            final navigator = _inhaltKey.currentState;
+            final navigator = _bereiche[3]?.key.currentState;
             navigator?.popUntil((route) => route.isFirst);
             navigator?.pushNamed(ziel.route);
           });
         }
       }
+    }
+    // Schnellziele haben nur neben der Seitenleiste einen eigenen Bereich.
+    _verwerfe(
+      (ziel) =>
+          ziel >= _tabIds.length &&
+          ziel != _index &&
+          (!seitenleiste || _schnellziel(ziel, schnellziele) == null),
+    );
+    if (_index >= _tabIds.length) {
       return;
     }
     if (war == false && seitenleiste && _index == 3) {
       // Liegt in den Einstellungen nur ein Schnellziel offen, wird es wieder
       // ein Ziel der Seitenleiste.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final stapel = _stapel.stapel;
-        if (!mounted || stapel.length != 2 || _index != 3) {
+        final bereich = _bereiche[3];
+        if (!mounted || bereich == null || _index != 3) {
+          return;
+        }
+        final stapel = bereich.stapel.stapel;
+        if (stapel.length != 2) {
           return;
         }
         final name = stapel.last.settings.name;
@@ -450,7 +626,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         final zurueckInLeiste =
             ziel != null && (eintrag == null || name == _zugeklappteRoute);
         _zugeklappteRoute = null;
-        _inhaltKey.currentState?.removeRoute(stapel.last);
+        bereich.key.currentState?.removeRoute(stapel.last);
         setState(() {
           if (zurueckInLeiste) {
             _index = ziel.ziel;
@@ -566,12 +742,22 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       ? _tabIds[index]
       : _schnellziel(index, schnellziele)?.id ?? 'unknown';
 
-  void _wechsle(int i, List<_Schnellziel> schnellziele) {
-    // Ein Tipp auf einen Bereich fuehrt immer zu dessen Startseite.
-    _inhaltKey.currentState?.popUntil((route) => route.isFirst);
+  void _wechsle(int i) {
     if (i == _index) {
+      // Ein Tipp auf den aktiven Bereich fuehrt zu dessen Startseite, ein
+      // weiterer Tipp scrollt sie nach oben.
+      final bereich = _bereiche[i];
+      if (bereich == null) {
+        return;
+      }
+      if (bereich.hatUnterseite) {
+        bereich.key.currentState?.popUntil((route) => route.isFirst);
+      } else {
+        bereich.nachOben(reduziert: AppBewegung.reduziert(context));
+      }
       return;
     }
+    final schnellziele = _schnellzieleZuletzt;
     final logger = context.read<LoggerService>();
     final previousTab = _zielId(_index, schnellziele);
     final nextTab = _zielId(i, schnellziele);
@@ -588,8 +774,19 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     setState(() => _index = i);
   }
 
-  PullNotification? _currentUrgentNotification(BuildContext context) {
-    if (_index >= 3) {
+  /// Zurueck (Android), wenn die Shell es abfaengt: Unterseite des aktiven
+  /// Bereichs schliessen, sonst zu den Mitgliedern.
+  void _zurueck() {
+    final bereich = _bereiche[_index];
+    if (bereich != null && bereich.hatUnterseite) {
+      bereich.key.currentState?.maybePop();
+    } else if (_index != 0) {
+      _wechsle(0);
+    }
+  }
+
+  PullNotification? _currentUrgentNotification(BuildContext context, int ziel) {
+    if (ziel >= 3) {
       return null;
     }
     return context.watch<UrgentNotificationModel>().notification;
@@ -657,9 +854,6 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     return state == AuthState.signedIn || state == AuthState.unlockRequired;
   }
 
-  String? _vorherArt;
-  bool _vorherLaedt = false;
-
   Widget _buildProtectedBody(
     BuildContext context, {
     required Widget readyBody,
@@ -671,35 +865,12 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       authModel: authModel,
       arbeitskontextModel: arbeitskontextModel,
     );
-    // Zwischen Status, Checkliste und Inhalt blenden statt hart schneiden
-    // (#279); innerhalb desselben Zustands bleibt das Kind stehen. Ein
-    // Ladezustand liegt immer unter der Startbühne: Der Wechsel weg von ihm
-    // geschieht sofort, sonst sähe man beim Abgang der Bühne noch die
-    // Überblendung.
-    final art = placeholder == null
-        ? 'inhalt'
-        : '${authModel.state.name}-${arbeitskontextModel.status.name}';
-    final laedt = StartbuehneLage.aus(authModel, arbeitskontextModel).laedt;
-    final unterBuehne = _vorherLaedt && art != _vorherArt;
-    _vorherArt = art;
-    _vorherLaedt = laedt;
-    final reduziert = AppBewegung.reduziert(context);
-    return AnimatedSwitcher(
-      duration: unterBuehne ? Duration.zero : AppBewegung.standard,
-      switchInCurve: AppBewegung.ausgang,
-      switchOutCurve: AppBewegung.ausgang,
-      layoutBuilder: (aktuell, vorige) =>
-          Stack(fit: StackFit.expand, children: [...vorige, ?aktuell]),
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: reduziert
-            ? child
-            : ScaleTransition(
-                scale: Tween<double>(begin: 0.98, end: 1).animate(animation),
-                child: child,
-              ),
-      ),
-      child: KeyedSubtree(key: ValueKey(art), child: placeholder ?? readyBody),
+    return _StatusUeberblendung(
+      art: placeholder == null
+          ? 'inhalt'
+          : '${authModel.state.name}-${arbeitskontextModel.status.name}',
+      laedt: StartbuehneLage.aus(authModel, arbeitskontextModel).laedt,
+      child: placeholder ?? readyBody,
     );
   }
 
@@ -1135,6 +1306,56 @@ class _UrgentBanner extends StatelessWidget {
           : null,
       onAcknowledge: () =>
           context.read<UrgentNotificationModel>().acknowledgeCurrent(),
+    );
+  }
+}
+
+/// Blendet zwischen Status, Checkliste und Inhalt statt hart zu schneiden
+/// (#279); innerhalb desselben Zustands bleibt das Kind stehen. Ein
+/// Ladezustand liegt immer unter der Startbühne: Der Wechsel weg von ihm
+/// geschieht sofort, sonst sähe man beim Abgang der Bühne noch die
+/// Überblendung. Jeder Bereich merkt sich seinen vorigen Zustand selbst.
+class _StatusUeberblendung extends StatefulWidget {
+  const _StatusUeberblendung({
+    required this.art,
+    required this.laedt,
+    required this.child,
+  });
+
+  final String art;
+  final bool laedt;
+  final Widget child;
+
+  @override
+  State<_StatusUeberblendung> createState() => _StatusUeberblendungState();
+}
+
+class _StatusUeberblendungState extends State<_StatusUeberblendung> {
+  late String _vorherArt = widget.art;
+  late bool _vorherLaedt = widget.laedt;
+
+  @override
+  Widget build(BuildContext context) {
+    final unterBuehne = _vorherLaedt && widget.art != _vorherArt;
+    _vorherArt = widget.art;
+    _vorherLaedt = widget.laedt;
+    final reduziert = AppBewegung.reduziert(context);
+    return AnimatedSwitcher(
+      duration: unterBuehne ? Duration.zero : AppBewegung.standard,
+      switchInCurve: AppBewegung.ausgang,
+      switchOutCurve: AppBewegung.ausgang,
+      layoutBuilder: (aktuell, vorige) =>
+          Stack(fit: StackFit.expand, children: [...vorige, ?aktuell]),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: reduziert
+            ? child
+            : ScaleTransition(
+                scale: Tween<double>(begin: 0.98, end: 1).animate(animation),
+                child: child,
+              ),
+      ),
+      child: KeyedSubtree(key: ValueKey(widget.art), child: widget.child),
     );
   }
 }

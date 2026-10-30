@@ -137,7 +137,8 @@
         "Bei einer Sicherheitslücke fordert die App zum Update auf. Nach zweimal Verschieben zählt sie herunter und sperrt sich bis zum Update; Notfallkontakte bleiben lesbar, solange die Daten nicht gelöscht werden müssen.",
         "Mitteilungen neu gestaltet: nach Dringlichkeit sortiert, mit Link zu mehr Infos, und jede Mitteilung lässt sich bestätigen. Mehrere dringende Mitteilungen erscheinen nacheinander mit Zähler.",
         "Neu: Kurse & Veranstaltungen aus Hitobito suchen und über Stamm, Bezirk, Diözese und Bund filtern, Details ansehen, Termine in den Kalender übernehmen und die Anmeldeseite im Web öffnen.",
-        "Bewegungen sind ruhiger und einheitlicher: Die Kartensuche wächst aus ihrem Knopf und schrumpft wieder hinein, freigeschaltete Erfolge springen sichtbar auf und sind auf dem iPhone spürbar. Mit „Bewegung reduzieren“ entfallen Konfetti und gleitende Übergänge."
+        "Bewegungen sind ruhiger und einheitlicher: Die Kartensuche wächst aus ihrem Knopf und schrumpft wieder hinein, freigeschaltete Erfolge springen sichtbar auf und sind auf dem iPhone spürbar. Mit „Bewegung reduzieren“ entfallen Konfetti und gleitende Übergänge.",
+        "Jeder Bereich merkt sich, wo du warst: Suche, Filter, Scrollposition und offene Seiten bleiben beim Wechsel erhalten. Ein Tipp auf den aktiven Bereich führt zu seiner Startseite, ein weiterer nach oben."
       ],
       "bugFixes": [
         "Ein Wechsel der Ebene während eines laufenden Abgleichs wird nicht mehr still verworfen, sondern danach ausgeführt. Ein gerade gespeichertes Mitglied wird von einem älteren Abgleich nicht mehr überschrieben.",

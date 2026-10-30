@@ -68,7 +68,6 @@ Nächste Aufgaben:
 
 iOS hat Vorrang und soll sich iOS-typisch anfühlen. Wo Android abweicht, wird je Punkt entschieden, ob und wie eine eigene Lösung entsteht.
 
-- (#280) Tabs behalten Suche, Filter, Scrollposition und offene Unterseiten.
 - (#281) Spürbare Rückmeldung bei Favorit-Wischen, Kacheln und Pull-to-Refresh; `AppHaptik` und `AppBewegung` stehen bereit.
 - (#282) Status-, Leer- und Fehleransichten vereinheitlichen (nimmt Punkte aus #201 auf).
 - (#283) iOS-typische Bedienelemente: Tipp-Feedback, Dialoge, Schalter, Sheets, Tab-Leiste.

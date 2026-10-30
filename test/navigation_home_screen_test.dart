@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/achievements/in_memory_achievement_repository.dart';
@@ -24,6 +25,7 @@ import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
+import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/services/app_startup_state_service.dart';
 import 'package:nami/services/achievement_service.dart';
@@ -1097,6 +1099,163 @@ void main() {
       );
     },
   );
+  group('Tabs behalten ihren Zustand', () {
+    Future<(AuthSessionModel, ArbeitskontextModel)> pumpShell(
+      WidgetTester tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        authModel: authModel,
+      );
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
+      await tester.pumpAndSettle();
+      return (authModel, arbeitskontextModel);
+    }
+
+    Future<void> oeffneUnterseite(WidgetTester tester, String text) async {
+      unawaited(
+        NavigationHomeScreen.inhaltNavigator!.push(
+          MaterialPageRoute<void>(
+            builder: (_) => Scaffold(appBar: AppBar(), body: Text(text)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tippeTab(WidgetTester tester, IconData icon) async {
+      await tester.tap(find.byIcon(icon));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Unterseite bleibt beim Wechsel offen, Tipp auf den aktiven '
+        'Tab fuehrt zur Startseite', (tester) async {
+      await pumpShell(tester);
+      await oeffneUnterseite(tester, 'Unterseite Mitglieder');
+
+      await tippeTab(tester, Icons.insert_chart);
+      expect(find.text('Unterseite Mitglieder'), findsNothing);
+      expect(find.byType(StatisticsPage), findsOneWidget);
+
+      await tippeTab(tester, Icons.groups);
+      expect(find.text('Unterseite Mitglieder'), findsOneWidget);
+
+      await tippeTab(tester, Icons.groups);
+      expect(find.text('Unterseite Mitglieder'), findsNothing);
+      expect(find.byType(MemberPeoplePage), findsOneWidget);
+    });
+
+    testWidgets('Suche in der Mitgliederliste bleibt beim Wechsel erhalten', (
+      tester,
+    ) async {
+      await pumpShell(tester);
+      await tester.enterText(find.byType(TextField).first, 'Jul');
+      await tester.pumpAndSettle();
+
+      await tippeTab(tester, Icons.insert_chart);
+      await tippeTab(tester, Icons.groups);
+
+      expect(find.widgetWithText(TextField, 'Jul'), findsOneWidget);
+    });
+
+    testWidgets('weiterer Tipp auf den aktiven Tab scrollt nach oben', (
+      tester,
+    ) async {
+      await pumpShell(tester);
+      await tippeTab(tester, Icons.settings);
+      final liste = find.byType(ListView).first;
+      ScrollPosition position() => tester
+          .state<ScrollableState>(
+            find.descendant(of: liste, matching: find.byType(Scrollable)).first,
+          )
+          .position;
+
+      await tester.drag(liste, const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(position().pixels, greaterThan(0));
+
+      // Wechsel und Rueckkehr erhalten die Scrollposition.
+      await tippeTab(tester, Icons.groups);
+      await tippeTab(tester, Icons.settings);
+      expect(position().pixels, greaterThan(0));
+
+      await tippeTab(tester, Icons.settings);
+      expect(position().pixels, 0);
+    });
+
+    testWidgets('Zurueck schliesst die Unterseite, fuehrt dann zu den '
+        'Mitgliedern und verlaesst erst dort die App', (tester) async {
+      final systemAufrufe = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          systemAufrufe.add(call.method);
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await pumpShell(tester);
+      await tippeTab(tester, Icons.insert_chart);
+      await oeffneUnterseite(tester, 'Unterseite Statistik');
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Unterseite Statistik'), findsNothing);
+      expect(find.byType(StatisticsPage), findsOneWidget);
+      expect(systemAufrufe, isNot(contains('SystemNavigator.pop')));
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(MemberPeoplePage), findsOneWidget);
+      expect(systemAufrufe, isNot(contains('SystemNavigator.pop')));
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(systemAufrufe, contains('SystemNavigator.pop'));
+    });
+
+    testWidgets('Abmelden setzt alle Bereiche zurueck', (tester) async {
+      final (authModel, arbeitskontextModel) = await pumpShell(tester);
+      await tippeTab(tester, Icons.insert_chart);
+      await oeffneUnterseite(tester, 'Unterseite Statistik');
+
+      await authModel.logout();
+      await arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: authModel.profile,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Anmeldung erforderlich'), findsOneWidget);
+
+      await authModel.signIn();
+      await authModel.markSensitiveDataSynced();
+      await arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: authModel.profile,
+      );
+      await tester.pumpAndSettle();
+      await tippeTab(tester, Icons.insert_chart);
+
+      expect(find.text('Unterseite Statistik'), findsNothing);
+      expect(find.byType(StatisticsPage), findsOneWidget);
+    });
+  });
 }
 
 Widget _buildTestApp({
