@@ -143,12 +143,6 @@ jobs:
           done
           dart tool/validate_env_files.dart
 
-      # Flutter gibt ein NDK vor, das die Runner nicht mitbringen. Vorab mit
-      # Wiederholung installieren, statt es Gradle mitten im Build laden zu
-      # lassen, wo ein abgebrochener Download den Build scheitern laesst.
-      - name: Install Android NDK
-        run: tool/android/install_ndk.sh
-
       - name: Build Android App Bundle
         run: |
           flutter build appbundle \
