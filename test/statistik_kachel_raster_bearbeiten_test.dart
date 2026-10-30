@@ -8,6 +8,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/statistics/kacheln/kachel_bearbeiten.dart';
 import 'package:nami/presentation/statistics/kacheln/kachel_rahmen.dart';
 import 'package:nami/presentation/statistics/kacheln/kachel_raster.dart';
+import 'package:nami/presentation/theme/app_haptik.dart';
 import 'package:nami/stories/statistik/statistik_kachel_beispiele.dart';
 
 /// Protokoll der Rückmeldungen aus dem Raster.
@@ -114,11 +115,20 @@ void _flaeche(WidgetTester tester, {double hoehe = 900}) {
   addTearDown(tester.view.reset);
 }
 
+/// Sammelt die ausgeloesten Haptik-Bedeutungen (#281).
+List<String> _haptik() {
+  final haptik = <String>[];
+  AppHaptik.beobachter = haptik.add;
+  addTearDown(() => AppHaptik.beobachter = null);
+  return haptik;
+}
+
 void main() {
   testWidgets('langes Drücken und Ziehen sortiert die Kachel um', (
     tester,
   ) async {
     _flaeche(tester);
+    final haptik = _haptik();
     final aufrufe = _Aufrufe();
     await tester.pumpWidget(_app(bearbeitung: aufrufe.bearbeitung));
     await tester.pump();
@@ -130,6 +140,7 @@ void main() {
       KachelRaster.ziehenNach + const Duration(milliseconds: 40),
     );
     expect(find.byType(KachelPlatzhalter), findsOneWidget);
+    expect(haptik, ['anheben']);
     await geste.moveTo(Offset.lerp(start, ziel, 0.5)!);
     await tester.pump();
     await geste.moveTo(ziel);
@@ -142,10 +153,12 @@ void main() {
     expect(von, 0);
     expect(nach, greaterThan(0));
     expect(find.byType(KachelPlatzhalter), findsNothing);
+    expect(haptik, ['anheben', 'ablegen']);
   });
 
   testWidgets('kurzes Wischen über eine Kachel scrollt weiter', (tester) async {
     _flaeche(tester, hoehe: 600);
+    final haptik = _haptik();
     final aufrufe = _Aufrufe();
     final scroll = ScrollController();
     addTearDown(scroll.dispose);
@@ -159,10 +172,12 @@ void main() {
 
     expect(scroll.offset, greaterThan(100));
     expect(aufrufe.verschoben, isEmpty);
+    expect(haptik, isEmpty);
   });
 
   testWidgets('Eckgriff zeigt Geist mit Badge und rastet ein', (tester) async {
     _flaeche(tester);
+    final haptik = _haptik();
     final aufrufe = _Aufrufe();
     await tester.pumpWidget(_app(bearbeitung: aufrufe.bearbeitung));
     await tester.pump();
@@ -181,6 +196,7 @@ void main() {
     await tester.pump();
     expect(find.byType(KachelGroessenGeist), findsOneWidget);
     expect(find.text('2×1'), findsOneWidget);
+    expect(haptik, ['auswahl']);
     await zug.up();
     await tester.pump();
 

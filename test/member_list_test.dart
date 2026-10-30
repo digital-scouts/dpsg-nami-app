@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +9,7 @@ import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/theme/app_haptik.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
@@ -569,6 +573,176 @@ void main() {
     expect(
       tester.widget<MemberListTile>(ownTile).mitglied.mitgliedsnummer,
       '2001',
+    );
+  });
+
+  group('Gesten (#281)', () {
+    late List<String> haptik;
+
+    setUp(() {
+      haptik = <String>[];
+      AppHaptik.beobachter = haptik.add;
+    });
+    tearDown(() => AppHaptik.beobachter = null);
+
+    Widget app(Widget child) => MaterialApp(
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        AppLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('de'), Locale('en')],
+      locale: const Locale('de'),
+      home: Scaffold(body: child),
+    );
+
+    final mitglieder = <Mitglied>[
+      Mitglied.peopleListItem(
+        mitgliedsnummer: '1001',
+        vorname: 'Anna',
+        nachname: 'Beispiel',
+      ),
+    ];
+
+    testWidgets('Favorit-Wischen ist an der Schwelle spuerbar', (tester) async {
+      final umgeschaltet = <String>[];
+      await tester.pumpWidget(
+        app(
+          MemberList(
+            mitglieder: mitglieder,
+            onToggleFavourite: umgeschaltet.add,
+          ),
+        ),
+      );
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(MemberListTile)),
+      );
+      await gesture.moveBy(const Offset(-40, 0));
+      await tester.pump();
+      expect(haptik, isEmpty);
+
+      for (var i = 0; i < 10; i++) {
+        await gesture.moveBy(const Offset(-50, 0));
+        await tester.pump();
+      }
+      expect(haptik, ['auswahl']);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(umgeschaltet, ['1001']);
+      expect(haptik, ['auswahl']);
+    });
+
+    testWidgets('Lesezeichen erscheint mit Scale und Fade', (tester) async {
+      var favoriten = <String>{};
+      late StateSetter setzen;
+      await tester.pumpWidget(
+        app(
+          StatefulBuilder(
+            builder: (context, setState) {
+              setzen = setState;
+              return MemberList(mitglieder: mitglieder, favourites: favoriten);
+            },
+          ),
+        ),
+      );
+      expect(find.byIcon(Icons.bookmark), findsNothing);
+
+      setzen(() => favoriten = {'1001'});
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final skala = tester.widget<ScaleTransition>(
+        find.ancestor(
+          of: find.byIcon(Icons.bookmark),
+          matching: find.byType(ScaleTransition),
+        ),
+      );
+      expect(skala.scale.value, inExclusiveRange(0.8, 1));
+
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.bookmark), findsOneWidget);
+      expect(
+        tester
+            .widget<ScaleTransition>(
+              find.ancestor(
+                of: find.byIcon(Icons.bookmark),
+                matching: find.byType(ScaleTransition),
+              ),
+            )
+            .scale
+            .value,
+        1,
+      );
+    });
+
+    testWidgets('Aktualisieren ist spuerbar und wartet auf den Abgleich', (
+      tester,
+    ) async {
+      final abgleich = Completer<void>();
+      await tester.pumpWidget(
+        app(
+          MemberList(mitglieder: mitglieder, onRefresh: () => abgleich.future),
+        ),
+      );
+
+      await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(haptik, ['auswahl']);
+      expect(find.byType(RefreshProgressIndicator), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.byType(RefreshProgressIndicator), findsOneWidget);
+
+      abgleich.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(RefreshProgressIndicator), findsNothing);
+    });
+
+    testWidgets('Aktualisieren endet nach der Obergrenze', (tester) async {
+      await tester.pumpWidget(
+        app(
+          MemberList(
+            mitglieder: mitglieder,
+            onRefresh: () => Completer<void>().future,
+          ),
+        ),
+      );
+
+      await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(RefreshProgressIndicator), findsOneWidget);
+
+      await tester.pump(MemberList.aktualisierenObergrenze);
+      await tester.pumpAndSettle();
+      expect(find.byType(RefreshProgressIndicator), findsNothing);
+    });
+
+    testWidgets(
+      'Aktualisieren zeigt unter iOS den Cupertino-Kreisel',
+      (tester) async {
+        final abgleich = Completer<void>();
+        await tester.pumpWidget(
+          app(
+            MemberList(
+              mitglieder: mitglieder,
+              onRefresh: () => abgleich.future,
+            ),
+          ),
+        );
+
+        await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
+
+        abgleich.complete();
+        await tester.pumpAndSettle();
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
     );
   });
 }

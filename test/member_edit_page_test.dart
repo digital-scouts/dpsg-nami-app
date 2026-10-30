@@ -20,6 +20,7 @@ import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/domain/member/member_phone_input.dart';
 import 'package:nami/presentation/screens/member_edit_page.dart';
+import 'package:nami/presentation/theme/app_haptik.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -31,6 +32,14 @@ import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
 import 'support/fake_connectivity.dart';
+
+/// Sammelt die ausgeloesten Haptik-Bedeutungen (#281).
+List<String> _haptik() {
+  final haptik = <String>[];
+  AppHaptik.beobachter = haptik.add;
+  addTearDown(() => AppHaptik.beobachter = null);
+  return haptik;
+}
 
 void main() {
   testWidgets('zeigt Formularinhalt auch auf schmalem Viewport', (
@@ -319,6 +328,7 @@ void main() {
       final model = _RecordingMemberEditModel(
         result: const MemberEditSubmitResult(success: true, wasQueued: false),
       );
+      final haptik = _haptik();
       MemberEditSubmitResult? received;
 
       _useLargeViewport(tester);
@@ -338,6 +348,7 @@ void main() {
 
       expect(received?.success, isTrue);
       expect(find.byType(MemberEditPage), findsNothing);
+      expect(haptik, ['erfolg']);
     });
 
     testWidgets(
@@ -389,6 +400,7 @@ void main() {
       final model = _RecordingMemberEditModel(
         result: const MemberEditSubmitResult(success: false, wasQueued: false),
       );
+      final haptik = _haptik();
       await pumpEditor(
         tester,
         mitglied: _buildMember(gender: 'w'),
@@ -399,6 +411,7 @@ void main() {
 
       expect(find.text('Speichern fehlgeschlagen.'), findsOneWidget);
       expect(find.byType(MemberEditPage), findsOneWidget);
+      expect(haptik, ['fehler']);
       final button = tester.widget<ButtonStyleButton>(
         find.byKey(const Key('member-edit-save-button')),
       );
@@ -407,6 +420,7 @@ void main() {
 
     testWidgets('warnt ohne Sitzung und sendet nichts', (tester) async {
       final model = _RecordingMemberEditModel();
+      final haptik = _haptik();
       await pumpEditor(
         tester,
         mitglied: _buildMember(gender: 'w'),
@@ -421,6 +435,7 @@ void main() {
         findsOneWidget,
       );
       expect(model.submitCalls, isEmpty);
+      expect(haptik, isEmpty);
     });
 
     testWidgets('zeigt Server-Validierung einer Telefonnummer am Feld', (
@@ -441,6 +456,7 @@ void main() {
           ],
         ),
       );
+      final haptik = _haptik();
       await pumpEditor(
         tester,
         mitglied: _buildMember(gender: 'w'),
@@ -451,6 +467,7 @@ void main() {
 
       expect(find.text('Nummer ist ungültig'), findsOneWidget);
       expect(find.text('Validierung fehlgeschlagen'), findsNothing);
+      expect(haptik, ['fehler']);
     });
 
     testWidgets('blockiert Geburtsdatum in der Zukunft', (tester) async {

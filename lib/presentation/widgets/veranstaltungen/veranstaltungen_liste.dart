@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/veranstaltung/veranstaltung.dart';
+import '../app_aktualisieren.dart';
 import '../app_lesebreite.dart';
 import '../section_header.dart';
 import 'veranstaltung_texte.dart';
@@ -81,7 +82,7 @@ class VeranstaltungenListe extends StatelessWidget {
     final onRefresh = this.onRefresh;
     return onRefresh == null
         ? liste
-        : RefreshIndicator(onRefresh: onRefresh, child: liste);
+        : AppAktualisieren(onRefresh: onRefresh, child: liste);
   }
 }
 

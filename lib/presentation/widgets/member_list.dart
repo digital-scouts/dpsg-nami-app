@@ -8,6 +8,7 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/app_aktualisieren.dart';
 import 'package:nami/presentation/widgets/app_lesebreite.dart';
 import 'package:nami/presentation/widgets/leserechte_hinweis.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
@@ -85,6 +86,9 @@ class MemberList extends StatelessWidget {
   final ValueChanged<String>? onTapMember;
   final VoidCallback? onTapSortHint;
   final Future<void> Function()? onRefresh;
+
+  /// Wie lange der Indikator beim Ziehen zum Aktualisieren hoechstens steht.
+  static const Duration aktualisierenObergrenze = Duration(seconds: 8);
 
   @override
   Widget build(BuildContext context) {
@@ -269,11 +273,11 @@ class MemberList extends StatelessWidget {
       return listContent;
     }
 
-    return RefreshIndicator(
-      onRefresh: () {
-        unawaited(onRefresh!());
-        return Future<void>.value();
-      },
+    // Ein voller Abgleich kann dauern: Der Indikator steht bis zum Ende,
+    // laengstens [aktualisierenObergrenze], dann zeigt die Ladeleiste oben.
+    return AppAktualisieren(
+      onRefresh: onRefresh!,
+      obergrenze: aktualisierenObergrenze,
       child: listContent,
     );
   }
